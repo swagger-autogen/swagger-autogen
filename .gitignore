@@ -102,3 +102,7 @@ dist
 
 # TernJS port file
 .tern-port
+.DS_Store
+package-lock.json
+test/*.json
+swagger_output.json
