@@ -51,13 +51,17 @@ function formatDefinitions(def, resp = {}) {
 function getPath(elem, line, autoMode) {
     let path = false
     if (autoMode && !elem.includes(swaggerObj + '.path')) {
-        path = line.replaceAll('\'', '"').replaceAll('`', '"').replaceAll(' ', '').split('"')[1].split('"')[0]
-        path = path.split('/').map(p => {
-            if (p.includes(':'))
-                p = '{' + p.replaceAll(':', '') + '}'
-            return p
-        })
-        path = path.join('/')
+        if (line.split(',').length > 0 && (line.split('\"').length > 2 || line.split('\'').length > 2 || line.split('`').length > 2)) {
+            path = line.replaceAll('\'', '"').replaceAll('`', '"').replaceAll(' ', '').split('"')[1].split('"')[0]
+            path = path.split('/').map(p => {
+                if (p.includes(':'))
+                    p = '{' + p.replaceAll(':', '') + '}'
+                return p
+            })
+            path = path.join('/')
+        } else {
+            path = "/_undefined_path_0x" + elem.length.toString(16)
+        }
     } else if (elem.includes(swaggerObj + '.path'))  // Search for #swagger.path
         path = elem.split(swaggerObj + '.path')[1].replaceAll(' ', '').replaceAll('\'', '\"').replaceAll('`', '\"').split('=')[1].getBetweenStrs('\"', '\"')
     else

@@ -50,19 +50,14 @@ module.exports = function (recLang = null) {
                 })
 
                 const objDoc = { ...template, ...data, paths: {} }
-                // endpointsFiles = endpointsFiles.map(elem => {
-                //     elem = elem.replaceAll('./', '/')
-                //     if (elem[0] != '/')
-                //         elem[0] = '/' + elem[0]
-                //     return elem
-                // })
-
                 for (let file = 0; file < endpointsFiles.length; file++) {
-                    // const filePath = __dirname + endpointsFiles[file]
                     const filePath = endpointsFiles[file]
                     const resp = await fs.existsSync(filePath)
-                    if (!resp)
-                        console.error("\nError: Endpoint file not found => " + "'" + filePath + "'\n Continuing execution ...")
+                    if (!resp){
+                        console.error("\nError: Endpoint file not found => " + "'" + filePath + "'")
+                        console.log('Swagger-autogen:', "\x1b[31m", 'Failed ' + symbols.cross, "\033[0m")
+                        return resolve(true)
+                    }
                     objDoc.paths = { ...objDoc.paths, ...await readEndpointFile(filePath) }
                 }
                 Object.keys(objDoc.definitions).forEach(definition => {
@@ -75,7 +70,7 @@ module.exports = function (recLang = null) {
                 return resolve(true)
             } catch (err) {
                 console.log('Swagger-autogen:', "\x1b[31m", 'Failed ' + symbols.cross, "\033[0m")
-                console.error('\nError generating Swagger documentation.\n Continuing execution ...')
+                return resolve(true)
             }
         })
     }
@@ -289,7 +284,11 @@ function readEndpointFile(filePath) {
                         objEndpoint[path][method].description = ''
                         objEndpoint[path][method].parameters = []
                         objEndpoint[path][method].responses = {}
+
+                        if (path.includes('_undefined_path_0x'))
+                            objEndpoint[path][method].tags.push({ name: 'Endpoints without path or method' })
                     }
+
                     // Geting callback parameters: 'req', 'res' and 'next'
                     if (autoMode && !req && !res) {
                         const callbackParameters = getCallbackParameters(line)
