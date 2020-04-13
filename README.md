@@ -5,7 +5,7 @@ This module performs the automatic construction of the Swagger documentation. Th
 **en-US:**
 This module is in the initial versions. Help us find bugs and improve it. Can you help us? See the [Help us!](#help-us) section.
 
-**pr-BR:**
+**pt-BR:**
 Este módulo está nas versões iniciais. Ajude-nos a encontrar bugs e melhorá-lo. Você pode nos ajudar? Veja a seção [Help us!](#help-us).
 
 [![NPM Version](http://img.shields.io/npm/v/swagger-autogen.svg?style=flat)](https://www.npmjs.org/package/commander) [![NPM Downloads](https://img.shields.io/npm/dm/swagger-autogen.svg?style=flat)](https://npmcharts.com/compare/swagger-autogen?minimal=true)
@@ -954,7 +954,7 @@ Version 1.x.x will focus on bug fixes.
 ## Help us!
 Help us improve this module. If you have any information that the module does not provide or provides incompletely or incorrectly, please use our [Github](https://github.com/davibaltar/swagger-autogen) repository or email.
 
-**Pt-Br:**
+**pt-Br:**
 Ajude-nos a melhorar este módulo. Se você tiver alguma informação que o módulo não forneça ou forneça de maneira incompleta ou incorreta, use nosso repositório do [Github](https://github.com/davibaltar/swagger-autogen) ou email. Pode enviar em português Brasil também! :)
 
 Repository: https://github.com/davibaltar/swagger-autogen
