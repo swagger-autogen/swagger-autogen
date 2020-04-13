@@ -15,7 +15,7 @@ Este módulo está nas versões iniciais. Ajude-nos a encontrar bugs e melhorar�
 - [Installation](#installation)
 - [Usage](#usage)
   - [Usage (Basic)](#usage-basic)
-  - [Usage (Com Opcionais)](#usage-com-opicionais)
+  - [Usage (With Optionals)](#usage-with-optionals)
 - [Building documentation without starting the project](#building-documentation-without-starting-the-project)
 - [Building documentation together with the project](#building-documentation-together-with-the-project)
 - [Endpoints](#endpoints)
@@ -139,7 +139,7 @@ Where `./swagger.js` is the file containing the `swaggerAutogen(...)` function c
 $ npm run swagger-autogen
 ``` 
 
-## Building documentation along with the project
+## Building documentation together with the project
 To build the documentation before the project starts and immediately start it, rewrite the `swaggerAutogen(...)` function as follows:
 
 ```js
@@ -713,7 +713,7 @@ At the endpoint, add the `#swagger.security` tag, for example:
     })
 ```
 
-## Languages
+## Response Language
 It is possible to change the default language (English) of the description in the automatic response, for example: status code 404, the description will be: 'Not Found'. To change, just do in the module declaration:
 
 ```js
