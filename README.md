@@ -163,7 +163,7 @@ In this case it is not necessary to do anything. Considering, for example, the f
 ```js
     // ...
 
-    app.get('/user', (req, res) => {
+    app.get('/users', (req, res) => {
 
         users.adduser(req.query.obj)
 
@@ -172,7 +172,7 @@ In this case it is not necessary to do anything. Considering, for example, the f
         return res.status(500).send(false)
     })
 
-    app.get('/user/:id', (req, res) => {
+    app.get('/users/:id', (req, res) => {
 
         if(...)
             return res.status(200).send(data)
@@ -188,7 +188,7 @@ See [Complete example here!](#complete-example)
 This is the description of the Endpoint. To add it, use the `#swagger.description` tag, for example:
 
 ```js
-    app.get('/user/:id', (req, res) => {
+    app.get('/users/:id', (req, res) => {
         // #swagger.description = 'Endpoint used to obtain a specific user.'
 
         if(...)
@@ -196,7 +196,7 @@ This is the description of the Endpoint. To add it, use the `#swagger.descriptio
         return res.status(404).send(false)
     })
 
-    app.post('/user', (req, res) => {
+    app.post('/users', (req, res) => {
         /* #swagger.description = 'Endpoint used to add a particular user.' */
 
         if(...)
@@ -213,7 +213,7 @@ To inform which tags the endpoinst belongs to, use the `#swagger.tags` tag, for 
 ```js
     // ...
 
-    app.get('/user', (req, res) => {
+    app.get('/users', (req, res) => {
         /* #swagger.tags = ['Users'] */
 
         if(...)
@@ -221,7 +221,7 @@ To inform which tags the endpoinst belongs to, use the `#swagger.tags` tag, for 
         return res.status(500).send(false)
     })
 
-    app.get('/user/:id', (req, res) => {
+    app.get('/users/:id', (req, res) => {
         // #swagger.tags = ['Users', 'Others']
 
         if(...)
@@ -256,7 +256,7 @@ All optional parameters for the tag parameter:
 
 For example:
 ```js
-    app.get('/user/:id', (req, res) => {
+    app.get('/users/:id', (req, res) => {
         // #swagger.parameters['id'] = { description: "User ID", type: "integer" } */
 
         if(...)
@@ -264,7 +264,7 @@ For example:
         return res.status(404).send(false)
     })
 
-    app.post('/user', (req, res) => {
+    app.post('/users', (req, res) => {
         /*  #swagger.parameters['obj'] = { 
                 in: 'body',
                 description: "User data."
@@ -286,7 +286,7 @@ It is possible to create or complement automatically detected responses. Use the
 ```js
     // ...
 
-    app.get('/user/:id', (req, res) => {
+    app.get('/users/:id', (req, res) => {
 
         if(...) {
             /* #swagger.responses[200] = { 
@@ -298,7 +298,7 @@ It is possible to create or complement automatically detected responses. Use the
         return res.status(404).send(false)
     })
     
-    app.post('/user', (req, res) => {
+    app.post('/users', (req, res) => {
 
         /*  #swagger.responses[201] = { 
             description: 'User registered successfully.'
@@ -312,7 +312,7 @@ It is possible to create or complement automatically detected responses. Use the
         return res.status(500).send(false)
     })
 
-    app.post('/v2/user', (req, res) => {
+    app.post('/v2/users', (req, res) => {
         
         users.adduser(req.query.obj)
 
@@ -338,7 +338,7 @@ Use the `#swagger.produces = ['contentType']` or `#swagger.consumes = ['contentT
 ```js
     // ...
     
-    app.get('/user/:id', (req, res) => {
+    app.get('/users/:id', (req, res) => {
         res.setHeader('Content-Type', 'application/xml')
 
         if(...) 
@@ -346,7 +346,7 @@ Use the `#swagger.produces = ['contentType']` or `#swagger.consumes = ['contentT
         return res.status(404).send(false)
     })
 
-    app.get('/v2/user/:id', (req, res) => {
+    app.get('/v2/users/:id', (req, res) => {
         // #swagger.consumes = ['application/xml']
 
         if(...) 
@@ -354,7 +354,7 @@ Use the `#swagger.produces = ['contentType']` or `#swagger.consumes = ['contentT
         return res.status(404).send(false)
     })
     
-    app.post('/user', (req, res) => {
+    app.post('/users', (req, res) => {
         /* #swagger.produces = ['application/json', 'application/xml'] */
 
         if(...)
@@ -413,7 +413,7 @@ const doc = {
 
 `Endpoint file:`
 ```js
-    app.get('/user/:id', (req, res) => {
+    app.get('/users/:id', (req, res) => {
         if(...) {
             /* #swagger.responses[200] = { 
                 schema: { "$ref": "#/definitions/User" }, 
@@ -423,7 +423,7 @@ const doc = {
         return res.status(404).send(false)
     })
 
-    app.get('/v2/user/:id', (req, res) => {
+    app.get('/v2/users/:id', (req, res) => {
         if(...) {
             // Inserting directly, without using definitions:
 
@@ -453,7 +453,7 @@ const doc = {
         return res.status(404).send(false)
     })
     
-    app.post('/user', (req, res) => {
+    app.post('/users', (req, res) => {
         /*    #swagger.parameters['obj'] = { 
                 in: 'body',
                 description: "User data.",
@@ -466,7 +466,7 @@ const doc = {
         return res.status(500).send(false)
     })
 
-    app.post('/v2/user', (req, res) => {
+    app.post('/v2/users', (req, res) => {
         // Inserting directly, without using definitions:
 
         /*    #swagger.parameters['obj'] = { 
@@ -502,7 +502,7 @@ In case of endpoint with referenced callback it is necessary to add the informat
         return res.status(500).send(false)
     })
 
-    app.put('/user/:id', myFunction)
+    app.put('/users/:id', myFunction)
 ```
 
 `After`
@@ -516,7 +516,7 @@ In case of endpoint with referenced callback it is necessary to add the informat
         return res.status(500).send(false)
     })
 
-    app.put('/user/:id', myFunction
+    app.put('/users/:id', myFunction
         /*  #swagger.parameters['id'] = { description: "User ID." }
 
             #swagger.parameters['obj'] = {
@@ -539,7 +539,7 @@ Use the `#swagger.deprecated = true` tag to inform that a given endpoint is depr
 ```js
     // ...
 
-    app.get('/user/:id', (req, res) => {
+    app.get('/users/:id', (req, res) => {
         // #swagger.deprecated = true
 
         if(...)
@@ -556,7 +556,7 @@ Use the `#swagger.ignore = true` tag to ignore a given endpoint. Thus, it will n
 ```js
     // ...
 
-    app.get('/user/:id', (req, res) => {
+    app.get('/users/:id', (req, res) => {
         // #swagger.ignore = true
 
         if(...)
@@ -571,10 +571,10 @@ See [Complete example here!](#complete-example)
 Use the `#swagger.auto = false` tag to disable automatic recognition. With that, all parameters of the endpoint must be informed manually, for example:
 
 ```js
-    app.put('/user/:id', (req, res) => {
+    app.put('/users/:id', (req, res) => {
         /*  #swagger.auto = false
 
-            #swagger.path = '/user/{id}'
+            #swagger.path = '/users/{id}'
             #swagger.method = 'put'
             #swagger.produces = ["application/json"]
             #swagger.consumes = ["application/json"]
@@ -649,7 +649,7 @@ If the file containing the endpoints contains multiple patterns before of method
 
     // ...
 
-    app.get('/user/:id', (req, res) => {
+    app.get('/users/:id', (req, res) => {
         if(...)
             return res.status(200).send(data)
         return res.status(404).send(false)
@@ -698,7 +698,7 @@ const doc = {
 At the endpoint, add the `#swagger.security` tag, for example:
 
 ```js
-    app.get('/user/:id', (req, res) => {
+    app.get('/users/:id', (req, res) => {
         
         /* #swagger.security = [{
             "petstore_auth": [
@@ -765,7 +765,7 @@ let expression = true
 module.exports = function (app) {
 
 	/* NOTE: 100% automatic */
-	app.get('/automatic/user/:id', (req, res) => {
+	app.get('/automatic/users/:id', (req, res) => {
 		res.setHeader('Content-Type', 'application/json')
 		const dataId = users.getUser(req.params.id)
 		const dataObj = users.getUser(req.query.obj)
@@ -776,7 +776,7 @@ module.exports = function (app) {
 	})
 
 	/* NOTE: 100% automatic */
-	app.post('/automatic/user', (req, res) => {
+	app.post('/automatic/users', (req, res) => {
 		res.setHeader('Content-Type', 'application/xml')
 		const data = users.addUser(req.query.obj)
 
@@ -786,7 +786,7 @@ module.exports = function (app) {
 	})
 
 	/* NOTE: Completing informations automaticaly obtaineds */
-	app.get('/automatic_and_incremented/user/:id', (req, res) => {
+	app.get('/automatic_and_incremented/users/:id', (req, res) => {
 		/* 	#swagger.tags = ['User']
 			#swagger.description = 'Endpoint to get the specific user.' */
 		res.setHeader('Content-Type', 'application/json')
@@ -802,7 +802,7 @@ module.exports = function (app) {
 	})
 
 	/* NOTE: Completing informations automaticaly obtaineds */
-	app.post('/automatic_and_incremented/user', (req, res) => {
+	app.post('/automatic_and_incremented/users', (req, res) => {
 		res.setHeader('Content-Type', 'application/xml')
 		/* 	#swagger.tags = ['User']
 			#swagger.description = 'Endpoint to add a user.' */
@@ -824,7 +824,7 @@ module.exports = function (app) {
 	})
 
 	/* NOTE: Function with callback referencied */
-	app.delete('/automatic_and_incremented/user/:id', myFunction1
+	app.delete('/automatic_and_incremented/users/:id', myFunction1
 	/*  #swagger.tags = ['User']
 		#swagger.parameters['id'] = {
 			description: 'User ID.'
@@ -844,10 +844,10 @@ module.exports = function (app) {
 		return res.status(404).send(false)
 	})
 
-	app.patch('/manual/user/:id', (req, res) => {
+	app.patch('/manual/users/:id', (req, res) => {
         /*  #swagger.auto = false
 
-            #swagger.path = '/manual/user/{id}'
+            #swagger.path = '/manual/users/{id}'
 			#swagger.method = 'patch'
 			#swagger.description = 'Endpoint added manually.'
 		    #swagger.produces = ["application/json"]
