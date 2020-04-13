@@ -53,12 +53,17 @@ module.exports = function (recLang = null) {
                 for (let file = 0; file < endpointsFiles.length; file++) {
                     const filePath = endpointsFiles[file]
                     const resp = await fs.existsSync(filePath)
-                    if (!resp){
+                    if (!resp) {
                         console.error("\nError: Endpoint file not found => " + "'" + filePath + "'")
                         console.log('Swagger-autogen:', "\x1b[31m", 'Failed ' + symbols.cross, "\033[0m")
-                        return resolve(true)
+                        return resolve(false)
                     }
-                    objDoc.paths = { ...objDoc.paths, ...await readEndpointFile(filePath) }
+                    let obj = await readEndpointFile(filePath)
+                    if (obj === false) {
+                        console.log('Swagger-autogen:', "\x1b[31m", 'Failed ' + symbols.cross, "\033[0m")
+                        return resolve(false)
+                    }
+                    objDoc.paths = { ...objDoc.paths, ...obj }
                 }
                 Object.keys(objDoc.definitions).forEach(definition => {
                     objDoc.definitions[definition] = { ...swaggerTags.formatDefinitions(objDoc.definitions[definition]), xml: { name: definition } }
@@ -70,7 +75,7 @@ module.exports = function (recLang = null) {
                 return resolve(true)
             } catch (err) {
                 console.log('Swagger-autogen:', "\x1b[31m", 'Failed ' + symbols.cross, "\033[0m")
-                return resolve(true)
+                return resolve(false)
             }
         })
     }
@@ -316,7 +321,13 @@ function readEndpointFile(filePath) {
                     } else if (paramName && paramName.includes('responses') && paramName.includes('[') && paramName.includes(']')) {
                         objResponses = swaggerTags.getResponsesTag(line, paramName, objResponses)       // Search for #swagger.responses
                     } else if (paramName) {
-                        objEndpoint[path][method][paramName] = eval(`(${line.split('=')[1]})`)
+                        try {
+                            objEndpoint[path][method][paramName] = eval(`(${line.split('=')[1]})`)
+                        } catch (err) {
+                            console.error('Syntax error: ' + line)
+                            console.error(err)
+                            return resolve(false)
+                        }
                     }
                 })
 
