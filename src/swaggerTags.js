@@ -114,26 +114,51 @@ function getAutoTag(elem) {
 
 function getParametersTag(line, paramName, objParameters) {
     let name = paramName.replaceAll('\"', '\'').replaceAll('`', '\'').getBetweenStrs('\'', '\'')
-    objParameters[name] = { name, ...objParameters[name], ...eval(`(${line.split('=')[1]})`) }
+    try {   // Handling syntax error
+        objParameters[name] = { name, ...objParameters[name], ...eval(`(${line.split('=')[1]})`) }
+    } catch (err) {
+        console.error('Syntax error: ' + line)
+        console.error(err)
+        return false
+    }
     if (objParameters[name].schema && !objParameters[name].schema.$ref)
         objParameters[name].schema = formatDefinitions(objParameters[name].schema)
     return objParameters
 }
 
 function getProducesTag(line, objEndpoint, path, method) {
-    objEndpoint[path][method].produces = eval(line.replaceAll("__¬¬¬__", "\"").split('=')[1])
+    try {   // Handling syntax error
+        objEndpoint[path][method].produces = eval(line.replaceAll("__¬¬¬__", "\"").split('=')[1])
+    } catch (err) {
+        console.error('Syntax error: ' + line)
+        console.error(err)
+        return false
+    }
     return objEndpoint
 }
 
 function getConsumesTag(line, objEndpoint, path, method) {
-    objEndpoint[path][method].consumes = eval(line.replaceAll("__¬¬¬__", "\"").split('=')[1])
+    try {   // Handling syntax error
+        objEndpoint[path][method].consumes = eval(line.replaceAll("__¬¬¬__", "\"").split('=')[1])
+    } catch (err) {
+        console.error('Syntax error: ' + line)
+        console.error(err)
+        return false
+    }
     return objEndpoint
 }
 
 function getResponsesTag(line, paramName, objResponses) {
     paramName = paramName.replaceAll('\"', '\'').replaceAll('`', '\'')
     let statusCode = paramName.includes('\'') ? paramName.getBetweenStrs('\'', '\'') : paramName.getBetweenStrs('[', ']')
-    let objResp = eval(`(${line.split('=')[1]})`)
+    let objResp = null;
+    try { // Handling syntax error
+        objResp = eval(`(${line.split('=')[1]})`)
+    } catch (err) {
+        console.error('Syntax error: ' + line)
+        console.error(err)
+        return false
+    }
     if (objResp && objResp.schema && !objResp.schema.$ref) {
         objResponses[statusCode] = { ...objResponses[statusCode], ...objResp, schema: formatDefinitions(objResp.schema) }
         if (objResponses[statusCode].xmlName) {

@@ -237,7 +237,14 @@ function readEndpointFile(filePath) {
             let aData = clearData(data)
             let serverVar = null
             if (aData.includes(swaggerObj + '.patterns')) {
-                let patterns = eval(aData.replaceAll(' ', '').split(swaggerObj + '.patterns=')[1].split('*/')[0])
+                let patterns = null
+                try {  // Handling syntax error
+                    patterns = eval(aData.replaceAll(' ', '').split(swaggerObj + '.patterns=')[1].split('*/')[0])
+                } catch (err) {
+                    console.error('Syntax error: ' + swaggerObj + '.patterns' + aData.split(swaggerObj + '.patterns')[1].split('*/')[0])
+                    console.error(err)
+                    return resolve(false)
+                }
                 regex = ''
                 patterns.forEach(pattern => {
                     regex += `( |\\t|\\n|;|\\*\\/)${pattern}.get\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.head\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.post\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.put\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.delete\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.patch\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.options\\s*\\(|`
@@ -277,7 +284,10 @@ function readEndpointFile(filePath) {
                 autoMode = swaggerTags.getAutoTag(elem)
 
                 const aElem = elem.split(/;|\n/)
-                aElem.forEach(line => {
+                // aElem.forEach(line => {
+                for (var _idx in aElem) {
+                    const line = aElem[_idx]
+
                     if (!path) {    // First
                         path = swaggerTags.getPath(elem, line, autoMode)
                         objEndpoint[path] = {}
@@ -329,7 +339,10 @@ function readEndpointFile(filePath) {
                             return resolve(false)
                         }
                     }
-                })
+                    if (objResponses === false || objParameters === false || objEndpoint === false)
+                        return resolve(false)
+                }
+                //})
 
                 // req | res: Last, because must eliminate comments and strings to get .status only from the code.
                 if (autoMode && (req || res)) {
