@@ -93,7 +93,7 @@ function clearData(data) {
     })
     data = data.join('//').replaceAll('//', '/*')
 
-    let regex = "\\.get\\s*\\(|\\.head\\s*\\(|\\.post\\s*\\(|\\.put\\s*\\(|\\.delete\\s*\\(|\\.connect\\s*\\(|\\.trace\\s*\\(|\\.patch\\s*\\(|\\.options\\s*\\("
+    let regex = "\\.get\\s*\\(|\\.head\\s*\\(|\\.post\\s*\\(|\\.put\\s*\\(|\\.delete\\s*\\(|\\.patch\\s*\\(|\\.options\\s*\\("
     let aData = data.replaceAll('\n', unusualString)
     aData = aData.replaceAll('\t', ' ')
     aData = aData.replaceAll("Content-Type", "content-type")
@@ -233,20 +233,20 @@ function readEndpointFile(filePath) {
         let paths = {}
         fs.readFile(filePath, 'utf8', function (err, data) {
             if (err) throw console.error(err)
-            let regex = "\\.get\\s*\\(|\\.head\\s*\\(|\\.post\\s*\\(|\\.put\\s*\\(|\\.delete\\s*\\(|\\.connect\\s*\\(|\\.trace\\s*\\(|\\.patch\\s*\\(|\\.options\\s*\\("
+            let regex = "\\.get\\s*\\(|\\.head\\s*\\(|\\.post\\s*\\(|\\.put\\s*\\(|\\.delete\\s*\\(|\\.patch\\s*\\(|\\.options\\s*\\("
             let aData = clearData(data)
             let serverVar = null
             if (aData.includes(swaggerObj + '.patterns')) {
                 let patterns = eval(aData.replaceAll(' ', '').split(swaggerObj + '.patterns=')[1].split('*/')[0])
                 regex = ''
                 patterns.forEach(pattern => {
-                    regex += `( |\\t|\\n|;|\\*\\/)${pattern}.get\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.head\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.post\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.put\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.delete\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.connect\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.trace\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.patch\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.options\\s*\\(|`
+                    regex += `( |\\t|\\n|;|\\*\\/)${pattern}.get\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.head\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.post\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.put\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.delete\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.patch\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.options\\s*\\(|`
                 })
                 regex = regex.slice(0, -1)
             } else {    // Automatic
                 serverVar = aData.split(new RegExp(regex))[0].split(/\n| |\t|';'|\{|\}|\(|\)|\[|\]/).splice(-1)[0]  // ex.: app, route, server, etc.      
                 if (serverVar)
-                    regex = `( |\\t|\\n|;|\\*\\/)${serverVar}.get\\s*\\(|( |\\t|\\n|;|\\*\\/)${serverVar}.head\\s*\\(|( |\\t|\\n|;|\\*\\/)${serverVar}.post\\s*\\(|( |\\t|\\n|;|\\*\\/)${serverVar}.put\\s*\\(|( |\\t|\\n|;|\\*\\/)${serverVar}.delete\\s*\\(|( |\\t|\\n|;|\\*\\/)${serverVar}.connect\\s*\\(|( |\\t|\\n|;|\\*\\/)${serverVar}.trace\\s*\\(|( |\\t|\\n|;|\\*\\/)${serverVar}.patch\\s*\\(|( |\\t|\\n|;|\\*\\/)${serverVar}.options\\s*\\(`
+                    regex = `( |\\t|\\n|;|\\*\\/)${serverVar}.get\\s*\\(|( |\\t|\\n|;|\\*\\/)${serverVar}.head\\s*\\(|( |\\t|\\n|;|\\*\\/)${serverVar}.post\\s*\\(|( |\\t|\\n|;|\\*\\/)${serverVar}.put\\s*\\(|( |\\t|\\n|;|\\*\\/)${serverVar}.delete\\s*\\(|( |\\t|\\n|;|\\*\\/)${serverVar}.patch\\s*\\(|( |\\t|\\n|;|\\*\\/)${serverVar}.options\\s*\\(`
             }
             let aForcedsEndpoints = swaggerTags.getForcedEndpoints(aData)
             const aDataRaw = aData

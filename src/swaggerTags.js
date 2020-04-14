@@ -2,7 +2,7 @@
 const tables = require('./tables')
 
 const swaggerObj = '#swagger'
-const aMethods = ['get', 'head', 'post', 'put', 'delete', 'connect', 'trace', 'patch', 'options']
+const aMethods = ['get', 'head', 'post', 'put', 'delete', 'patch', 'options']
 let lang = 'en'
 
 function getSwaggerObj() {
@@ -17,7 +17,6 @@ function setLanguage(newLang) {
     lang = newLang
     return lang
 }
-
 
 function formatDefinitions(def, resp = {}) {
     if (Array.isArray(def))

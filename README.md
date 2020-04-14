@@ -105,7 +105,7 @@ const doc = {
     schemes: [],                      // by default: ['http']
     consumes: [],                     // by default: ['application/json']
     produces: [],                     // by default: ['application/json']
-    tags: [                           // by default: void Array
+    tags: [                           // by default: empty Array
         {
             "name": "",               // Tag name
             "description": ""         // Tag description
@@ -189,7 +189,7 @@ This is the description of the Endpoint. To add it, use the `#swagger.descriptio
 
 ```js
     app.get('/users/:id', (req, res) => {
-        // #swagger.description = 'Endpoint used to obtain a specific user.'
+        // #swagger.description = 'Endpoint used to obtain a user.'
 
         if(...)
             return res.status(200).send(data)
@@ -197,7 +197,7 @@ This is the description of the Endpoint. To add it, use the `#swagger.descriptio
     })
 
     app.post('/users', (req, res) => {
-        /* #swagger.description = 'Endpoint used to add a particular user.' */
+        /* #swagger.description = 'Endpoint used to add a user.' */
 
         if(...)
             return res.status(201).send(data)
@@ -257,7 +257,7 @@ All optional parameters for the tag parameter:
 For example:
 ```js
     app.get('/users/:id', (req, res) => {
-        // #swagger.parameters['id'] = { description: "User ID", type: "integer" } */
+        //  #swagger.parameters['id'] = { description: "User ID" } 
 
         if(...)
             return res.status(200).send(data)
@@ -267,7 +267,8 @@ For example:
     app.post('/users', (req, res) => {
         /*  #swagger.parameters['obj'] = { 
                 in: 'body',
-                description: "User data."
+                type: "object",
+                description: "User data"
         } */
 
         users.adduser(req.body)
@@ -427,7 +428,8 @@ const doc = {
         if(...) {
             // Inserting directly, without using definitions:
 
-            /* #swagger.responses[200] = { description: "User successfully obtained.", 
+            /* #swagger.responses[200] = { 
+                description: "User successfully obtained.", 
                 schema: {
                     name: "Jhon Doe",
                     age: 29,
@@ -645,6 +647,8 @@ See [Complete example here!](#complete-example)
 If the file containing the endpoints contains multiple patterns before of method, use the `#swagger.patterns` tag, for example:
 
 ```js
+    const lib = require(...)
+    
     // #swagger.patterns = ['app', 'route']
 
     // ...
@@ -720,21 +724,21 @@ At the endpoint, add the `#swagger.security` tag, for example:
 It is possible to change the default language (English) of the description in the automatic response, for example: status code 404, the description will be: 'Not Found'. To change, just do in the module declaration:
 
 ```js
-const swaggerAutogen = require('swagger-autogen')('pt-BR')    // Portuguese - Brazil
+const swaggerAutogen = require('swagger-autogen')('pt-BR')  // Portuguese - Brazil
 // In this case, for example, the description of status code 404 will be: 'Não Encontrado'
 ```
 
 OR
 
 ```js
-const swaggerAutogen = require('swagger-autogen')('zh-CN')    // Chinese (Simplified)
+const swaggerAutogen = require('swagger-autogen')('zh-CN')  // Chinese (Simplified)
 // In this case, for example, the description of status code 404 will be: '未找到'
 ```
 
 OR
 
 ```js
-const swaggerAutogen = require('swagger-autogen')()           // English by default
+const swaggerAutogen = require('swagger-autogen')()  // English by default
 // In this case, for example, the description of status code 404 will be: 'Not Found'
 ```
 
@@ -764,176 +768,177 @@ let expression = true
 
 module.exports = function (app) {
 
-	/* NOTE: 100% automatic */
-	app.get('/automatic/users/:id', (req, res) => {
-		res.setHeader('Content-Type', 'application/json')
-		const dataId = users.getUser(req.params.id)
-		const dataObj = users.getUser(req.query.obj)
+    /* NOTE: 100% automatic */
+    app.get('/automatic/users/:id', (req, res) => {
+        res.setHeader('Content-Type', 'application/json')
+        const dataId = users.getUser(req.params.id)
+        const dataObj = users.getUser(req.query.obj)
 
-		if (expression)
-			return res.status(200).send(true)
-		return res.status(404).send(false)
-	})
+        if (expression)
+            return res.status(200).send(true)
+        return res.status(404).send(false)
+    })
 
-	/* NOTE: 100% automatic */
-	app.post('/automatic/users', (req, res) => {
-		res.setHeader('Content-Type', 'application/xml')
-		const data = users.addUser(req.query.obj)
+    /* NOTE: 100% automatic */
+    app.post('/automatic/users', (req, res) => {
+        res.setHeader('Content-Type', 'application/xml')
+        const data = users.addUser(req.query.obj)
 
-		if (expression)
-			return res.status(201).send(data)
-		return res.status(500)
-	})
+        if (expression)
+            return res.status(201).send(data)
+        return res.status(500)
+    })
 
-	/* NOTE: Completing informations automaticaly obtaineds */
-	app.get('/automatic_and_incremented/users/:id', (req, res) => {
-		/* 	#swagger.tags = ['User']
-			#swagger.description = 'Endpoint to get the specific user.' */
-		res.setHeader('Content-Type', 'application/json')
-		const data = users.getUser(req.params.id)
+    /* NOTE: Completing informations automaticaly obtaineds */
+    app.get('/automatic_and_incremented/users/:id', (req, res) => {
+        /* #swagger.tags = ['User']
+           #swagger.description = 'Endpoint to get the specific user.' */
+        res.setHeader('Content-Type', 'application/json')
+        const data = users.getUser(req.params.id)
 
-		if (expression) {
-			/* #swagger.responses[200] = { 
-				schema: { "$ref": "#/definitions/User" },
-				description: "User registered successfully." } */
-			return res.status(200).send(data)
-		}
-		return res.status(404).send(false)	// #swagger.responses[404]
-	})
+        if (expression) {
+            /* #swagger.responses[200] = { 
+                    schema: { "$ref": "#/definitions/User" },
+                    description: "User registered successfully." } */
+            return res.status(200).send(data)
+        }
+        return res.status(404).send(false)    // #swagger.responses[404]
+    })
 
-	/* NOTE: Completing informations automaticaly obtaineds */
-	app.post('/automatic_and_incremented/users', (req, res) => {
-		res.setHeader('Content-Type', 'application/xml')
-		/* 	#swagger.tags = ['User']
-			#swagger.description = 'Endpoint to add a user.' */
+    /* NOTE: Completing informations automaticaly obtaineds */
+    app.post('/automatic_and_incremented/users', (req, res) => {
+        res.setHeader('Content-Type', 'application/xml')
+        /*  #swagger.tags = ['User']
+            #swagger.description = 'Endpoint to add a user.' */
 
-		/*	#swagger.parameters['obj'] = {
-				in: 'body',
-				description: 'User information.',
-				required: true,
-				type: 'object',
-				schema: { $ref: "#/definitions/AddUser" }
+        /*  #swagger.parameters['obj'] = {
+                in: 'body',
+                description: 'User information.',
+                required: true,
+                type: 'object',
+                schema: { $ref: "#/definitions/AddUser" }
         } */
-		const data = users.addUser(req.body)
+        const data = users.addUser(req.body)
 
-		if (expression) {
-			// #swagger.responses[201] = { description: 'User registered successfully.' }
-			return res.status(201).send(data)
-		}
-		return res.status(500)	// #swagger.responses[500]
-	})
+        if (expression) {
+            // #swagger.responses[201] = { description: 'User registered successfully.' }
+            return res.status(201).send(data)
+        }
+        return res.status(500)    // #swagger.responses[500]
+    })
 
-	/* NOTE: Function with callback referencied */
-	app.delete('/automatic_and_incremented/users/:id', myFunction1
-	/*  #swagger.tags = ['User']
-		#swagger.parameters['id'] = {
-			description: 'User ID.'
-		}
-		
-		#swagger.responses[200]
-		#swagger.responses[404]
-	*/)
+    /* NOTE: Function with callback referencied */
+    app.delete('/automatic_and_incremented/users/:id', myFunction1
+    /*  #swagger.tags = ['User']
+        #swagger.parameters['id'] = {
+            description: 'User ID.'
+        }
+        
+        #swagger.responses[200]
+        #swagger.responses[404]
+    */)
 
-	/* NOTE: Will be ignored in the build */
-	app.get('/toIgnore', (req, res) => {
-		// #swagger.ignore = true
-		res.setHeader('Content-Type', 'application/json')
+    /* NOTE: Will be ignored in the build */
+    app.get('/toIgnore', (req, res) => {
+        // #swagger.ignore = true
+        res.setHeader('Content-Type', 'application/json')
 
-		if (expression)
-			return res.status(200).send(true)
-		return res.status(404).send(false)
-	})
+        if (expression)
+            return res.status(200).send(true)
+        return res.status(404).send(false)
+    })
 
-	app.patch('/manual/users/:id', (req, res) => {
+    app.patch('/manual/users/:id', (req, res) => {
         /*  #swagger.auto = false
 
             #swagger.path = '/manual/users/{id}'
-			#swagger.method = 'patch'
-			#swagger.description = 'Endpoint added manually.'
-		    #swagger.produces = ["application/json"]
+            #swagger.method = 'patch'
+            #swagger.description = 'Endpoint added manually.'
+            #swagger.produces = ["application/json"]
             #swagger.consumes = ["application/json"]
         */
 
-		/*	#swagger.parameters['id'] = {
-				in: 'path',
-				description: 'User ID.',
-				required: true
-			}
-  		*/
+        /*  #swagger.parameters['id'] = {
+                in: 'path',
+                description: 'User ID.',
+                required: true
+            }
+        */
 
-		/*	#swagger.parameters['obj'] = {
+        /*  #swagger.parameters['obj'] = {
                 in: 'query',
                 description: 'User information.',
                 required: true, 
                 type: 'string'
-			}
-		*/
+            }
+        */
 
-		if (expression) {
-			/* #swagger.responses[200] = { 
-				schema: { "$ref": "#/definitions/User" }, description: "User found." }
-			*/
-			return res.status(200).send(data)
-		}
-		// #swagger.responses[500] = { description: "Server Failure." }
-		return res.status(500).send(false)
-	})
+        if (expression) {
+            /* #swagger.responses[200] = { 
+                    schema: { "$ref": "#/definitions/User" }, 
+                    description: "User found." 
+            }*/
+            return res.status(200).send(data)
+        }
+        // #swagger.responses[500] = { description: "Server Failure." }
+        return res.status(500).send(false)
+    })
 
-	app.head('/security', (req, res) => {
-		res.setHeader('Content-Type', 'application/json')
-		/* #swagger.security = [{
-			"petstore_auth": [
-				"write_pets",
-				"read_pets"
-			]
-		}] */
+    app.head('/security', (req, res) => {
+        res.setHeader('Content-Type', 'application/json')
+        /* #swagger.security = [{
+            "petstore_auth": [
+                "write_pets",
+                "read_pets"
+            ]
+        }] */
 
-		const dataObj = users.getUser(req.query.obj)
+        const dataObj = users.getUser(req.query.obj)
 
-		if (expression)
-			return res.status(200).send(true)
-		return res.status(404).send(false)
-	})
+        if (expression)
+            return res.status(200).send(true)
+        return res.status(404).send(false)
+    })
 }
 
 function myFunction1(p) {
-	const dataId = users.getUser(req.params.id)
+    const dataId = users.getUser(req.params.id)
 
-	if (expression)
-		return res.status(200).send(true)
-	return res.status(404).send(false)
+    if (expression)
+        return res.status(200).send(true)
+    return res.status(404).send(false)
 }
 
 function myFunction2(p) {
-	// #swagger.start
+    // #swagger.start
 
-	/*
-		#swagger.path = '/forcedEndpoint/{id}'
-		#swagger.method = 'put'
-		#swagger.description = 'Forced endpoint.'
-		#swagger.produces = ["application/json"]
-	*/
+    /*
+       #swagger.path = '/forcedEndpoint/{id}'
+       #swagger.method = 'put'
+       #swagger.description = 'Forced endpoint.'
+       #swagger.produces = ["application/json"]
+    */
 
-	/*  #swagger.parameters['id'] = { in: 'path', description: 'User ID.' } */
-	const dataId = users.getUser(req.params.id)
+    /* #swagger.parameters['id'] = { in: 'path', description: 'User ID' } */
+    const dataId = users.getUser(req.params.id)
 
-	/*	#swagger.parameters['obj'] = { 
-			in: 'body',
-			description: 'User information.',
-			type: 'object',
-			schema: {
-                $name: "Jhon Doe",
-                $age: 29,
-                about: ""
+    /* #swagger.parameters['obj'] = { 
+           in: 'body',
+           description: 'User information.',
+           type: 'object',
+           schema: {
+               $name: "Jhon Doe",
+               $age: 29,
+               about: ""
             }
     } */
-	const dataObj = users.getUser(req.body)
+    const dataObj = users.getUser(req.body)
 
-	if (expression)
-		return res.status(200).send(true)	// #swagger.responses[200]
-	return res.status(404).send(false)		// #swagger.responses[404]
+    if (expression)
+        return res.status(200).send(true)   // #swagger.responses[200]
+    return res.status(404).send(false)      // #swagger.responses[404]
 
-	// #swagger.end
+    // #swagger.end
 }
 ```
 See the result after construction in the image below:
