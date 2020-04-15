@@ -188,20 +188,14 @@ See [Complete example here!](#complete-example)
 This is the description of the Endpoint. To add it, use the `#swagger.description` tag, for example:
 
 ```js
+    // ...
+
     app.get('/users/:id', (req, res) => {
         // #swagger.description = 'Endpoint used to obtain a user.'
 
         if(...)
             return res.status(200).send(data)
         return res.status(404).send(false)
-    })
-
-    app.post('/users', (req, res) => {
-        /* #swagger.description = 'Endpoint used to add a user.' */
-
-        if(...)
-            return res.status(201).send(data)
-        return res.status(500).send(false)
     })
 ```
 
@@ -219,14 +213,6 @@ To inform which tags the endpoinst belongs to, use the `#swagger.tags` tag, for 
         if(...)
             return res.status(200).send(data)
         return res.status(500).send(false)
-    })
-
-    app.get('/users/:id', (req, res) => {
-        // #swagger.tags = ['Users', 'Others']
-
-        if(...)
-            return res.status(200).send(data)
-        return res.status(404).send(false)
     })
 ```
 
@@ -298,20 +284,6 @@ It is possible to create or complement automatically detected responses. Use the
         }
         return res.status(404).send(false)
     })
-    
-    app.post('/users', (req, res) => {
-
-        /*  #swagger.responses[201] = { 
-            description: 'User registered successfully.'
-
-            #swagger.responses[500] = { 
-            description: 'Problem with the server.'
-        } */
-
-        if(...)
-            return res.status(201).send(data)
-        return res.status(500).send(false)
-    })
 
     app.post('/v2/users', (req, res) => {
         
@@ -353,14 +325,6 @@ Use the `#swagger.produces = ['contentType']` or `#swagger.consumes = ['contentT
         if(...) 
             return res.status(200).send(data)
         return res.status(404).send(false)
-    })
-    
-    app.post('/users', (req, res) => {
-        /* #swagger.produces = ['application/json', 'application/xml'] */
-
-        if(...)
-            return res.status(201).send(data)
-        return res.status(500).send(false)
     })
 ```
 
@@ -673,12 +637,6 @@ It is possible to add security to endpoints. The security example below was take
 
 ```js
 const doc = {
-    info: {
-        version: "1.0.0",
-        title: "My API",
-        description: "Description"
-    },
-    host: "localhost:3000",
     // { ... },
     securityDefinitions: {
         api_key: {
@@ -710,11 +668,8 @@ At the endpoint, add the `#swagger.security` tag, for example:
                 "read_pets"
             ]
         }] */
-        
-        const dataId = users.getUser(req.params.id)
-        const dataObj = users.getUser(req.query.obj)
 
-        if (expression)
+        if (...)
             return res.status(200).send(true)
         return res.status(404).send(false)
     })
@@ -957,7 +912,7 @@ This module is independent of any framework. For the recognition to be **automat
 
 ## Bug fixes and features
 Version 1.x.x will focus on bug fixes.
-- Version 1.0.7: Bug fix in definitions
+- Version 1.0.8: Bug fix in definitions
 
 ## Help us!
 Help us improve this module. If you have any information that the module does not provide or provides incompletely or incorrectly, please use our [Github](https://github.com/davibaltar/swagger-autogen) repository or email.

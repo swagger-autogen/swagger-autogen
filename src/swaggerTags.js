@@ -18,39 +18,51 @@ function setLanguage(newLang) {
     return lang
 }
 
+// TODO: Refactor
 function formatDefinitions(def, resp = {}) {
     let arrayOf = null
-    if (Array.isArray(def)) {
-        resp = { type: "array", items: {} }
-        arrayOf = typeof def[0]
-    } else
-        resp = { type: "object", properties: {} }
-    Object.entries(def).forEach(elem => {
-        if (typeof elem[1] === 'object') {  // Array or object
-            if (resp.type == 'array') {
-                resp.items = { ...formatDefinitions(elem[1], resp) }
-            } else {
-                resp.properties[elem[0]] = formatDefinitions(elem[1], resp)
-            }
-        } else {
-            if (resp.type == 'array') {
-                if (arrayOf == 'object') {
-                    if (!resp.items.properties)
-                        resp.items.properties = {}
-                    resp.items.properties[elem[0]] = { type: typeof elem[1] }
-                } else
-                    resp.items = { type: typeof elem[1] }
-            } else {
-                if (elem[0][0] == '$') {  // Required parameter
-                    elem[0] = elem[0].slice(1)
-                    if (!resp.required)
-                        resp.required = []
-                    resp.required.push(elem[0])
+    if (typeof def === 'string') {
+        resp.type = "string"
+        resp[def] = { example: def }
+    } else if (typeof def === 'number') {
+        resp.type = "number"
+        resp[def] = { example: def }
+    } else if (typeof def === 'boolean') {
+        resp.type = "boolean"
+        resp[def] = { example: def }
+    } else {
+        if (Array.isArray(def)) {
+            resp = { type: "array", items: {} }
+            arrayOf = typeof def[0]
+        } else
+            resp = { type: "object", properties: {} }
+        Object.entries(def).forEach(elem => {
+            if (typeof elem[1] === 'object') {  // Array or object
+                if (resp.type == 'array') {
+                    resp.items = { ...formatDefinitions(elem[1], resp) }
+                } else {
+                    resp.properties[elem[0]] = formatDefinitions(elem[1], resp)
                 }
-                resp.properties[elem[0]] = { type: typeof elem[1], example: elem[1] }
+            } else {
+                if (resp.type == 'array') {
+                    if (arrayOf == 'object') {
+                        if (!resp.items.properties)
+                            resp.items.properties = {}
+                        resp.items.properties[elem[0]] = { type: typeof elem[1] }
+                    } else
+                        resp.items = { type: typeof elem[1] }
+                } else {
+                    if (elem[0][0] == '$') {  // Required parameter
+                        elem[0] = elem[0].slice(1)
+                        if (!resp.required)
+                            resp.required = []
+                        resp.required.push(elem[0])
+                    }
+                    resp.properties[elem[0]] = { type: typeof elem[1], example: elem[1] }
+                }
             }
-        }
-    })
+        })
+    }
     return resp
 }
 
