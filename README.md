@@ -625,7 +625,7 @@ function myFunction(param) {
             description: 'User ID.' } */
     const dataId = users.getUser(req.params.id)
 
-    /*    #swagger.parameters['obj'] = { 
+    /*  #swagger.parameters['obj'] = { 
             in: 'body',
             description: 'User data.',
             type: 'object',
@@ -953,8 +953,11 @@ See the result after construction in the image below:
 ## Compatibility
 This module is independent of any framework. For the recognition to be **automatic**, it is necessary that your fremawork follow the pattern `foo.method(path, callback)`, where `foo` is the variable belonging to the server or the route, such as: `app`, `server`, `route`, etc. The `method` are HTTP methods, such as get, post, put, and so on. If the `foo.method(path, callback)` pattern is not found in the files, it will be necessary to **manually** enter the beginning and end of the endpoint using the `#swagger.start` and `#swagger.start` tags (see the section: [Creating endpoint](#creating-endpoint)). If you use the `Express.js` fremework, the status code and produces will be automaticaly obtained according to the `status()` and `setHeader()` functions, respectively. If you use a framework that does not contain these functions, you will need to manually add them with the `#swagger.response[statusCode]` and `#swagger.produces` tags (see the [Responses](#responses) and [Consumes and Produces](#consumes-and-produces) sections).
 
+**Swagger version:** 2.0  
+
 ## Bug fixes and features
 Version 1.x.x will focus on bug fixes.
+- Version 1.0.7: Bug fix in definitions
 
 ## Help us!
 Help us improve this module. If you have any information that the module does not provide or provides incompletely or incorrectly, please use our [Github](https://github.com/davibaltar/swagger-autogen) repository or email.

@@ -19,20 +19,28 @@ function setLanguage(newLang) {
 }
 
 function formatDefinitions(def, resp = {}) {
-    if (Array.isArray(def))
+    let arrayOf = null
+    if (Array.isArray(def)) {
         resp = { type: "array", items: {} }
-    else
+        arrayOf = typeof def[0]
+    } else
         resp = { type: "object", properties: {} }
     Object.entries(def).forEach(elem => {
         if (typeof elem[1] === 'object') {  // Array or object
             if (resp.type == 'array') {
                 resp.items = { ...formatDefinitions(elem[1], resp) }
-            } else
+            } else {
                 resp.properties[elem[0]] = formatDefinitions(elem[1], resp)
+            }
         } else {
-            if (resp.type == 'array')
-                resp.items.properties[elem[0]] = { type: typeof elem[1] }
-            else {
+            if (resp.type == 'array') {
+                if (arrayOf == 'object') {
+                    if (!resp.items.properties)
+                        resp.items.properties = {}
+                    resp.items.properties[elem[0]] = { type: typeof elem[1] }
+                } else
+                    resp.items = { type: typeof elem[1] }
+            } else {
                 if (elem[0][0] == '$') {  // Required parameter
                     elem[0] = elem[0].slice(1)
                     if (!resp.required)
