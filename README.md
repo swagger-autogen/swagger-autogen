@@ -155,21 +155,22 @@ The way to configure the module is done within comments, and can be in the forma
 In this case it is not necessary to do anything. Considering, for example, the file containing endpoints:
 
 ```js
-    // ...
-
+    ...
     app.get('/users', (req, res) => {
-
-        users.adduser(req.query.obj)
-
+        ...
+        users.addUser(req.query.obj)
+        ...
         if(...)
             return res.status(201).send(data)
+        ...
         return res.status(500).send(false)
     })
 
     app.get('/users/:id', (req, res) => {
-
+        ...
         if(...)
             return res.status(200).send(data)
+        ...
         return res.status(404).send(false)
     })
 ```
@@ -182,14 +183,11 @@ See [Complete example here!](#complete-example)
 This is the description of the Endpoint. To add it, use the `#swagger.description` tag, for example:
 
 ```js
-    // ...
-
+    ...
     app.get('/users/:id', (req, res) => {
+        ...
         // #swagger.description = 'Endpoint used to obtain a user.'
-
-        if(...)
-            return res.status(200).send(data)
-        return res.status(404).send(false)
+        ...
     })
 ```
 
@@ -199,14 +197,11 @@ See [Complete example here!](#complete-example)
 To inform which tags the endpoinst belongs to, use the `#swagger.tags` tag, for example:
 
 ```js
-    // ...
-
+    ...
     app.get('/users', (req, res) => {
+        ...
         /* #swagger.tags = ['Users'] */
-
-        if(...)
-            return res.status(200).send(data)
-        return res.status(500).send(false)
+        ...
     })
 ```
 
@@ -218,12 +213,12 @@ It is possible to create or complement automatically detected parameters. Use th
 All optional parameters for the tag parameter:
 ```js
 /* #swagger.parameters['parameterName'] = {
-    in: string,
-    description: string,
-    required: boolean,
-    type: string,
-    format: string,
-    schema: object
+        in: string,
+        description: string,
+        required: boolean,
+        type: string,
+        format: string,
+        schema: object
 } */
 ```
 
@@ -236,26 +231,22 @@ All optional parameters for the tag parameter:
 
 For example:
 ```js
+    ...
     app.get('/users/:id', (req, res) => {
+        ...
         //  #swagger.parameters['id'] = { description: "User ID" } 
-
-        if(...)
-            return res.status(200).send(data)
-        return res.status(404).send(false)
+        ...
     })
 
     app.post('/users', (req, res) => {
-        /*  #swagger.parameters['obj'] = { 
+        ...
+        /*  #swagger.parameters['obj'] = {
                 in: 'body',
                 type: "object",
                 description: "User data"
         } */
-
-        users.adduser(req.body)
-
-        if(...)
-            return res.status(201).send(data)
-        return res.status(500).send(false)
+        users.addUser(req.body)
+        ...
     })
 ```
 
@@ -265,10 +256,9 @@ See [Complete example here!](#complete-example)
 It is possible to create or complement automatically detected responses. Use the `#swagger.reponses[statusCode]` tag to create a new answer or to complete an existing answer (automatically detected), for example:
 
 ```js
-    // ...
-
+    ...
     app.get('/users/:id', (req, res) => {
-
+        ...
         if(...) {
             /* #swagger.responses[200] = { 
                     description: 'User successfully obtained.',
@@ -276,18 +266,17 @@ It is possible to create or complement automatically detected responses. Use the
             } */
             return res.status(200).send(data)
         }
+        ...
         return res.status(404).send(false)
     })
 
     app.post('/v2/users', (req, res) => {
-        
-        users.adduser(req.query.obj)
-
+        ...
         if(...){
             // #swagger.responses[201] = { description: 'User registered successfully.' }
             return res.status(201).send(data)
         }
-
+        ...
         // #swagger.responses[500] = { description: 'Problem with the server.' }
         return res.status(500)
     })
@@ -300,25 +289,20 @@ It is possible to create or complement automatically detected responses. Use the
 See [Complete example here!](#complete-example)
 
 ### Consumes and Produces
-Use the `#swagger.produces = ['contentType']` or `#swagger.consumes = ['contentType']` tag to add a new produce or a new consume, respectively. In the example below, the first two endpoints will have the same result in the documentation:
+Use the `#swagger.produces = ['contentType']` or `#swagger.consumes = ['contentType']` tag to add a new produce or a new consume, respectively. In the example below, the two endpoints will have the same result in the documentation:
 
 ```js
-    // ...
-    
+    ...
     app.get('/users/:id', (req, res) => {
+        ...
         res.setHeader('Content-Type', 'application/xml')
-
-        if(...) 
-            return res.status(200).send(data)
-        return res.status(404).send(false)
+        ...
     })
 
     app.get('/v2/users/:id', (req, res) => {
+        ...
         // #swagger.consumes = ['application/xml']
-
-        if(...) 
-            return res.status(200).send(data)
-        return res.status(404).send(false)
+        ...
     })
 ```
 
@@ -370,16 +354,19 @@ const doc = {
 `Endpoint file:`
 ```js
     app.get('/users/:id', (req, res) => {
+        ...
         if(...) {
             /* #swagger.responses[200] = { 
                 schema: { "$ref": "#/definitions/User" }, 
                 description: 'User successfully obtained.' } */
             return res.status(200).send(data)
         }
+        ...
         return res.status(404).send(false)
     })
 
     app.get('/v2/users/:id', (req, res) => {
+        ...
         if(...) {
             // Inserting directly, without using definitions:
 
@@ -407,25 +394,28 @@ const doc = {
             }*/
             return res.status(200).send(data)
         }
+        ...
         return res.status(404).send(false)
     })
     
     app.post('/users', (req, res) => {
+        ...
         /*    #swagger.parameters['obj'] = { 
                 in: 'body',
                 description: "User data.",
                 schema: { "$ref": "#/definitions/AddUser" }
         } */
-        users.adduser(req.body)
-
+        users.addUser(req.body)
+        ...
         if(...)
             return res.status(201).send(data)
+        ...
         return res.status(500).send(false)
     })
 
     app.post('/v2/users', (req, res) => {
         // Inserting directly, without using definitions:
-
+        ...
         /*    #swagger.parameters['obj'] = { 
                 in: 'body',
                 description: "Adding new user.",
@@ -435,10 +425,11 @@ const doc = {
                     about: ""
                 }
         } */
-        users.adduser(req.body)
-
+        users.addUser(req.body)
+        ...
         if(...)
             return res.status(201).send(data)
+        ...
         return res.status(500).send(false)
     })
 ```
@@ -450,10 +441,9 @@ In case of endpoint with referenced callback it is necessary to add the informat
 
 `Before`
 ```js
-    // ...
-
+    ...
     function myFunction(req, res, next) => {
-        users.adduser(req.body)
+        users.addUser(req.body)
         if(...)
             return res.status(201).send(data)
         return res.status(500).send(false)
@@ -464,10 +454,9 @@ In case of endpoint with referenced callback it is necessary to add the informat
 
 `After`
 ```js
-    // ...
-
+    ...
     function myFunction(req, res, next) => {
-        users.adduser(req.body)
+        users.addUser(req.body)
         if(...)
             return res.status(201).send(data)
         return res.status(500).send(false)
@@ -481,7 +470,7 @@ In case of endpoint with referenced callback it is necessary to add the informat
                 description: "User data.",
                 schema: { "$ref": "#/definitions/AddUser" }
             }
-            
+
             #swagger.responses[201] = { description: "User updated successfully."}
             #swagger.responses[500] = { description: "Server failure."}
         */
@@ -494,14 +483,11 @@ See [Complete example here!](#complete-example)
 Use the `#swagger.deprecated = true` tag to inform that a given endpoint is depreciated, for example:
 
 ```js
-    // ...
-
+    ...
     app.get('/users/:id', (req, res) => {
+        ...
         // #swagger.deprecated = true
-
-        if(...)
-            return res.status(200).send(data)
-        return res.status(404).send(false)
+        ...
     })
 ```
 
@@ -511,14 +497,11 @@ See [Complete example here!](#complete-example)
 Use the `#swagger.ignore = true` tag to ignore a given endpoint. Thus, it will not appear in the documentation, for example:
 
 ```js
-    // ...
-
+    ...
     app.get('/users/:id', (req, res) => {
+        ...
         // #swagger.ignore = true
-
-        if(...)
-            return res.status(200).send(data)
-        return res.status(404).send(false)
+        ...
     })
 ```
 
@@ -528,14 +511,16 @@ See [Complete example here!](#complete-example)
 Use the `#swagger.auto = false` tag to disable automatic recognition. With that, all parameters of the endpoint must be informed manually, for example:
 
 ```js
+    ...
     app.put('/users/:id', (req, res) => {
+    ...
         /*  #swagger.auto = false
 
             #swagger.path = '/users/{id}'
             #swagger.method = 'put'
             #swagger.produces = ["application/json"]
             #swagger.consumes = ["application/json"]
-            
+
             #swagger.parameters['id'] = {
                 in: 'path',
                 description: 'User ID.',
@@ -545,15 +530,16 @@ Use the `#swagger.auto = false` tag to disable automatic recognition. With that,
             #swagger.parameters['obj'] = {
                 in: 'body',
                 description: 'User data.',
-                required: true, 
+                required: true,
                 type: 'string'
             }
         */
-                
-        if(...) {   
+        ...
+        if(...) {
             // #swagger.responses[201] = { description: "User registered successfully." }
             return res.status(201).send(data)
         }
+        ...
         // #swagger.responses[500] = { description: "Server failure."}
         return res.status(500).send(false)
     })
@@ -567,31 +553,32 @@ If you want to forcibly create an endpoint, use the  `#swagger.start` and` #swag
 ```js
 function myFunction(param) {
     // #swagger.start
-
+    ...
     /*
         #swagger.path = '/forcedEndpoint/{id}'
         #swagger.method = 'put'
         #swagger.description = 'Forced endpoint.'
         #swagger.produces = ["application/json"]
     */
-
+    ...
     /*  #swagger.parameters['id'] = {
             in: 'path',
             description: 'User ID.' } */
     const dataId = users.getUser(req.params.id)
-
-    /*  #swagger.parameters['obj'] = { 
-            in: 'body',
+    ...
+    /*  #swagger.parameters['obj'] = {
+            in: 'query',
             description: 'User data.',
             type: 'object',
             schema: { $ref: "#/definitions/AddUser" }
     } */
     const dataObj = users.getUser(req.query.obj)
-
-    if (expression)
+    ...
+    if (...)
         return res.status(200).send(true)    // #swagger.responses[200]
+    ...
     return res.status(404).send(false)       // #swagger.responses[404]
-
+    ...
     // #swagger.end
 }
 ```
@@ -603,21 +590,18 @@ If the file containing the endpoints contains multiple patterns before of method
 
 ```js
     const lib = require(...)
-    
-    // #swagger.patterns = ['app', 'route']
 
-    // ...
+    // #swagger.patterns = ['app', 'route']
+    ...
 
     app.get('/users/:id', (req, res) => {
-        if(...)
-            return res.status(200).send(data)
-        return res.status(404).send(false)
+
+        ...
     })
 
     route.get('/test', (req, res) => {
-        if(...)
-            return res.status(201).send(data)
-        return res.status(500).send(false)
+
+        ...
     })
 ```
 
@@ -651,18 +635,16 @@ const doc = {
 At the endpoint, add the `#swagger.security` tag, for example:
 
 ```js
+    ...
     app.get('/users/:id', (req, res) => {
-        
+        ...
         /* #swagger.security = [{
             "petstore_auth": [
                 "write_pets",
                 "read_pets"
             ]
         }] */
-
-        if (...)
-            return res.status(200).send(true)
-        return res.status(404).send(false)
+        ...
     })
 ```
 

@@ -28,7 +28,7 @@ function setDefinitions(def) {
 function formatDefinitions(def, resp = {}) {
     if (def.$ref) {
         let param = def.$ref.split('#/definitions/')[1].replaceAll(' ', '')
-        return definitions[param]
+        return { xml: { name: param.toLowerCase() }, $ref: def.$ref }
     }
     let arrayOf = null
     if (typeof def === 'string') {

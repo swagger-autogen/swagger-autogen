@@ -73,12 +73,15 @@ const doc = {
         }
     },
     definitions: {
+        Parents: {
+            father: "Simon Doe",
+            mother: "Marie Doe"
+        },
         User: {
             name: "Jhon Doe",
             age: 29,
             parents: {
-                father: "Simon Doe",
-                mother: "Marie Doe"
+                $ref: '#/definitions/Parents'
             },
             diplomas: [
                 {
@@ -96,6 +99,81 @@ const doc = {
             $name: "Jhon Doe",
             $age: 29,
             about: ""
+        },
+        Definit_00: true,
+        Definit_01: 123,
+        Definit_02: "test",
+        Definit_03: "test",
+        Definit_04: { a: 123, b: "test" },
+
+        Definit_05: [true],
+        Definit_06: [123],
+        Definit_07: ["test"],
+        Definit_08: [{ a: 123, b: "test" }],
+
+        Definit_09: [[true]],
+        Definit_10: [[123]],
+        Definit_11: [["test"]],
+        Definit_12: [[{ a: 123, b: "test" }]],
+
+        Definit_13: [
+            {
+                a: true,
+                b: 123,
+                c: "test",
+                d: {
+                    a: true,
+                    b: 123,
+                    c: "test"
+                }
+            }
+        ],
+
+        Definit_14: [
+            {
+                a: true,
+                b: 123,
+                c: "test",
+                d: {
+                    a: true,
+                    b: 123,
+                    c: "test",
+                    d: ["teste"]
+                }
+            }
+        ],
+
+        Definit_15: {
+            a: true,
+            b: 123,
+            c: "test",
+            d: [
+                {
+                    a: true,
+                    b: 123,
+                    c: "test",
+                    d: [123]
+                }
+            ]
+        },
+
+        Definit_16: {
+            id: 0,
+            category: {
+                id: 0,
+                name: "string"
+            },
+            name: false,
+            photoUrls: [
+                "teste"
+            ],
+            tags: [
+                {
+                    id: 0,
+                    name: "string"
+                }
+            ],
+            status: "available"
         }
     }
 }
@@ -359,10 +437,451 @@ const expectedPaths = {
     }
 }
 
+const expectedDefinitions = {
+    "Parents": {
+        "type": "object",
+        "properties": {
+            "father": {
+                "type": "string",
+                "example": "Simon Doe"
+            },
+            "mother": {
+                "type": "string",
+                "example": "Marie Doe"
+            }
+        },
+        "xml": {
+            "name": "Parents"
+        }
+    },
+    "User": {
+        "type": "object",
+        "properties": {
+            "name": {
+                "type": "string",
+                "example": "Jhon Doe"
+            },
+            "age": {
+                "type": "number",
+                "example": 29
+            },
+            "parents": {
+                "xml": {
+                    "name": "parents"
+                },
+                "$ref": "#/definitions/Parents"
+            },
+            "diplomas": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "school": {
+                            "type": "string",
+                            "example": "XYZ University"
+                        },
+                        "year": {
+                            "type": "number",
+                            "example": 2020
+                        },
+                        "completed": {
+                            "type": "boolean",
+                            "example": true
+                        },
+                        "internship": {
+                            "type": "object",
+                            "properties": {
+                                "hours": {
+                                    "type": "number",
+                                    "example": 290
+                                },
+                                "location": {
+                                    "type": "string",
+                                    "example": "XYZ Company"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "xml": {
+            "name": "User"
+        }
+    },
+    "AddUser": {
+        "type": "object",
+        "properties": {
+            "name": {
+                "type": "string",
+                "example": "Jhon Doe"
+            },
+            "age": {
+                "type": "number",
+                "example": 29
+            },
+            "about": {
+                "type": "string",
+                "example": ""
+            }
+        },
+        "required": [
+            "name",
+            "age"
+        ],
+        "xml": {
+            "name": "AddUser"
+        }
+    },
+    "Definit_00": {
+        "type": "boolean",
+        "true": {
+            "example": true
+        },
+        "xml": {
+            "name": "Definit_00"
+        }
+    },
+    "Definit_01": {
+        "123": {
+            "example": 123
+        },
+        "type": "number",
+        "xml": {
+            "name": "Definit_01"
+        }
+    },
+    "Definit_02": {
+        "type": "string",
+        "test": {
+            "example": "test"
+        },
+        "xml": {
+            "name": "Definit_02"
+        }
+    },
+    "Definit_03": {
+        "type": "string",
+        "test": {
+            "example": "test"
+        },
+        "xml": {
+            "name": "Definit_03"
+        }
+    },
+    "Definit_04": {
+        "type": "object",
+        "properties": {
+            "a": {
+                "type": "number",
+                "example": 123
+            },
+            "b": {
+                "type": "string",
+                "example": "test"
+            }
+        },
+        "xml": {
+            "name": "Definit_04"
+        }
+    },
+    "Definit_05": {
+        "type": "array",
+        "items": {
+            "type": "boolean"
+        },
+        "xml": {
+            "name": "Definit_05"
+        }
+    },
+    "Definit_06": {
+        "type": "array",
+        "items": {
+            "type": "number"
+        },
+        "xml": {
+            "name": "Definit_06"
+        }
+    },
+    "Definit_07": {
+        "type": "array",
+        "items": {
+            "type": "string"
+        },
+        "xml": {
+            "name": "Definit_07"
+        }
+    },
+    "Definit_08": {
+        "type": "array",
+        "items": {
+            "type": "object",
+            "properties": {
+                "a": {
+                    "type": "number",
+                    "example": 123
+                },
+                "b": {
+                    "type": "string",
+                    "example": "test"
+                }
+            }
+        },
+        "xml": {
+            "name": "Definit_08"
+        }
+    },
+    "Definit_09": {
+        "type": "array",
+        "items": {
+            "type": "array",
+            "items": {
+                "type": "boolean"
+            }
+        },
+        "xml": {
+            "name": "Definit_09"
+        }
+    },
+    "Definit_10": {
+        "type": "array",
+        "items": {
+            "type": "array",
+            "items": {
+                "type": "number"
+            }
+        },
+        "xml": {
+            "name": "Definit_10"
+        }
+    },
+    "Definit_11": {
+        "type": "array",
+        "items": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "xml": {
+            "name": "Definit_11"
+        }
+    },
+    "Definit_12": {
+        "type": "array",
+        "items": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "a": {
+                        "type": "number",
+                        "example": 123
+                    },
+                    "b": {
+                        "type": "string",
+                        "example": "test"
+                    }
+                }
+            }
+        },
+        "xml": {
+            "name": "Definit_12"
+        }
+    },
+    "Definit_13": {
+        "type": "array",
+        "items": {
+            "type": "object",
+            "properties": {
+                "a": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "b": {
+                    "type": "number",
+                    "example": 123
+                },
+                "c": {
+                    "type": "string",
+                    "example": "test"
+                },
+                "d": {
+                    "type": "object",
+                    "properties": {
+                        "a": {
+                            "type": "boolean",
+                            "example": true
+                        },
+                        "b": {
+                            "type": "number",
+                            "example": 123
+                        },
+                        "c": {
+                            "type": "string",
+                            "example": "test"
+                        }
+                    }
+                }
+            }
+        },
+        "xml": {
+            "name": "Definit_13"
+        }
+    },
+    "Definit_14": {
+        "type": "array",
+        "items": {
+            "type": "object",
+            "properties": {
+                "a": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "b": {
+                    "type": "number",
+                    "example": 123
+                },
+                "c": {
+                    "type": "string",
+                    "example": "test"
+                },
+                "d": {
+                    "type": "object",
+                    "properties": {
+                        "a": {
+                            "type": "boolean",
+                            "example": true
+                        },
+                        "b": {
+                            "type": "number",
+                            "example": 123
+                        },
+                        "c": {
+                            "type": "string",
+                            "example": "test"
+                        },
+                        "d": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "xml": {
+            "name": "Definit_14"
+        }
+    },
+    "Definit_15": {
+        "type": "object",
+        "properties": {
+            "a": {
+                "type": "boolean",
+                "example": true
+            },
+            "b": {
+                "type": "number",
+                "example": 123
+            },
+            "c": {
+                "type": "string",
+                "example": "test"
+            },
+            "d": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "a": {
+                            "type": "boolean",
+                            "example": true
+                        },
+                        "b": {
+                            "type": "number",
+                            "example": 123
+                        },
+                        "c": {
+                            "type": "string",
+                            "example": "test"
+                        },
+                        "d": {
+                            "type": "array",
+                            "items": {
+                                "type": "number"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "xml": {
+            "name": "Definit_15"
+        }
+    },
+    "Definit_16": {
+        "type": "object",
+        "properties": {
+            "id": {
+                "type": "number",
+                "example": 0
+            },
+            "category": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "number",
+                        "example": 0
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "string"
+                    }
+                }
+            },
+            "name": {
+                "type": "boolean",
+                "example": false
+            },
+            "photoUrls": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                }
+            },
+            "tags": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {
+                            "type": "number",
+                            "example": 0
+                        },
+                        "name": {
+                            "type": "string",
+                            "example": "string"
+                        }
+                    }
+                }
+            },
+            "status": {
+                "type": "string",
+                "example": "available"
+            }
+        },
+        "xml": {
+            "name": "Definit_16"
+        }
+    }
+}
 
 module.exports = {
     doc,
     expectedPaths,
+    expectedDefinitions,
     cloneObj,
     formatDefinitions
 }
