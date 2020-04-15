@@ -65,6 +65,7 @@ module.exports = function (recLang = null) {
                     }
                     objDoc.paths = { ...objDoc.paths, ...obj }
                 }
+                swaggerTags.setDefinitions(objDoc.definitions)
                 Object.keys(objDoc.definitions).forEach(definition => {
                     objDoc.definitions[definition] = { ...swaggerTags.formatDefinitions(objDoc.definitions[definition]), xml: { name: definition } }
                 })

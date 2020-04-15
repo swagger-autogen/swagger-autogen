@@ -4,6 +4,7 @@ const tables = require('./tables')
 const swaggerObj = '#swagger'
 const aMethods = ['get', 'head', 'post', 'put', 'delete', 'patch', 'options']
 let lang = 'en'
+let definitions = {}
 
 function getSwaggerObj() {
     return swaggerObj
@@ -18,8 +19,17 @@ function setLanguage(newLang) {
     return lang
 }
 
+// Used to reference
+function setDefinitions(def) {
+    definitions = def
+}
+
 // TODO: Refactor
 function formatDefinitions(def, resp = {}) {
+    if (def.$ref) {
+        let param = def.$ref.split('#/definitions/')[1].replaceAll(' ', '')
+        return definitions[param]
+    }
     let arrayOf = null
     if (typeof def === 'string') {
         resp.type = "string"
@@ -207,5 +217,6 @@ module.exports = {
     getParametersTag,
     getProducesTag,
     getConsumesTag,
-    getResponsesTag
+    getResponsesTag,
+    setDefinitions
 }

@@ -2,12 +2,6 @@
 
 This module performs the automatic construction of the Swagger documentation. The module is able to identify the endpoints and automatically capture methods such as get, post, put, and so on, along with the path. In addition to the methods and the path, the module can also identify the parameters in the path, query, body and response status code. It is possible to add information such as: endpoint description, parameter description, defininitions, security, among others. It is also possible to ignore or disable the automatic capture of an endpoint (having to manually inform each information in this case). The module generates a *.json* file with the documentation in the swagger format.
 
-**en-US:**
-This module is in the initial versions. Help us find bugs and improve it. Can you help us? See the [Help us!](#help-us) section.
-
-**pt-BR:**
-Este módulo está nas versões iniciais. Ajude-nos a encontrar bugs e melhorá-lo. Você pode nos ajudar? Veja a seção [Help us!](#help-us).
-
 [![NPM Version](http://img.shields.io/npm/v/swagger-autogen.svg?style=flat)](https://www.npmjs.org/package/commander) [![NPM Downloads](https://img.shields.io/npm/dm/swagger-autogen.svg?style=flat)](https://npmcharts.com/compare/swagger-autogen?minimal=true)
 
 ## Contents
@@ -339,20 +333,17 @@ Unlike how Swagger writes, the answers in this module are added in a simpler way
 
 ```js
 const doc = {
-    info: {
-        version: "1.0.0",
-        title: "My API",
-        description: "Description"
-    },
-    host: "localhost:3000",
     // { ... },
     definitions: {
+        Parents: {
+            father: "Simon Doe",
+            mother: "Marie Doe"
+        },
         User: {
             name: "Jhon Doe",
             age: 29,
             parents: {
-                father: "Simon Doe",
-                mother: "Marie Doe"
+                $ref: '#/definitions/Parents'
             },
             diplomas: [
                 {
@@ -913,16 +904,15 @@ This module is independent of any framework. For the recognition to be **automat
 ## Bug fixes and features
 Version 1.x.x will focus on bug fixes.
 - Version 1.0.8: Bug fix in definitions
+- Version 1.0.9: Allows a definition to reference another definition with: $ref: '#/definitions/_obj_'
 
 ## Help us!
-Help us improve this module. If you have any information that the module does not provide or provides incompletely or incorrectly, please use our [Github](https://github.com/davibaltar/swagger-autogen) repository or email.
+Help us improve this module. If you have any information that the module does not provide or provides incompletely or incorrectly, please use our [Github](https://github.com/davibaltar/swagger-autogen) repository.
 
 **pt-Br:**
-Ajude-nos a melhorar este módulo. Se você tiver alguma informação que o módulo não forneça ou forneça de maneira incompleta ou incorreta, use nosso repositório do [Github](https://github.com/davibaltar/swagger-autogen) ou email. Pode enviar em português Brasil também! :)
+Ajude-nos a melhorar este módulo. Se você tiver alguma informação que o módulo não forneça ou forneça de maneira incompleta ou incorreta, use nosso repositório do [Github](https://github.com/davibaltar/swagger-autogen). Pode enviar em português Brasil também! :)
 
 Repository: https://github.com/davibaltar/swagger-autogen
-
-E-mail: davibaltar.npm@gmail.com
 
 ## License
 [MIT] (LICENSE) License
