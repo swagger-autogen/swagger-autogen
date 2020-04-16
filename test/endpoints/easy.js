@@ -35,7 +35,7 @@ module.exports = function (app) {
 
 		if (expression) {
 			/* #swagger.responses[200] = { 
-				schema: { "$ref": "#/definitions/User" },
+				schema: { $ref: "#/definitions/User" },
 				description: "User registered successfully." } */
 			return res.status(200).send(data)
 		}
@@ -112,7 +112,7 @@ module.exports = function (app) {
 
 		if (expression) {
 			/* #swagger.responses[200] = { 
-				schema: { "$ref": "#/definitions/User" }, description: "User found." }
+				schema: { $ref: "#/definitions/User" }, description: "User found." }
 			*/
 			return res.status(200).send(data)
 		}

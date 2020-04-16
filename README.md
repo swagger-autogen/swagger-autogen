@@ -91,8 +91,8 @@ const swaggerAutogen = require('swagger-autogen')()
 const doc = {
     info: {
         "version": "1.0.0",           // by default: "1.0.0"
-        "title": "My API",            // by default: ""
-        "description": "Description"  // by default: ""
+        "title": "",                  // by default: "REST API"
+        "description": ""             // by default: ""
     },
     host: "",                         // by default: "localhost:3000"
     basePath: "",                     // by default: "/"
@@ -262,7 +262,7 @@ It is possible to create or complement automatically detected responses. Use the
         if(...) {
             /* #swagger.responses[200] = { 
                     description: 'User successfully obtained.',
-                    schema: { "$ref": "#/definitions/User" } 
+                    schema: { $ref: "#/definitions/User" } 
             } */
             return res.status(200).send(data)
         }
@@ -357,7 +357,7 @@ const doc = {
         ...
         if(...) {
             /* #swagger.responses[200] = { 
-                schema: { "$ref": "#/definitions/User" }, 
+                schema: { $ref: "#/definitions/User" }, 
                 description: 'User successfully obtained.' } */
             return res.status(200).send(data)
         }
@@ -403,7 +403,7 @@ const doc = {
         /*    #swagger.parameters['obj'] = { 
                 in: 'body',
                 description: "User data.",
-                schema: { "$ref": "#/definitions/AddUser" }
+                schema: { $ref: "#/definitions/AddUser" }
         } */
         users.addUser(req.body)
         ...
@@ -468,7 +468,7 @@ In case of endpoint with referenced callback it is necessary to add the informat
             #swagger.parameters['obj'] = {
                 in: 'body',
                 description: "User data.",
-                schema: { "$ref": "#/definitions/AddUser" }
+                schema: { $ref: "#/definitions/AddUser" }
             }
 
             #swagger.responses[201] = { description: "User updated successfully."}
@@ -726,7 +726,7 @@ module.exports = function (app) {
 
         if (expression) {
             /* #swagger.responses[200] = { 
-                    schema: { "$ref": "#/definitions/User" },
+                    schema: { $ref: "#/definitions/User" },
                     description: "User registered successfully." } */
             return res.status(200).send(data)
         }
@@ -803,7 +803,7 @@ module.exports = function (app) {
 
         if (expression) {
             /* #swagger.responses[200] = { 
-                    schema: { "$ref": "#/definitions/User" }, 
+                    schema: { $ref: "#/definitions/User" }, 
                     description: "User found." 
             }*/
             return res.status(200).send(data)

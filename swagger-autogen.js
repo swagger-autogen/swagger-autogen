@@ -10,7 +10,7 @@ const template = {
     swagger: "2.0",
     info: {
         version: "1.0.0",
-        title: "",
+        title: "REST API",
         description: ""
     },
     host: "localhost:3000",
