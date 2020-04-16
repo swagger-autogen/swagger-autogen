@@ -11,7 +11,7 @@ This module performs the automatic construction of the Swagger documentation. Th
   - [Usage (Basic)](#usage-basic)
   - [Usage (With Optionals)](#usage-with-optionals)
 - [Building documentation without starting the project](#building-documentation-without-starting-the-project)
-- [Building documentation along with the project](#building-documentation-along-with-the-project)
+- [Building documentation at project startup](#building-documentation-at-project-startup)
 - [Endpoints](#endpoints)
   - [Automatic capture](#automatic-capture)
   - [Description](#description)
@@ -134,7 +134,7 @@ Where `./swagger.js` is the file containing the `swaggerAutogen(...)` function c
 $ npm run swagger-autogen
 ``` 
 
-## Building documentation along with the project
+## Building documentation at project startup
 To build the documentation before the project starts and immediately start it, rewrite the `swaggerAutogen(...)` function as follows:
 
 ```js
