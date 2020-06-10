@@ -87,7 +87,7 @@ const tableStatusCodes_ptBR = {
     '400': "Solicitação Inválida",
     '401': "Não autorizado",
     '402': "Pagamento Necessário",
-    '403': "Proibido",
+    '403': "Acesso Negado",
     '404': "Não Encontrado",
     '405': "Método Não Permitido",
     '406': "Não Aceito",

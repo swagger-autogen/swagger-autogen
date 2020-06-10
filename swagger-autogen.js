@@ -73,10 +73,10 @@ module.exports = function (recLang = null) {
                 fs.writeFileSync(outputFile, dataJSON)
 
                 console.log('Swagger-autogen:', "\x1b[32m", 'Success ' + symbols.tick, "\033[0m")
-                return resolve(true)
+                return resolve ({success: true, data: objDoc})
             } catch (err) {
                 console.log('Swagger-autogen:', "\x1b[31m", 'Failed ' + symbols.cross, "\033[0m")
-                return resolve(false)
+                return resolve ({success: false, data: null})
             }
         })
     }
