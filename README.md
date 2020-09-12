@@ -30,6 +30,7 @@ This module performs the automatic construction of the Swagger documentation. Th
 - [Response Language](#response-language)
 - [Example](#example)
 - [Compatibility](#compatibility)
+- [Tutorials](#tutorials)
 - [Bug fixes and features](#bug-fixes-and-features)
 - [Help us!](#help-us)
 - [License](#license)
@@ -882,6 +883,14 @@ See the result after construction in the image below:
 This module is independent of any framework. For the recognition to be **automatic**, it is necessary that your framework follow the pattern `foo.method(path, callback)`, where `foo` is the variable belonging to the server or the route, such as: `app`, `server`, `route`, etc. The `method` are HTTP methods, such as get, post, put, and so on. If the `foo.method(path, callback)` pattern is not found in the files, it will be necessary to **manually** enter the beginning and end of the endpoint using the `#swagger.start` and `#swagger.end` tags (see the section: [Creating endpoint](#creating-endpoint)). If you use the `Express.js` framework, the status code and produces will be automaticaly obtained according to the `status()` and `setHeader()` functions, respectively. If you use a framework that does not contain these functions, you will need to manually add them with the `#swagger.response[statusCode]` and `#swagger.produces` tags (see the [Responses](#responses) and [Consumes and Produces](#consumes-and-produces) sections).
 
 **Swagger version:** 2.0  
+
+## Tutorials
+Some tutorials with examples:
+
+[Tutorial in English](https://medium.com/@davibaltarx/automatic-api-documentation-in-node-js-using-swagger-dd1ab3c78284) 
+
+[Tutorial em Português Brasil](https://medium.com/@davibaltarx/documenta%C3%A7%C3%A3o-autom%C3%A1tica-de-apis-em-node-js-eb03041c643b) 
+
 
 ## Bug fixes and features
 Version 1.x.x will focus on bug fixes.
