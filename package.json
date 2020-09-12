@@ -1,6 +1,6 @@
 {
   "name": "swagger-autogen",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "This module performs the automatic construction of the Swagger documentation. The module is able to identify the endpoints and automatically capture the  get, post, delete, etc. methods, along with the path. In addition to the methods and the path, the module can also identify the parameters in the path, query and body. It is possible to add information such as: endpoint description, parameter description, defininitions, security, among others. It is also possible to ignore or disable the automatic capture of an endpoint (having to manually inform each information in this case). The module generates a `.json` file with the documentation in the swagger format.",
   "main": "swagger-autogen.js",
   "scripts": {

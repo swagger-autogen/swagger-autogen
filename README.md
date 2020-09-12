@@ -28,7 +28,7 @@ This module performs the automatic construction of the Swagger documentation. Th
   - [Multiple patterns](#multiple-patterns)
 - [Security](#security)
 - [Response Language](#response-language)
-- [Complete example](#complete-example)
+- [Example](#example)
 - [Compatibility](#compatibility)
 - [Bug fixes and features](#bug-fixes-and-features)
 - [Help us!](#help-us)
@@ -177,7 +177,7 @@ In this case it is not necessary to do anything. Considering, for example, the f
 
 The capture of the method, path, parameters and status of the response will be automatic.
 
-See [Complete example here!](#complete-example)
+See [Complete example here!](#example)
 
 ### Description
 This is the description of the Endpoint. To add it, use the `#swagger.description` tag, for example:
@@ -191,7 +191,7 @@ This is the description of the Endpoint. To add it, use the `#swagger.descriptio
     })
 ```
 
-See [Complete example here!](#complete-example)
+See [Complete example here!](#example)
 
 ### Tags
 To inform which tags the endpoinst belongs to, use the `#swagger.tags` tag, for example:
@@ -205,7 +205,7 @@ To inform which tags the endpoinst belongs to, use the `#swagger.tags` tag, for 
     })
 ```
 
-See [Complete example here!](#complete-example)
+See [Complete example here!](#example)
 
 ### Parameters
 It is possible to create or complement automatically detected parameters. Use the `#swagger.parameters['parameterName']` tag to create a new parameter or to complete an existing parameter (automatically detected).
@@ -250,7 +250,7 @@ For example:
     })
 ```
 
-See [Complete example here!](#complete-example)
+See [Complete example here!](#example)
 
 ### Responses
 It is possible to create or complement automatically detected responses. Use the `#swagger.reponses[statusCode]` tag to create a new answer or to complete an existing answer (automatically detected), for example:
@@ -286,7 +286,7 @@ It is possible to create or complement automatically detected responses. Use the
 
 **NOTE:** As the 404 status description was not entered, "Not Found" will automatically be added. It is possible to change the language of the automatic response, see the [Response Language](#response-language) section.  
 
-See [Complete example here!](#complete-example)
+See [Complete example here!](#example)
 
 ### Consumes and Produces
 Use the `#swagger.produces = ['contentType']` or `#swagger.consumes = ['contentType']` tag to add a new produce or a new consume, respectively. In the example below, the two endpoints will have the same result in the documentation:
@@ -306,7 +306,7 @@ Use the `#swagger.produces = ['contentType']` or `#swagger.consumes = ['contentT
     })
 ```
 
-See [Complete example here!](#complete-example)
+See [Complete example here!](#example)
 
 ### Schema and Definitions
 Unlike how Swagger writes, the answers in this module are added in a simpler way, that is, in the way you want to see the result. These responses can be added to the `definitions` parameter of the `doc` object seen in the [Usage](#usage) section, or directly to the response via the `schema` parameter.
@@ -434,7 +434,7 @@ const doc = {
     })
 ```
 
-See [Complete example here!](#complete-example)
+See [Complete example here!](#example)
 
 ### Endpoint with referenced callback
 In case of endpoint with referenced callback it is necessary to add the information manually, for example:
@@ -477,7 +477,7 @@ In case of endpoint with referenced callback it is necessary to add the informat
     )
 ```
 
-See [Complete example here!](#complete-example)
+See [Complete example here!](#example)
 
 ### Endpoint as deprecated
 Use the `#swagger.deprecated = true` tag to inform that a given endpoint is depreciated, for example:
@@ -491,7 +491,7 @@ Use the `#swagger.deprecated = true` tag to inform that a given endpoint is depr
     })
 ```
 
-See [Complete example here!](#complete-example)
+See [Complete example here!](#example)
 
 ### Ignoring endpoint
 Use the `#swagger.ignore = true` tag to ignore a given endpoint. Thus, it will not appear in the documentation, for example:
@@ -505,7 +505,7 @@ Use the `#swagger.ignore = true` tag to ignore a given endpoint. Thus, it will n
     })
 ```
 
-See [Complete example here!](#complete-example)
+See [Complete example here!](#example)
 
 ### Manual capture
 Use the `#swagger.auto = false` tag to disable automatic recognition. With that, all parameters of the endpoint must be informed manually, for example:
@@ -545,7 +545,7 @@ Use the `#swagger.auto = false` tag to disable automatic recognition. With that,
     })
 ```
 
-See [Complete example here!](#complete-example)
+See [Complete example here!](#example)
 
 ### Creating endpoint
 If you want to forcibly create an endpoint, use the  `#swagger.start` and` #swagger.end` tags, for example:
@@ -583,7 +583,7 @@ function myFunction(param) {
 }
 ```
 
-See [Complete example here!](#complete-example)
+See [Complete example here!](#example)
 
 ## Multiple patterns
 If the file containing the endpoints contains multiple patterns before of method, use the `#swagger.patterns` tag, for example:
@@ -605,7 +605,7 @@ If the file containing the endpoints contains multiple patterns before of method
     })
 ```
 
-See [Complete example here!](#complete-example)
+See [Complete example here!](#example)
 
 ## Security
 It is possible to add security to endpoints. The security example below was taken from the original Swagger documentation.
@@ -672,7 +672,7 @@ const swaggerAutogen = require('swagger-autogen')()  // English by default
 
 For now the module has only the languages: English, Portuguese (Brazil) and Chinese (Simplified).
 
-## Complete example
+## Example
 Link to a project that covers the simplest use of this module as well as the most complete use. See the link below:
 
 [Complete example](https://github.com/davibaltar/example-swagger-autogen)
@@ -879,7 +879,7 @@ See the result after construction in the image below:
 
 
 ## Compatibility
-This module is independent of any framework. For the recognition to be **automatic**, it is necessary that your fremawork follow the pattern `foo.method(path, callback)`, where `foo` is the variable belonging to the server or the route, such as: `app`, `server`, `route`, etc. The `method` are HTTP methods, such as get, post, put, and so on. If the `foo.method(path, callback)` pattern is not found in the files, it will be necessary to **manually** enter the beginning and end of the endpoint using the `#swagger.start` and `#swagger.start` tags (see the section: [Creating endpoint](#creating-endpoint)). If you use the `Express.js` fremework, the status code and produces will be automaticaly obtained according to the `status()` and `setHeader()` functions, respectively. If you use a framework that does not contain these functions, you will need to manually add them with the `#swagger.response[statusCode]` and `#swagger.produces` tags (see the [Responses](#responses) and [Consumes and Produces](#consumes-and-produces) sections).
+This module is independent of any framework. For the recognition to be **automatic**, it is necessary that your framework follow the pattern `foo.method(path, callback)`, where `foo` is the variable belonging to the server or the route, such as: `app`, `server`, `route`, etc. The `method` are HTTP methods, such as get, post, put, and so on. If the `foo.method(path, callback)` pattern is not found in the files, it will be necessary to **manually** enter the beginning and end of the endpoint using the `#swagger.start` and `#swagger.end` tags (see the section: [Creating endpoint](#creating-endpoint)). If you use the `Express.js` framework, the status code and produces will be automaticaly obtained according to the `status()` and `setHeader()` functions, respectively. If you use a framework that does not contain these functions, you will need to manually add them with the `#swagger.response[statusCode]` and `#swagger.produces` tags (see the [Responses](#responses) and [Consumes and Produces](#consumes-and-produces) sections).
 
 **Swagger version:** 2.0  
 
