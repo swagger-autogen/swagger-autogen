@@ -900,9 +900,8 @@ Some tutorials with examples:
 
 
 ## Bug fixes and features
-Version 1.x.x will focus on bug fixes.
-- Version 1.0.8: Bug fix in definitions
-- Version 1.0.9: Allows a definition to reference another definition with: $ref: '#/definitions/_obj_'
+Version 1.2.x.
+- Version 1.2.5: Manual capture: Bug fix and README fixes.
 
 ## Help us!
 Help us improve this module. If you have any information that the module does not provide or provides incompletely or incorrectly, please use our [Github](https://github.com/davibaltar/swagger-autogen) repository.

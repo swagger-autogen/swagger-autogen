@@ -73,10 +73,10 @@ module.exports = function (recLang = null) {
                 fs.writeFileSync(outputFile, dataJSON)
 
                 console.log('Swagger-autogen:', "\x1b[32m", 'Success ' + symbols.tick, "\033[0m")
-                return resolve ({success: true, data: objDoc})
+                return resolve({ success: true, data: objDoc })
             } catch (err) {
                 console.log('Swagger-autogen:', "\x1b[31m", 'Failed ' + symbols.cross, "\033[0m")
-                return resolve ({success: false, data: null})
+                return resolve({ success: false, data: null })
             }
         })
     }
@@ -257,6 +257,9 @@ function readEndpointFile(filePath) {
                     regex = `( |\\t|\\n|;|\\*\\/)${serverVar}.get\\s*\\(|( |\\t|\\n|;|\\*\\/)${serverVar}.head\\s*\\(|( |\\t|\\n|;|\\*\\/)${serverVar}.post\\s*\\(|( |\\t|\\n|;|\\*\\/)${serverVar}.put\\s*\\(|( |\\t|\\n|;|\\*\\/)${serverVar}.delete\\s*\\(|( |\\t|\\n|;|\\*\\/)${serverVar}.patch\\s*\\(|( |\\t|\\n|;|\\*\\/)${serverVar}.options\\s*\\(`
             }
             let aForcedsEndpoints = swaggerTags.getForcedEndpoints(aData)
+            aForcedsEndpoints = aForcedsEndpoints.map(forced => {
+                return forced += "\n" + unusualString + "FORCED" + unusualString + "\n"
+            })
             const aDataRaw = aData
             aData = [...aData.split(new RegExp(regex)), ...aForcedsEndpoints]
             aData[0] = undefined    // Delete 'header' in file
@@ -278,6 +281,10 @@ function readEndpointFile(filePath) {
                 let autoMode = true
                 let objParameters = {}
                 let objResponses = {}
+                let forced = false
+
+                if (elem.includes(unusualString + "FORCED" + unusualString))
+                    forced = true
 
                 if (swaggerTags.getIgnoreTag(elem))
                     return
@@ -307,10 +314,19 @@ function readEndpointFile(filePath) {
 
                     // Geting callback parameters: 'req', 'res' and 'next'
                     if (autoMode && !req && !res) {
-                        const callbackParameters = getCallbackParameters(line)
-                        req = callbackParameters.req
-                        res = callbackParameters.res
-                        next = callbackParameters.next
+                        if (forced) {
+                            // TODO?: req
+                            res = elem.split(/([a-zA-Z]*|[0-9]|\_|\-)*\.status\(/)
+                            if (res[1] && res[1] != '')
+                                res = res[1]
+                            else
+                                res = null
+                        } else {
+                            const callbackParameters = getCallbackParameters(line)
+                            req = callbackParameters.req
+                            res = callbackParameters.res
+                            next = callbackParameters.next
+                        }
                     }
 
                     if ((!path || !method))
@@ -331,6 +347,9 @@ function readEndpointFile(filePath) {
                         objEndpoint = swaggerTags.getConsumesTag(line, objEndpoint, path, method)       // Search for #swagger.consumes
                     } else if (paramName && paramName.includes('responses') && paramName.includes('[') && paramName.includes(']')) {
                         objResponses = swaggerTags.getResponsesTag(line, paramName, objResponses)       // Search for #swagger.responses
+                    // TODO:
+                    // } else if (paramName && paramName.includes('alias')) {
+                    //     objParameters = swaggerTags.getAliasTag(line, paramName, objEndpoint)       // Search for #swagger.alias
                     } else if (paramName) {
                         try {
                             objEndpoint[path][method][paramName] = eval(`(${line.split('=')[1]})`)
