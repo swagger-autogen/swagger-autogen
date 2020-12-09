@@ -193,7 +193,7 @@ In this case it is not necessary to do anything. Considering, for example, the f
 
 The capture of the method, path, parameters and status of the response will be automatic.
 
-See [Complete example here!](#example)
+See [Complete example here!](#examples)
 
 ### Description
 This is the description of the Endpoint. To add it, use the `#swagger.description` tag, for example:
@@ -207,7 +207,7 @@ This is the description of the Endpoint. To add it, use the `#swagger.descriptio
     })
 ```
 
-See [Complete example here!](#example)
+See [Complete example here!](#examples)
 
 ### Tags
 To inform which tags the endpoinst belongs to, use the `#swagger.tags` tag, for example:
@@ -221,7 +221,7 @@ To inform which tags the endpoinst belongs to, use the `#swagger.tags` tag, for 
     })
 ```
 
-See [Complete example here!](#example)
+See [Complete example here!](#examples)
 
 ### Parameters
 It is possible to create or complement automatically detected parameters. Use the `#swagger.parameters['parameterName']` tag to create a new parameter or to complete an existing parameter (automatically detected).
@@ -266,7 +266,7 @@ For example:
     })
 ```
 
-See [Complete example here!](#example)
+See [Complete example here!](#examples)
 
 ### Responses
 It is possible to create or complement automatically detected responses. Use the `#swagger.reponses[statusCode]` tag to create a new answer or to complete an existing answer (automatically detected), for example:
@@ -302,7 +302,7 @@ It is possible to create or complement automatically detected responses. Use the
 
 **NOTE:** As the 404 status description was not entered, "Not Found" will automatically be added. It is possible to change the language of the automatic response, see the [Response Language](#response-language) section.  
 
-See [Complete example here!](#example)
+See [Complete example here!](#examples)
 
 ### Consumes and Produces
 Use the `#swagger.produces = ['contentType']` or `#swagger.consumes = ['contentType']` tag to add a new produce or a new consume, respectively. In the example below, the two endpoints will have the same result in the documentation:
@@ -322,7 +322,7 @@ Use the `#swagger.produces = ['contentType']` or `#swagger.consumes = ['contentT
     })
 ```
 
-See [Complete example here!](#example)
+See [Complete example here!](#examples)
 
 ### Schema and Definitions
 Unlike how Swagger writes, the answers in this module are added in a simpler way, that is, in the way you want to see the result. These responses can be added to the *definitions* parameter of the *doc* object seen in the [Usage](#usage) section, or directly to the response via the *schema* parameter.
@@ -450,7 +450,7 @@ const doc = {
     })
 ```
 
-See [Complete example here!](#example)
+See [Complete example here!](#examples)
 
 ### Endpoint as deprecated
 Use the `#swagger.deprecated = true` tag to inform that a given endpoint is depreciated, for example:
@@ -464,7 +464,7 @@ Use the `#swagger.deprecated = true` tag to inform that a given endpoint is depr
     })
 ```
 
-See [Complete example here!](#example)
+See [Complete example here!](#examples)
 
 ### Ignoring endpoint
 Use the `#swagger.ignore = true` tag to ignore a given endpoint. Thus, it will not appear in the documentation, for example:
@@ -478,7 +478,7 @@ Use the `#swagger.ignore = true` tag to ignore a given endpoint. Thus, it will n
     })
 ```
 
-See [Complete example here!](#example)
+See [Complete example here!](#examples)
 
 ### Manual capture
 Use the `#swagger.auto = false` tag to disable automatic recognition. With that, all parameters of the endpoint must be informed manually, for example:
@@ -518,7 +518,7 @@ Use the `#swagger.auto = false` tag to disable automatic recognition. With that,
     })
 ```
 
-See [Complete example here!](#example)
+See [Complete example here!](#examples)
 
 ### Forced Endpoint Creation
 If you want to forcibly create an endpoint, use the  `#swagger.start` and` #swagger.end` tags, for example:
@@ -556,7 +556,7 @@ function myFunction(param) {
 }
 ```
 
-See [Complete example here!](#example)
+See [Complete example here!](#examples)
 ## Security
 It is possible to add security to endpoints. The security example below was taken from the original Swagger documentation.
 
