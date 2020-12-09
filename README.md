@@ -4,6 +4,11 @@ This module performs the automatic construction of the Swagger documentation. Th
 
 [![NPM Version](http://img.shields.io/npm/v/swagger-autogen.svg?style=flat)](https://www.npmjs.org/package/commander) [![NPM Downloads](https://img.shields.io/npm/dm/swagger-autogen.svg?style=flat)](https://npmcharts.com/compare/swagger-autogen?minimal=true)
 
+#### NEWS! (version 2)
+Swagger-autogen now recognizes routers and referenced functions. See the example:
+
+[Example using Router](https://github.com/davibaltar/example-swagger-autogen-with-router)
+
 ## Contents
 
 - [Installation](#installation)
@@ -20,18 +25,16 @@ This module performs the automatic construction of the Swagger documentation. Th
   - [Responses](#responses)
   - [Consumes and Produces](#consumes-and-produces)
   - [Schema and Definitions](#schema-and-definitions)
-  - [Endpoint with referenced callback](#endpoint-with-referenced-callback)
   - [Endpoint as deprecated](#endpoint-as-deprecated)
   - [Ignoring endpoint](#ignoring-endpoint)
   - [Manual capture](#manual-capture)
-  - [Creating endpoint](#creating-endpoint)
-  - [Multiple patterns](#multiple-patterns)
+  - [Forced endpoint creation](#forced-endpoint-creation)
 - [Security](#security)
 - [Response Language](#response-language)
-- [Example](#example)
+- [Examples](#examples)
 - [Compatibility](#compatibility)
 - [Tutorials](#tutorials)
-- [Bug fixes and features](#bug-fixes-and-features)
+- [Changelog](#changelog)
 - [Help us!](#help-us)
 - [License](#license)
 
@@ -51,7 +54,9 @@ const swaggerAutogen = require('swagger-autogen')()
 
 ## Usage
 
-[See Example](https://github.com/davibaltar/example-swagger-autogen)
+[Example using Router](https://github.com/davibaltar/example-swagger-autogen-with-router)
+
+[Example without Router](https://github.com/davibaltar/example-swagger-autogen)
 
 [See Tutorial in English](https://medium.com/@davibaltarx/automatic-api-documentation-in-node-js-using-swagger-dd1ab3c78284) 
 
@@ -167,7 +172,7 @@ In this case it is not necessary to do anything. Considering, for example, the f
 
 ```js
     ...
-    app.get('/users', (req, res) => {
+    app.post('/users', (req, res) => {
         ...
         users.addUser(req.query.obj)
         ...
@@ -211,7 +216,7 @@ To inform which tags the endpoinst belongs to, use the `#swagger.tags` tag, for 
     ...
     app.get('/users', (req, res) => {
         ...
-        /* #swagger.tags = ['Users'] */
+        // #swagger.tags = ['Users']
         ...
     })
 ```
@@ -233,7 +238,7 @@ All optional parameters for the tag parameter:
 } */
 ```
 
-**in:** Values: 'path', 'query' or 'body'  
+**in:** "path", "query" or "body"  
 **description:** The parameter description  
 **required:** Values: true or false  
 **type:** Values: 'string', 'integer', 'object', etc.  
@@ -447,49 +452,6 @@ const doc = {
 
 See [Complete example here!](#example)
 
-### Endpoint with referenced callback
-In case of endpoint with referenced callback it is necessary to add the information manually, for example:
-
-**Before:** 
-```js
-    ...
-    function myFunction(req, res, next) => {
-        users.addUser(req.body)
-        if(...)
-            return res.status(201).send(data)
-        return res.status(500).send(false)
-    })
-
-    app.put('/users/:id', myFunction)
-```
-
-**After:** 
-```js
-    ...
-    function myFunction(req, res, next) => {
-        users.addUser(req.body)
-        if(...)
-            return res.status(201).send(data)
-        return res.status(500).send(false)
-    })
-
-    app.put('/users/:id', myFunction
-        /*  #swagger.parameters['id'] = { description: "User ID." }
-
-            #swagger.parameters['obj'] = {
-                in: 'body',
-                description: "User data.",
-                schema: { $ref: "#/definitions/AddUser" }
-            }
-
-            #swagger.responses[201] = { description: "User updated successfully."}
-            #swagger.responses[500] = { description: "Server failure."}
-        */
-    )
-```
-
-See [Complete example here!](#example)
-
 ### Endpoint as deprecated
 Use the `#swagger.deprecated = true` tag to inform that a given endpoint is depreciated, for example:
 
@@ -558,7 +520,7 @@ Use the `#swagger.auto = false` tag to disable automatic recognition. With that,
 
 See [Complete example here!](#example)
 
-### Creating endpoint
+### Forced Endpoint Creation
 If you want to forcibly create an endpoint, use the  `#swagger.start` and` #swagger.end` tags, for example:
 
 ```js
@@ -595,27 +557,6 @@ function myFunction(param) {
 ```
 
 See [Complete example here!](#example)
-
-## Multiple patterns
-If the file containing the endpoints contains multiple patterns before of method, use the `#swagger.patterns` tag, for example:
-
-```js
-    const lib = require(...)
-
-    // #swagger.patterns = ['app', 'route']
-    ...
-
-    app.get('/users/:id', (req, res) => {
-        ...
-    })
-
-    route.get('/test', (req, res) => {
-        ...
-    })
-```
-
-See [Complete example here!](#example)
-
 ## Security
 It is possible to add security to endpoints. The security example below was taken from the original Swagger documentation.
 
@@ -678,205 +619,15 @@ const swaggerAutogen = require('swagger-autogen')()  // English by default
 // In this case, for example, the description of status code 404 will be: 'Not Found'
 ```
 
-For now the module has only the languages: English, Portuguese (Brazil) and Chinese (Simplified).
+For now, the module has only the languages: English, Portuguese (Brazil) and Chinese (Simplified).
 
-## Example
-Link to a project that covers the simplest use of this module as well as the most complete use. See the link below:
+## Examples
+Links to projects that covers the simplest use of this module as well as the most complete use. See the links below:
 
-[Complete example](https://github.com/davibaltar/example-swagger-autogen)
+[Example using Router](https://github.com/davibaltar/example-swagger-autogen-with-router)
 
-Directory structure:
-```
-*
-|-- swagger.js
-|-- index.js
-|-- package.json
-|-- src
-|     |-- endpoints.js
-|     |-- users.js
-```
+[Example without Router](https://github.com/davibaltar/example-swagger-autogen)
 
-**File: endpoints.js** 
-```js
-const users = require('./users')
-let expression = true
-
-
-module.exports = function (app) {
-
-    /* NOTE: 100% automatic */
-    app.get('/automatic/users/:id', (req, res) => {
-        res.setHeader('Content-Type', 'application/json')
-        const dataId = users.getUser(req.params.id)
-        const dataObj = users.getUser(req.query.obj)
-
-        if (expression)
-            return res.status(200).send(true)
-        return res.status(404).send(false)
-    })
-
-    /* NOTE: 100% automatic */
-    app.post('/automatic/users', (req, res) => {
-        res.setHeader('Content-Type', 'application/xml')
-        const data = users.addUser(req.query.obj)
-
-        if (expression)
-            return res.status(201).send(data)
-        return res.status(500)
-    })
-
-    /* NOTE: Completing informations automaticaly obtaineds */
-    app.get('/automatic_and_incremented/users/:id', (req, res) => {
-        /* #swagger.tags = ['User']
-           #swagger.description = 'Endpoint to get the specific user.' */
-        res.setHeader('Content-Type', 'application/json')
-        const data = users.getUser(req.params.id)
-
-        if (expression) {
-            /* #swagger.responses[200] = { 
-                    schema: { $ref: "#/definitions/User" },
-                    description: "User registered successfully." } */
-            return res.status(200).send(data)
-        }
-        return res.status(404).send(false)    // #swagger.responses[404]
-    })
-
-    /* NOTE: Completing informations automaticaly obtaineds */
-    app.post('/automatic_and_incremented/users', (req, res) => {
-        res.setHeader('Content-Type', 'application/xml')
-        /*  #swagger.tags = ['User']
-            #swagger.description = 'Endpoint to add a user.' */
-
-        /*  #swagger.parameters['obj'] = {
-                in: 'body',
-                description: 'User information.',
-                required: true,
-                type: 'object',
-                schema: { $ref: "#/definitions/AddUser" }
-        } */
-        const data = users.addUser(req.body)
-
-        if (expression) {
-            // #swagger.responses[201] = { description: 'User registered successfully.' }
-            return res.status(201).send(data)
-        }
-        return res.status(500)    // #swagger.responses[500]
-    })
-
-    /* NOTE: Function with callback referencied */
-    app.delete('/automatic_and_incremented/users/:id', myFunction1
-    /*  #swagger.tags = ['User']
-        #swagger.parameters['id'] = {
-            description: 'User ID.'
-        }
-        
-        #swagger.responses[200]
-        #swagger.responses[404]
-    */)
-
-    /* NOTE: Will be ignored in the build */
-    app.get('/toIgnore', (req, res) => {
-        // #swagger.ignore = true
-        res.setHeader('Content-Type', 'application/json')
-
-        if (expression)
-            return res.status(200).send(true)
-        return res.status(404).send(false)
-    })
-
-    app.patch('/manual/users/:id', (req, res) => {
-        /*  #swagger.auto = false
-
-            #swagger.path = '/manual/users/{id}'
-            #swagger.method = 'patch'
-            #swagger.description = 'Endpoint added manually.'
-            #swagger.produces = ["application/json"]
-            #swagger.consumes = ["application/json"]
-        */
-
-        /*  #swagger.parameters['id'] = {
-                in: 'path',
-                description: 'User ID.',
-                required: true
-            }
-        */
-
-        /*  #swagger.parameters['obj'] = {
-                in: 'query',
-                description: 'User information.',
-                required: true, 
-                type: 'string'
-            }
-        */
-
-        if (expression) {
-            /* #swagger.responses[200] = { 
-                    schema: { $ref: "#/definitions/User" }, 
-                    description: "User found." 
-            }*/
-            return res.status(200).send(data)
-        }
-        // #swagger.responses[500] = { description: "Server Failure." }
-        return res.status(500).send(false)
-    })
-
-    app.head('/security', (req, res) => {
-        res.setHeader('Content-Type', 'application/json')
-        /* #swagger.security = [{
-            "petstore_auth": [
-                "write_pets",
-                "read_pets"
-            ]
-        }] */
-
-        const dataObj = users.getUser(req.query.obj)
-
-        if (expression)
-            return res.status(200).send(true)
-        return res.status(404).send(false)
-    })
-}
-
-function myFunction1(p) {
-    const dataId = users.getUser(req.params.id)
-
-    if (expression)
-        return res.status(200).send(true)
-    return res.status(404).send(false)
-}
-
-function myFunction2(p) {
-    // #swagger.start
-
-    /*
-       #swagger.path = '/forcedEndpoint/{id}'
-       #swagger.method = 'put'
-       #swagger.description = 'Forced endpoint.'
-       #swagger.produces = ["application/json"]
-    */
-
-    /* #swagger.parameters['id'] = { in: 'path', description: 'User ID' } */
-    const dataId = users.getUser(req.params.id)
-
-    /* #swagger.parameters['obj'] = { 
-           in: 'body',
-           description: 'User information.',
-           type: 'object',
-           schema: {
-               $name: "Jhon Doe",
-               $age: 29,
-               about: ""
-            }
-    } */
-    const dataObj = users.getUser(req.body)
-
-    if (expression)
-        return res.status(200).send(true)   // #swagger.responses[200]
-    return res.status(404).send(false)      // #swagger.responses[404]
-
-    // #swagger.end
-}
-```
 See the result after construction in the image below:
 
 ![](https://raw.githubusercontent.com/davibaltar/public-store/master/screen-swagger-autogen-small.png)
@@ -887,7 +638,7 @@ See the result after construction in the image below:
 
 
 ## Compatibility
-This module is independent of any framework. For the recognition to be **automatic**, it is necessary that your framework follow the pattern **foo.method(path, callback)**, where *foo* is the variable belonging to the server or the route, such as: *app*, *server*, *route*, etc. The *method* are HTTP methods, such as get, post, put, and so on. If the **foo.method(path, callback)** pattern is not found in the files, it will be necessary to **manually** enter the beginning and end of the endpoint using the `#swagger.start` and `#swagger.end` tags (see the section: [Creating endpoint](#creating-endpoint)). If you use the *Express.js* framework, the status code and produces will be automaticaly obtained according to the *status()* and *setHeader()* functions, respectively. If you use a framework that does not contain these functions, you will need to manually add them with the `#swagger.response[statusCode]` and `#swagger.produces` tags (see the [Responses](#responses) and [Consumes and Produces](#consumes-and-produces) sections).
+This module is independent of any framework. For the recognition to be **automatic**, it is necessary that your framework follow the pattern **foo.method(path, callback)**, where *foo* is the variable belonging to the server or the route, such as: *app*, *server*, *route*, etc. The *method* are HTTP methods, such as get, post, put, and so on. If the **foo.method(path, callback)** pattern is not found in the files, it will be necessary to **manually** enter the beginning and end of the endpoint using the `#swagger.start` and `#swagger.end` tags (see the section: [Forced Endpoint Creation](#forced-endpoint-creation)). If you use the *Express.js* framework, the status code and produces will be automaticaly obtained according to the *status()* and *setHeader()* functions, respectively. If you use a framework that does not contain these functions, you will need to manually add them with the `#swagger.response[statusCode]` and `#swagger.produces` tags (see the [Responses](#responses) and [Consumes and Produces](#consumes-and-produces) sections).
 
 **Swagger version:** 2.0  
 
@@ -899,9 +650,19 @@ Some tutorials with examples:
 [Tutorial em Português Brasil](https://medium.com/@davibaltarx/documenta%C3%A7%C3%A3o-autom%C3%A1tica-de-apis-em-node-js-eb03041c643b) 
 
 
-## Bug fixes and features
-Version 1.2.x.
-- Version 1.2.5: Manual capture: Bug fix and README fixes.
+## Changelog
+Implemented in version 2.x.x:
+- Recognition of Routes and Referenced Functions
+- Endpoint with referenced callback now it's done automatically
+- Creating an endpoint with # swagger.start and # swagger.end is no longer necessary, but will remain in the code.
+- Multiple patterns now it's done automatically
+- Partial TypeScript recognition
+
+TODO:
+- Recognize middleware array
+- Recognize TypeScript completely
+- Recognize file import with: "import ... from ... "
+- Refactor
 
 ## Help us!
 Help us improve this module. If you have any information that the module does not provide or provides incompletely or incorrectly, please use our [Github](https://github.com/davibaltar/swagger-autogen) repository.

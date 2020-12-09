@@ -117,7 +117,7 @@ function getMethod(elem, line, autoMode, aDataRaw) {
 
 // Get #swagger.start and #swagger.end
 function getForcedEndpoints(aData) {
-    let aForcedsEndpoints = aData.split(new RegExp(".*#swagger.start.*|.*#swagger.end.*"))
+    let aForcedsEndpoints = aData.split(new RegExp(".*#swagger.start.*|.*#swagger.end.*", "i"))
     if (aForcedsEndpoints.length > 1) {
         aForcedsEndpoints = aForcedsEndpoints.filter((_, idx) => idx % 2 != 0)
         aForcedsEndpoints = aForcedsEndpoints.map((e) => e = "'/_undefined_path_0x" + e.length.toString(16) + "', " + e)
@@ -203,6 +203,24 @@ function getResponsesTag(line, paramName, objResponses) {
     return objResponses
 }
 
+function getRouter(aDataRaw) {
+    if (!aDataRaw)
+        return null
+    var aDataRawSplited = aDataRaw.split('\n')
+    for (let idx = 0; idx < aDataRawSplited.length; idx++) {
+        var elem = aDataRawSplited[idx]
+
+        if (elem.split(new RegExp(`(const|var|let)\\s*\\w*\\s*=\\s*.*Router\\s*\\(.*\\)`, "i")).length > 1) {
+            var varRoute = elem.split(' ')[1].split('=')[0].replaceAll(' ', '')
+            return varRoute
+        }
+    }
+
+    if (aDataRaw.includes(swaggerObj + '.router')) { // Search for #swagger.router
+        return aDataRaw.split(swaggerObj + '.router')[1].replaceAll(' ', '').replaceAll('\'', '\"').replaceAll('`', '\"').split('=')[1].getBetweenStrs('\"', '\"')
+    }
+    return null
+}
 
 module.exports = {
     formatDefinitions,
@@ -218,5 +236,6 @@ module.exports = {
     getProducesTag,
     getConsumesTag,
     getResponsesTag,
-    setDefinitions
+    setDefinitions,
+    getRouter
 }
