@@ -238,12 +238,12 @@ All optional parameters for the tag parameter:
 } */
 ```
 
-**in:** "path", "query" or "body"  
+**in:** 'path', 'query' or 'body'  
 **description:** The parameter description  
-**required:** Values: true or false  
-**type:** Values: 'string', 'integer', 'object', etc.  
-**format:** Values: 'int64', etc.  
-**schema:** Values: See section [Schema and Definitions](#schema-and-definitions)  
+**required:** true or false  
+**type:** 'string', 'integer', 'object', etc.  
+**format:** 'int64', etc.  
+**schema:** See section [Schema and Definitions](#schema-and-definitions)  
 
 For example:
 ```js
@@ -289,12 +289,10 @@ It is possible to create or complement automatically detected responses. Use the
     app.post('/v2/users', (req, res) => {
         ...
         if(...){
-            // #swagger.responses[201] = { description: 'User registered successfully.' }
-            return res.status(201).send(data)
-        }
+            // #swagger.responses[500] = { description: 'Problem with the server.' }
+            return res.status(500)
+        }     
         ...
-        // #swagger.responses[500] = { description: 'Problem with the server.' }
-        return res.status(500)
     })
 ```
 
@@ -369,51 +367,7 @@ const doc = {
 
 `Endpoint file:`
 ```js
-    app.get('/users/:id', (req, res) => {
-        ...
-        if(...) {
-            /* #swagger.responses[200] = { 
-                schema: { $ref: "#/definitions/User" }, 
-                description: 'User successfully obtained.' } */
-            return res.status(200).send(data)
-        }
-        ...
-        return res.status(404).send(false)
-    })
 
-    app.get('/v2/users/:id', (req, res) => {
-        ...
-        if(...) {
-            // Inserting directly, without using definitions:
-
-            /* #swagger.responses[200] = { 
-                description: "User successfully obtained.", 
-                schema: {
-                    name: "Jhon Doe",
-                    age: 29,
-                    parents: {
-                        father: "Simon Doe",
-                        mother: "Marie Doe"
-                    },
-                    diplomas: [
-                        {
-                            school: "XYZ University",
-                            year: 2020,
-                            completed: true,
-                            internship: {
-                                hours: 290,
-                                location: "XYZ Company"
-                            }
-                        }
-                    ]
-                }
-            }*/
-            return res.status(200).send(data)
-        }
-        ...
-        return res.status(404).send(false)
-    })
-    
     app.post('/users', (req, res) => {
         ...
         /*    #swagger.parameters['obj'] = { 
@@ -600,23 +554,30 @@ At the endpoint, add the `#swagger.security` tag, for example:
 ## Response Language
 It is possible to change the default language (English) of the description in the automatic response, for example: status code 404, the description will be: 'Not Found'. To change, just do in the module declaration:
 
+
+**English (by default)**  
 ```js
-const swaggerAutogen = require('swagger-autogen')('pt-BR')  // Portuguese - Brazil
-// In this case, for example, the description of status code 404 will be: 'Não Encontrado'
+const swaggerAutogen = require('swagger-autogen')()
+// In this case, for example, the description of status code 404 will be: 
+// 'Not Found'
+```
+
+OR 
+
+**Portuguese (Brazil)**  
+```js
+const swaggerAutogen = require('swagger-autogen')('pt-BR') 
+// In this case, for example, the description of status code 404 will be: 
+// 'Não Encontrado'
 ```
 
 OR
 
+**Chinese (Simplified)**  
 ```js
-const swaggerAutogen = require('swagger-autogen')('zh-CN')  // Chinese (Simplified)
-// In this case, for example, the description of status code 404 will be: '未找到'
-```
-
-OR
-
-```js
-const swaggerAutogen = require('swagger-autogen')()  // English by default
-// In this case, for example, the description of status code 404 will be: 'Not Found'
+const swaggerAutogen = require('swagger-autogen')('zh-CN')
+// In this case, for example, the description of status code 404 will be: 
+// '未找到'
 ```
 
 For now, the module has only the languages: English, Portuguese (Brazil) and Chinese (Simplified).

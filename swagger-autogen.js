@@ -408,7 +408,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
 
                                     // TODO: Verify case with more than one referenced subfunction, such as: Foo.func1.func2...
                                     // Replacing function in the referenced location
-                                    elem += unusualString + "," + refFunction
+                                    if (refFunction)
+                                        elem += unusualString + "," + refFunction
                                 } else {
                                     // Referenced in the same file
                                     var refFunction = await functionRecognizer(aDataRaw, varFileName)
@@ -492,8 +493,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
 
                     // req | res: Last, because must eliminate comments and strings to get .status only from the code.
                     if (autoMode && (req || res)) {
-                        elem = elem.split(new RegExp("/\\*(.)*?\\*/")).filter((_, idx) => idx % 3 == 0).join('')    // Delete all comments /*...*/
-                        elem = elem.split(new RegExp("([\"'`])((?:\\\\\\1|.)*?)\\1")).filter((_, idx) => idx % 3 == 0).join('')  // Delete all string
+                        elem = await removeComments(elem, true)
+                        // elem = elem.split(new RegExp("/\\*(.)*?\\*/")).filter((_, idx) => idx % 3 == 0).join('')    // Delete all comments /*...*/
+                        // elem = elem.split(new RegExp("([\"'`])((?:\\\\\\1|.)*?)\\1")).filter((_, idx) => idx % 3 == 0).join('')  // Delete all string 
                         elem = elem.replaceAll('__¬¬¬__', '"')
                         if (req) {
                             objParameters = getQuery(elem, req, objParameters)              // Search for parameters in the query (directy)
@@ -625,7 +627,7 @@ function getImportedFiles(aDataRaw) {
 function getReferencedFunction(fileName, refFuncao) {
     return new Promise((resolve, reject) => {
         fs.readFile(fileName, 'utf8', async function (err, data) {
-            if (err) throw console.error(err)
+            if (err) return resolve(null)
 
             var cleanedData = await removeComments(data, true)
             cleanedData = cleanedData.replaceAll(" async ", ' ')
