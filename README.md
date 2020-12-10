@@ -615,7 +615,6 @@ Some tutorials with examples:
 Implemented in version 2.x.x:
 - Recognition of Routes and Referenced Functions
 - Endpoint with referenced callback now it's done automatically
-- Creating an endpoint with # swagger.start and # swagger.end is no longer necessary, but will remain in the code.
 - Multiple patterns now it's done automatically
 - Partial TypeScript recognition
 
