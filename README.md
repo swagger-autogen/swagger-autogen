@@ -613,7 +613,7 @@ Some tutorials with examples:
 
 ## Changelog
 Implemented in version 2.x.x:
-- Recognition of Routes and Referenced Functions
+- Recognition of Routes and referenced functions
 - Endpoint with referenced callback now it's done automatically
 - Multiple patterns now it's done automatically
 - Partial TypeScript recognition
@@ -622,7 +622,7 @@ TODO:
 - Recognize middleware array
 - Recognize TypeScript completely
 - Recognize file import with: "import ... from ... "
-- Refactor
+- Refactor and clean code
 
 ## Help us!
 Help us improve this module. If you have any information that the module does not provide or provides incompletely or incorrectly, please use our [Github](https://github.com/davibaltar/swagger-autogen) repository.

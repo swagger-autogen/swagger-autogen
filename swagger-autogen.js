@@ -45,11 +45,14 @@ module.exports = function (recLang = null) {
                     throw console.error("\nError: 'endpointsFiles' was not specified.")
 
                 // Checking if endpoint files exist
-                endpointsFiles.forEach(file => {
-                    if (!fs.existsSync(file)) {
+                for (var idx = 0; idx < endpointsFiles.length; ++idx) {
+                    var file = endpointsFiles[idx]
+                    var extension = await getExtension(file)
+                    endpointsFiles[idx] = file + extension
+                    if (!fs.existsSync(file + extension)) {
                         throw console.error("\nError: File not found: '" + file + "'")
                     }
-                })
+                }
 
                 const objDoc = { ...template, ...data, paths: {} }
                 for (let file = 0; file < endpointsFiles.length; file++) {
@@ -115,12 +118,23 @@ function clearData(data) {
     return aData
 }
 
-function getFunction(elem) {
+function getStaticFunction(elem) {
     var stack = 1   // stack of '(' to get just function
     elem = elem.split('').filter(e => {
         if (stack <= 0) return false
         if (e == '(') stack += 1
         if (e == ')') stack -= 1
+        return true
+    }).join('')
+    return elem
+}
+
+function getStaticArray(elem) {
+    var stack = 1 
+    elem = elem.split('').filter(e => {
+        if (stack <= 0) return false
+        if (e == '[') stack += 1
+        if (e == ']') stack -= 1
         return true
     }).join('')
     return elem
@@ -337,7 +351,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
                         elem = elem[2]
                     }
 
-                    elem = getFunction(elem)
+                    elem = getStaticFunction(elem)
                     if (elem.includes(unusualString + "FORCED" + unusualString))
                         forced = true
 
@@ -346,7 +360,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
 
                     autoMode = swaggerTags.getAutoTag(elem)
 
-                    let middleware = false
+                    let middleware = null
                     let completedAnalysis = false
                     // Checking if function is a reference to another file
                     if (elem.split(",").length > 1) {
@@ -354,10 +368,18 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
                         auxElem = auxElem.replaceAll('\n', '').replaceAll(' ', '')
                         // Verifing foo.method('/path', [..., ..., ...], ...)
                         if (auxElem.split(",").length > 2 && auxElem.split(",")[1].includes("[")) {
-                            auxElem = auxElem.split(/\[|\]/)
-                            // TODO: Verify middleares in array here, such as: foo.method('/path', [... , ... , ...], foo)
+                            auxElem = await removeComments(elem, true)
+                            var auxElemArray = auxElem.split(',')
+                            auxElemArray.shift()
+                            auxElemArray = auxElemArray.join(',')
+                            auxElemArray = auxElemArray.split('[')
+                            auxElemArray.shift()
+                            auxElemArray = auxElemArray.join('[')
+                            var middlewares = '[' + getStaticArray(auxElemArray)
+                            auxElem = auxElem.split(middlewares)
+                            // TODO: Verify middleares in array here
                             elem = auxElem[0]
-                            auxElem = auxElem[2].split(",")
+                            auxElem = auxElem[1].split(",")
                             auxElem.shift()
                             auxElem = auxElem.join(',')
                             if (auxElem.split(new RegExp(`\\s*\\=*\\s*\\(.+\\).+\\{`))) {
@@ -365,12 +387,19 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
                                 elem += auxElem
                             }
 
+                        } else if (auxElem.split(",").length > 2) {
+                            //Example: app.get(/path', middleware, controller.foo)'
+                            middleware = auxElem.split(",")[1]
+                            auxElem = auxElem.split(",")[2]
+                            if (middleware.split(new RegExp("(\\,|\\(|\\)|\\{|\\}|\\[|\\])")).length != 1)
+                                middleware = null
                         } else {
                             auxElem = auxElem.split(",")[1]
                             if (auxElem.split(new RegExp("(\\,|\\(|\\)|\\{|\\}|\\[|\\])")).length == 1)
                                 middleware = true
                         }
 
+                        // TODO: create function with the code below
                         if (!completedAnalysis) {
                             var refFuncao = null
                             var varFileName = null
@@ -408,12 +437,71 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
 
                                     // TODO: Verify case with more than one referenced subfunction, such as: Foo.func1.func2...
                                     // Replacing function in the referenced location
-                                    if (refFunction)
+                                    if (refFunction) {
+                                        refFunction = clearData(refFunction)
                                         elem += unusualString + "," + refFunction
+                                    }
                                 } else {
                                     // Referenced in the same file
                                     var refFunction = await functionRecognizer(aDataRaw, varFileName)
-                                    elem += unusualString + "," + refFunction
+                                    if (refFunction) {
+                                        refFunction = clearData(refFunction)
+                                        elem += unusualString + "," + refFunction
+                                    }
+                                }
+                            }
+                        }
+
+                        // TODO: create function with the code below
+                        if (!completedAnalysis && middleware) {
+                            auxElem = middleware
+                            var refFuncao = null
+                            var varFileName = null
+                            auxElem = auxElem.split(/\)|\n/)
+
+                            if ((auxElem.length > 1 || middleware) && !auxElem[0].includes("function ") && !auxElem[0].includes("=>")) {
+                                auxElem = auxElem[0]
+                                if (auxElem.split(".").length > 1) {// Identifying subfunction
+                                    refFuncao = auxElem.split(".")[1].trim()
+                                    varFileName = auxElem.split(".")[0].trim()
+                                } else {
+                                    varFileName = auxElem.split(".")[0].trim()
+                                }
+                                var idx = importedFiles.findIndex(e => e.varFileName == varFileName)
+                                // Referenced in another file
+                                if (idx > -1) {
+                                    // Bringing reference
+                                    var pathFile = null
+                                    if (relativePath) {
+                                        if (importedFiles[idx].fileName.includes("../")) {
+                                            var foldersToBack = importedFiles[idx].fileName.split("../").length - 1
+                                            var RelativePathBacked = relativePath.split('/')
+                                            RelativePathBacked = RelativePathBacked.slice(0, (-1) * foldersToBack)
+                                            RelativePathBacked = RelativePathBacked.join('/')
+
+                                            pathFile = RelativePathBacked + '/' + importedFiles[idx].fileName.replaceAll('../', '')//.replaceAll('//', '/')
+                                        } else {
+                                            pathFile = relativePath + importedFiles[idx].fileName.replaceAll('./', '/')
+                                        }
+                                    } else {
+                                        pathFile = importedFiles[idx].fileName
+                                    }
+                                    var extension = await getExtension(pathFile)
+                                    var refFunction = await getReferencedFunction(pathFile + extension, refFuncao)
+
+                                    // TODO: Verify case with more than one referenced subfunction, such as: Foo.func1.func2...
+                                    // Replacing function in the referenced location
+                                    if (refFunction) {
+                                        refFunction = clearData(refFunction)
+                                        elem += "," + refFunction
+                                    }
+                                } else {
+                                    // Referenced in the same file
+                                    var refFunction = await functionRecognizer(aDataRaw, varFileName)
+                                    if (refFunction) {
+                                        refFunction = clearData(refFunction)
+                                        elem += "," + refFunction
+                                    }
                                 }
                             }
                         }
@@ -479,7 +567,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
                         } else if (paramName && paramName.includes('responses') && paramName.includes('[') && paramName.includes(']')) {
                             objResponses = swaggerTags.getResponsesTag(line, paramName, objResponses)       // Search for #swagger.responses
                         } else if (paramName) {
-                            try {
+                            try {   // #swagger.description, etc
                                 objEndpoint[path][method][paramName] = eval(`(${line.split('=')[1]})`)
                             } catch (err) {
                                 console.error('Syntax error: ' + line)
@@ -493,9 +581,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
 
                     // req | res: Last, because must eliminate comments and strings to get .status only from the code.
                     if (autoMode && (req || res)) {
-                        elem = await removeComments(elem, true)
-                        // elem = elem.split(new RegExp("/\\*(.)*?\\*/")).filter((_, idx) => idx % 3 == 0).join('')    // Delete all comments /*...*/
-                        // elem = elem.split(new RegExp("([\"'`])((?:\\\\\\1|.)*?)\\1")).filter((_, idx) => idx % 3 == 0).join('')  // Delete all string 
+                        elem = await removeStrings(elem) // Avoiding .status(...), etc in string
                         elem = elem.replaceAll('__¬¬¬__', '"')
                         if (req) {
                             objParameters = getQuery(elem, req, objParameters)              // Search for parameters in the query (directy)
@@ -570,7 +656,6 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
         })
     })
 }
-
 
 function getImportedFiles(aDataRaw) {
     var importedFiles = []
@@ -664,6 +749,11 @@ function getReferencedFunction(fileName, refFuncao) {
 async function functionRecognizer(data, refFuncao, regex) {
     return new Promise((resolve, reject) => {
         var func = null
+        refFuncao = refFuncao.split(new RegExp("\\;|\\{|\\(|\\[|\\\"|\\\'|\\\`|\\}|\\)|\\]|\\:|\\,"))
+        if (refFuncao.length > 1)
+            refFuncao = refFuncao[1]
+        else
+            refFuncao = refFuncao[0]
         func = data.split(new RegExp(`(${refFuncao}\\s*\\=*\\s*\\(.+\\).*\\{)`))
         func.shift()
         func = func.join(' ')
@@ -710,7 +800,7 @@ function verifyRouteInFile(fileName) {
 }
 
 function removeComments(data, keepSwaggerTags = false) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
 
         var strToReturn = ''
         var stackComment1 = 0; // For type  //
@@ -719,8 +809,34 @@ function removeComments(data, keepSwaggerTags = false) {
         var buffer1 = '' // For type  //
         var buffer2 = '' // For type   /* */
 
+        // Won't remove comments in strings
+        var isStr1 = 0   // "
+        var isStr2 = 0   // '
+        var isStr3 = 0   // `
+
         for (var idx = 0; idx < data.length; ++idx) {
             let c = data[idx]
+
+            if (stackComment1 == 0 && stackComment2 == 0) {
+                // Type '
+                if (c == '\'' && data[idx - 1] != '\\' && isStr1 == 1)
+                    isStr1 = 2
+                if (c == '\'' && data[idx - 1] != '\\' && isStr1 == 0 && isStr2 == 0 && isStr3 == 0)
+                    isStr1 = 1
+
+                // Type  "
+                if (c == '\"' && data[idx - 1] != '\\' && isStr2 == 1)
+                    isStr2 = 2
+                if (c == '\"' && data[idx - 1] != '\\' && isStr1 == 0 && isStr2 == 0 && isStr3 == 0)
+                    isStr2 = 1
+
+                // Type  `
+                if (c == '\`' && data[idx - 1] != '\\' && isStr3 == 1)
+                    isStr3 = 2
+                if (c == '\`' && data[idx - 1] != '\\' && isStr1 == 0 && isStr2 == 0 && isStr3 == 0)
+                    isStr3 = 1
+            }
+
 
             // Type //
             if (c == '/' && data[idx + 1] == '/' && stackComment1 == 0 && stackComment2 == 0)
@@ -734,7 +850,7 @@ function removeComments(data, keepSwaggerTags = false) {
             if (c == '/' && data[idx - 1] == '*' && stackComment2 == 1)
                 stackComment2 = 2
 
-            if (stackComment1 == 0 && stackComment2 == 0) {
+            if (isStr1 > 0 || isStr2 > 0 || (stackComment1 == 0 && stackComment2 == 0)) {
                 strToReturn += c
             } else if (stackComment1 == 1 || stackComment1 == 2) { // Keeps the comment being ignored. Like: //
                 buffer1 += c
@@ -760,14 +876,70 @@ function removeComments(data, keepSwaggerTags = false) {
                     buffer2 = ''
             }
 
+            if (isStr1 == 2)
+                isStr1 = 0
+            if (isStr2 == 2)
+                isStr2 = 0
+            if (isStr3 == 2)
+                isStr3 = 0
+
             if (idx == data.length - 1) {
                 strToReturn = strToReturn.replaceAll('  ', ' ').replaceAll('  ', ' ').replaceAll('  ', ' ').replaceAll('  ', ' ')
                 return resolve(strToReturn)
             }
         }
-
     })
+}
 
+function removeStrings(data) {
+    return new Promise((resolve, reject) => {
+
+        var strToReturn = ''
+        var stackStr1 = 0; // For type  '
+        var stackStr2 = 0; // For type  "
+        var stackStr3 = 0; // For type  `
+
+        var stackComment1 = 0; // For type  //
+        var stackComment2 = 0; // For type  /* */
+
+        for (var idx = 0; idx < data.length; ++idx) {
+            let c = data[idx]
+
+            // Type '
+            if (c == '\'' && data[idx - 1] != '\\' && stackStr1 == 1)
+                stackStr1 = 2
+            if (c == '\'' && data[idx - 1] != '\\' && stackStr1 == 0 && stackStr2 == 0 && stackStr3 == 0 && stackComment1 == 0 && stackComment2 == 0)
+                stackStr1 = 1
+
+            // Type  "
+            if (c == '\"' && data[idx - 1] != '\\' && stackStr2 == 1)
+                stackStr2 = 2
+            if (c == '\"' && data[idx - 1] != '\\' && stackStr1 == 0 && stackStr2 == 0 && stackStr3 == 0 && stackComment1 == 0 && stackComment2 == 0)
+                stackStr2 = 1
+
+            // Type  `
+            if (c == '\`' && data[idx - 1] != '\\' && stackStr3 == 1)
+                stackStr3 = 2
+            if (c == '\`' && data[idx - 1] != '\\' && stackStr1 == 0 && stackStr2 == 0 && stackStr3 == 0 && stackComment1 == 0 && stackComment2 == 0)
+                stackStr3 = 1
+
+            if (stackStr1 == 0 && stackStr2 == 0 && stackStr3 == 0 && stackComment1 == 0 && stackComment2 == 0) {
+                strToReturn += c
+            }
+
+            if (stackStr1 == 2)
+                stackStr1 = 0
+            if (stackStr2 == 2)
+                stackStr2 = 0
+            if (stackStr3 == 2)
+                stackStr3 = 0
+
+            if (idx == data.length - 1) {
+                strToReturn = strToReturn.replaceAll('  ', ' ').replaceAll('  ', ' ').replaceAll('  ', ' ').replaceAll('  ', ' ')
+                return resolve(strToReturn)
+            }
+        }
+    })
 }
 
 function getExtension(fileName) {
@@ -777,7 +949,6 @@ function getExtension(fileName) {
             return resolve('')
 
         var extensios = ['.js', '.ts', '.jsx', '.tsx']
-
         for (var idx = 0; idx < extensios.length; ++idx) {
             if (await fs.existsSync(fileName + extensios[idx]))
                 return resolve(extensios[idx])
@@ -785,7 +956,6 @@ function getExtension(fileName) {
             if (idx == extensios.length - 1)
                 return resolve('')
         }
-
     })
 }
 
@@ -796,7 +966,6 @@ function addReferenceToMethods(data, pattern) {
         // Tratando caso: router.route('/user').get(authorize, (req, res) => {
         let aDataRoute = auxData.split(new RegExp(".*\\.route\\s*\\("))
         if (aDataRoute.length > 1) {
-
             for (var idx = 1; idx < aDataRoute.length; ++idx) {
                 // app.get([_[get]_])('/automatic1/users/:id', (req, res) => {
                 for (var mIdx = 0; mIdx < METHODS.length; ++mIdx) {
@@ -821,7 +990,6 @@ function addReferenceToMethods(data, pattern) {
                 return resolve(auxData)
             }
         }
-
     })
 }
 
