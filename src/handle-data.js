@@ -7,7 +7,7 @@ function isNumeric(n) {
 }
 
 function clearData(data) {
-    // Chage "// ..." comment to "/* ... */"  |  Allow one line comment to this module
+    // Change "// ..." comment to "/* ... */" 
     data = data.replaceAll('*//*', '*/\n/*')
     data = data.replaceAll('*///', '*/\n//')
     data = data.replaceAll('///', '//')

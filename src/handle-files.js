@@ -203,7 +203,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
                             let func = functions[index]
                             var refFuncao = null
                             var varFileName = null
-                            if (func.split(".").length > 1) {// Identificando referencia de subfuncao
+                            if (func.split(".").length > 1) {// Identifying subfunction reference
                                 refFuncao = func.split(".")[1].trim()
                                 varFileName = func.split(".")[0].trim()
                             } else {
@@ -407,7 +407,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
                     var idx = importedFiles.findIndex(e => e.varFileName == obj.varFileName)
                     if (idx > -1) {
                         if (relativePath)
-                            obj.fileName = relativePath + importedFiles[idx].fileName.replaceAll('./', '/') // TODO: tratar caso ../ ?
+                            obj.fileName = relativePath + importedFiles[idx].fileName.replaceAll('./', '/')
                         else
                             obj.fileName = importedFiles[idx].fileName
 
