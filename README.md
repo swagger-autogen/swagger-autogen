@@ -5,7 +5,7 @@ This module performs the automatic construction of the Swagger documentation. Th
 [![NPM Version](http://img.shields.io/npm/v/swagger-autogen.svg?style=flat)](https://www.npmjs.org/package/commander) [![NPM Downloads](https://img.shields.io/npm/dm/swagger-autogen.svg?style=flat)](https://npmcharts.com/compare/swagger-autogen?minimal=true)
 
 #### NEWS! (version 2)
-Swagger-autogen now recognizes routers and referenced functions. See the example:
+Swagger-autogen now recognizes routers. See the example:
 
 [Example using Router](https://github.com/davibaltar/example-swagger-autogen-with-router)
 
@@ -617,12 +617,12 @@ Implemented in version 2.x.x:
 - Endpoint with referenced callback now it's done automatically
 - Multiple patterns now it's done automatically
 - Partial TypeScript recognition
+- Recognize middleware and middleware array (v2.0.3)
+- Refactored code (v2.0.3)
 
 TODO:
-- Recognize middleware array
 - Recognize TypeScript completely
 - Recognize file import with: "import ... from ... "
-- Refactor and clean code
 
 ## Help us!
 Help us improve this module. If you have any information that the module does not provide or provides incompletely or incorrectly, please use our [Github](https://github.com/davibaltar/swagger-autogen) repository.

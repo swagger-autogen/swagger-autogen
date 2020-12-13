@@ -1,14 +1,9 @@
 
 const tables = require('./tables')
+const statics = require('./statics')
 
-const swaggerObj = '#swagger'
-const aMethods = ['get', 'head', 'post', 'put', 'delete', 'patch', 'options']
 let lang = 'en'
 let definitions = {}
-
-function getSwaggerObj() {
-    return swaggerObj
-}
 
 function getLanguage() {
     return lang
@@ -79,7 +74,7 @@ function formatDefinitions(def, resp = {}) {
 // Path and #swagger.path
 function getPath(elem, line, autoMode) {
     let path = false
-    if (autoMode && !elem.includes(swaggerObj + '.path')) {
+    if (autoMode && !elem.includes(statics.SWAGGER_TAG + '.path')) {
         if (line.split(',').length > 0 && (line.split('\"').length > 2 || line.split('\'').length > 2 || line.split('`').length > 2)) {
             path = line.replaceAll('\'', '"').replaceAll('`', '"').replaceAll(' ', '').split('"')[1].split('"')[0]
             path = path.split('/').map(p => {
@@ -91,25 +86,25 @@ function getPath(elem, line, autoMode) {
         } else {
             path = "/_undefined_path_0x" + elem.length.toString(16)
         }
-    } else if (elem.includes(swaggerObj + '.path'))  // Search for #swagger.path
-        path = elem.split(swaggerObj + '.path')[1].replaceAll(' ', '').replaceAll('\'', '\"').replaceAll('`', '\"').split('=')[1].getBetweenStrs('\"', '\"')
+    } else if (elem.includes(statics.SWAGGER_TAG + '.path'))  // Search for #swagger.path
+        path = elem.split(statics.SWAGGER_TAG + '.path')[1].replaceAll(' ', '').replaceAll('\'', '\"').replaceAll('`', '\"').split('=')[1].getBetweenStrs('\"', '\"')
     else
         path = "/_undefined_path_0x" + elem.length.toString(16)
     return path
 }
 
-// Get mathod in *.get, *.post and so on; Get #swagger.method
+// Get method in *.get, *.post and so on; Get #swagger.method
 function getMethod(elem, line, autoMode, aDataRaw) {
     let method = false
-    if (autoMode && !elem.includes(swaggerObj + '.method')) {
+    if (autoMode && !elem.includes(statics.SWAGGER_TAG + '.method')) {
         const dataOneLine = aDataRaw.replaceAll('\n', '').replaceAll('//', '').replaceAll(' ', '') // used to get methods
         method = dataOneLine.split(line.replaceAll(' ', ''))[0].split('.').slice(-1)[0].split('(')[0].trim()
-    } else if (elem.includes(swaggerObj + '.method')) // Search for #swagger.method
-        method = elem.split(swaggerObj + '.method')[1].replaceAll(' ', '').replaceAll('\'', '\"').replaceAll('`', '\"').split('=')[1].getBetweenStrs('\"', '\"')
+    } else if (elem.includes(statics.SWAGGER_TAG + '.method')) // Search for #swagger.method
+        method = elem.split(statics.SWAGGER_TAG + '.method')[1].replaceAll(' ', '').replaceAll('\'', '\"').replaceAll('`', '\"').split('=')[1].getBetweenStrs('\"', '\"')
     else
         throw console.error("\nError: 'method' not found.")
 
-    if (!aMethods.includes(method)) {
+    if (!statics.METHODS.includes(method)) {
         method = 'get'
     }
     return method
@@ -120,7 +115,16 @@ function getForcedEndpoints(aData) {
     let aForcedsEndpoints = aData.split(new RegExp(".*#swagger.start.*|.*#swagger.end.*", "i"))
     if (aForcedsEndpoints.length > 1) {
         aForcedsEndpoints = aForcedsEndpoints.filter((_, idx) => idx % 2 != 0)
-        aForcedsEndpoints = aForcedsEndpoints.map((e) => e = "'/_undefined_path_0x" + e.length.toString(16) + "', " + e)
+        aForcedsEndpoints = aForcedsEndpoints.map((e) => {
+            let method = e.split(new RegExp("#swagger\\.method\\s*\\=\\s*"))
+            if (method.length > 1) {
+                method = method[1].split(/\n|\;/)
+                method = method[0].replaceAll('\"', '').replaceAll('\'', '').replaceAll('\`', '').replaceAll(' ', '')
+            } else {
+                method = 'get'
+            }
+            return e = "[_[" + method + "]_])('/_undefined_path_0x" + e.length.toString(16) + "', " + e
+        })
     } else
         aForcedsEndpoints = []
     return aForcedsEndpoints
@@ -128,16 +132,16 @@ function getForcedEndpoints(aData) {
 
 // Search for #swagger.ignore
 function getIgnoreTag(elem) {
-    if (elem.includes(swaggerObj + '.ignore'))
-        if (elem.split(swaggerObj + '.ignore')[1].replaceAll(' ', '').split('=')[1].slice(0, 4) == 'true')
+    if (elem.includes(statics.SWAGGER_TAG + '.ignore'))
+        if (elem.split(statics.SWAGGER_TAG + '.ignore')[1].replaceAll(' ', '').split('=')[1].slice(0, 4) == 'true')
             return true
     return false
 }
 
 // Search for #swagger.auto = false   (by default is true)
 function getAutoTag(elem) {
-    if (elem.includes(swaggerObj + '.auto'))
-        if (elem.split(swaggerObj + '.auto')[1].replaceAll(' ', '').split('=')[1].slice(0, 5) == 'false')
+    if (elem.includes(statics.SWAGGER_TAG + '.auto'))
+        if (elem.split(statics.SWAGGER_TAG + '.auto')[1].replaceAll(' ', '').split('=')[1].slice(0, 5) == 'false')
             return false
     return true
 }
@@ -216,8 +220,8 @@ function getRouter(aDataRaw) {
         }
     }
 
-    if (aDataRaw.includes(swaggerObj + '.router')) { // Search for #swagger.router
-        return aDataRaw.split(swaggerObj + '.router')[1].replaceAll(' ', '').replaceAll('\'', '\"').replaceAll('`', '\"').split('=')[1].getBetweenStrs('\"', '\"')
+    if (aDataRaw.includes(statics.SWAGGER_TAG + '.router')) { // Search for #swagger.router
+        return aDataRaw.split(statics.SWAGGER_TAG + '.router')[1].replaceAll(' ', '').replaceAll('\'', '\"').replaceAll('`', '\"').split('=')[1].getBetweenStrs('\"', '\"')
     }
     return null
 }
@@ -229,7 +233,6 @@ module.exports = {
     getPath,
     getMethod,
     getForcedEndpoints,
-    getSwaggerObj,
     getIgnoreTag,
     getAutoTag,
     getParametersTag,
