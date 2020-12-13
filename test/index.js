@@ -3,7 +3,7 @@ var tape = require('tape')
 var _test = require('tape-promise').default
 var test = _test(tape)
 
-const swaggerAutogen = require('../SwaggerAutogen')()
+const swaggerAutogen = require('../swagger-autogen')()
 const inst = require('./instances')
 
 const expectedPaths = inst.expectedPaths
