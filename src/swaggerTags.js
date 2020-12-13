@@ -1,6 +1,6 @@
 
-const tables = require('./tables')
-const statics = require('./statics')
+const tables = require('./Tables')
+const statics = require('./Statics')
 
 let lang = 'en'
 let definitions = {}

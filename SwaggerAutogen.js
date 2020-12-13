@@ -1,9 +1,9 @@
-require('./src/prototypeFunctions')
+require('./src/PrototypeFunctions')
 const fs = require('fs')
 const symbols = require('figures')
-const swaggerTags = require('./src/swaggerTags')
-const handleFiles = require('./src/handleFiles')
-const statics = require('./src/statics')
+const swaggerTags = require('./src/SwaggerTags')
+const handleFiles = require('./src/HandleFiles')
+const statics = require('./src/Statics')
 
 module.exports = function (recLang = null) {
     swaggerTags.setLanguage(recLang || 'en')

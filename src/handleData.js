@@ -1,6 +1,6 @@
-const swaggerTags = require('./swaggerTags')
-const statics = require('./statics')
-const tables = require('./tables')
+const swaggerTags = require('./SwaggerTags')
+const statics = require('./Statics')
+const tables = require('./Tables')
 
 function isNumeric(n) {
     return !isNaN(parseFloat(n)) && isFinite(n)

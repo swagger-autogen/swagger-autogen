@@ -1,7 +1,7 @@
 const fs = require('fs')
-const swaggerTags = require('./swaggerTags')
-const handleData = require('./handleData')
-const statics = require('./statics')
+const swaggerTags = require('./SwaggerTags')
+const handleData = require('./HandleData')
+const statics = require('./Statics')
 
 
 function readEndpointFile(filePath, pathRoute = '', relativePath) {
