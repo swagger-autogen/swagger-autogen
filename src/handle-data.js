@@ -175,22 +175,23 @@ function removeStrings(data) {
 function addReferenceToMethods(data, pattern) {
     return new Promise((resolve, reject) => {
         let auxData = data
-
-        // Tratando caso: router.route('/user').get(authorize, (req, res) => {
+        let routeEndpoints = []
+        // handle case: router.route('/user').get(authorize, (req, res) => {
         let aDataRoute = auxData.split(new RegExp(".*\\.route\\s*\\("))
         if (aDataRoute.length > 1) {
             for (var idx = 1; idx < aDataRoute.length; ++idx) {
-                // app.get([_[get]_])('/automatic1/users/:id', (req, res) => {
+                // Case: app.get([_[get]_])('/automatic1/users/:id', (req, res) => {
                 for (var mIdx = 0; mIdx < statics.METHODS.length; ++mIdx) {
                     let method = statics.METHODS[mIdx]
                     let line = aDataRoute[idx].split(new RegExp(`\\)(\\s*|\\n*)\\.${method}\\s*\\(`))
                     if (line.length === 3) {
-                        aDataRoute[idx] = (pattern || '_app') + `.${method}(` + line[0] + ',' + line[2]
-                        break
+                        line[0] = line[0].split(')')[0]
+                        line[2] = line[2].split(new RegExp(`\\)(\\s*|\\n*)\\.get\\s*\\(|\\)(\\s*|\\n*)\\.head\\s*\\(|\\)(\\s*|\\n*)\\.post\\s*\\(|\\)(\\s*|\\n*)\\.put\\s*\\(|\\)(\\s*|\\n*)\\.delete\\s*\\(|\\)(\\s*|\\n*)\\.patch\\s*\\(|\\)(\\s*|\\n*)\\.options\\s*\\(`))[0]
+                        routeEndpoints.push((pattern || '_app') + `.${method}(` + line[0] + ',' + line[2])
                     }
                 }
             }
-            auxData = aDataRoute.join('\n')
+            auxData = aDataRoute[0] + routeEndpoints.join('\n')
         }
 
         for (var idx = 0; idx < statics.METHODS.length; ++idx) {
@@ -303,12 +304,34 @@ function getCallbackParameters(line) {
         else {
             paramCallback = paramCallback.split(',')
             if (paramCallback.length == 1) {
-                req = paramCallback[0].replaceAll('(', '').replaceAll(')', '')
+                if (paramCallback[0].includes(':')) {   // handling TypeScript
+                    if (paramCallback[0].split(':')[1].toLocaleLowerCase().includes('res'))
+                        res = paramCallback[0].split(':')[0].replaceAll(' ', '')
+                    else
+                        req = paramCallback[0].split(':')[0].replaceAll(' ', '')
+                } else
+                    req = paramCallback[0].replaceAll('(', '').replaceAll(')', '')
             } else {
-                req = paramCallback[0].replaceAll('(', '').replaceAll(')', '')
-                res = paramCallback[1].replaceAll('(', '').replaceAll(')', '')
-                if (paramCallback[2])   // NOTE: For future use
-                    next = paramCallback[2].replaceAll('(', '').replaceAll(')', '')
+                if (paramCallback[0].includes(':')) {   // handling TypeScript | first parameter
+                    if (paramCallback[0].split(':')[1].toLocaleLowerCase().includes('res'))
+                        res = paramCallback[0].split(':')[0].replaceAll(' ', '')
+                    else
+                        req = paramCallback[0].split(':')[0].replaceAll(' ', '')
+                }
+
+                if (paramCallback[1].includes(':')) {   // handling TypeScript | second parameter
+                    if (paramCallback[1].split(':')[1].toLocaleLowerCase().includes('req'))
+                        req = paramCallback[1].split(':')[0].replaceAll(' ', '')
+                    else
+                        res = paramCallback[1].split(':')[0].replaceAll(' ', '')
+                }
+
+                if (!paramCallback[0].includes(':') && !paramCallback[1].includes(':')) {
+                    req = paramCallback[0].replaceAll('(', '').replaceAll(')', '')
+                    res = paramCallback[1].replaceAll('(', '').replaceAll(')', '')
+                    if (paramCallback[2])   // NOTE: For future use
+                        next = paramCallback[2].replaceAll('(', '').replaceAll(')', '')
+                }
             }
         }
     }
@@ -335,26 +358,28 @@ async function functionRecognizerInData(data, refFuncao, regex) {
             refFuncao = refFuncao[1]
         else
             refFuncao = refFuncao[0]
-        func = data.split(new RegExp(`(${refFuncao}\\s*\\=*\\s*\\(.*\\).*\\{)`))
+
+        data = data.replaceAll(' function ', ' ')
+        func = data.split(new RegExp(`(${refFuncao}\\s*\\:*\\s*\\w*\\s*\\=*\\s*\\(.*\\).*\\{)`))
         if (func.length == 1)
-            func = data.split(new RegExp(`(${refFuncao}\\s*\\=*\\s*\\(.*\\)\\s*\\=\\>)`))  // Try to find arrow function
+            func = data.split(new RegExp(`(${refFuncao}\\s*\\:*\\s*\\w*\\s*\\=*\\s*\\(.*\\)\\s*\\=\\>)`))  // Try to find arrow function
         func.shift()
         func = func.join(' ')
 
         if (func.length > 1) {
             let arrowFunction = func.split(new RegExp(`(${refFuncao}\\s*\\=*\\s*\\(.*\\)\\s*\\=\\>)`))
-            if (func.split(new RegExp(`(${refFuncao}\\s*\\=*\\s*\\(.*\\)\\s*\\=*\\>*\\s*\\{)`)).length > 1) {
+            if (func.split(new RegExp(`(${refFuncao}\\s*\\:*\\s*\\w*\\s*\\=*\\s*\\(.*\\)\\s*\\=*\\>*\\s*\\{)`)).length > 1) {
                 func = func.split('{')
                 func.shift()
                 func = func.join('{')
-                var funcStr = data.split(new RegExp(`${refFuncao}\\s*\\=*\\s*\\(`))[1]
+                var funcStr = data.split(new RegExp(`${refFuncao}\\s*\\:*\\s*\\w*\\s*\\=*\\s*\\(`))[1]
                 if (funcStr.split('}').length > 1)
                     funcStr = funcStr.split('{')[0]
                 funcStr = '(' + funcStr + '=> {'    // TODO: Verify case 'funcStr' with '=> =>'
                 const finalFunc = await stackSymbolRecognizer(func, '{', '}')
                 return resolve(funcStr + finalFunc)
             } else if (arrowFunction.length > 1) { // Case: arrow funciton without {, for example: func => func(...);
-                var funcStr = data.split(new RegExp(`${refFuncao}\\s*\\=*\\s*\\(`))[1]
+                var funcStr = data.split(new RegExp(`${refFuncao}\\s*\\:*\\s*\\w*\\s*\\=*\\s*\\(`))[1]
                 funcStr = funcStr.split('=>')[0]
                 funcStr = '(' + funcStr + '=> {'    // TODO: Verify case 'funcStr' with '=> =>'
                 arrowFunction = arrowFunction.slice(-1)[0]
@@ -389,7 +414,6 @@ function popFunction(functionArray) {
             return resolve(null)
     })
 }
-
 
 
 module.exports = {

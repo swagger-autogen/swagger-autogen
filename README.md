@@ -612,17 +612,24 @@ Some tutorials with examples:
 
 
 ## Changelog
-Implemented in version 2.x.x:
-- Recognition of Routes and referenced functions
-- Endpoint with referenced callback now it's done automatically
-- Multiple patterns now it's done automatically
-- Partial TypeScript recognition
-- Recognize middleware and middleware array (v2.0.3)
-- Refactored code (v2.0.3)
+- Version 2.0.x:
+  - Recognition of Routes and referenced functions
+  - Endpoint with referenced callback now it's done automatically
+  - Multiple patterns now it's done automatically
+  - Partial TypeScript recognition
+  - Recognize middleware and middleware array
+  - Refactored code
+  - Bug fix
+- Version 2.1.x:
+  - Recognizes different file import patterns
+  - Recognizes some more features of TypeScript
+  - Bug fix
 
-TODO:
+**TODO:**  
 - Recognize TypeScript completely
-- Recognize file import with: "import ... from ... "
+- Recognize 'require-dir' lib
+- Write more test cases
+- Refactor code
 
 ## Help us!
 Help us improve this module. If you have any information that the module does not provide or provides incompletely or incorrectly, please use our [Github](https://github.com/davibaltar/swagger-autogen) repository.
@@ -633,4 +640,4 @@ Ajude-nos a melhorar este módulo. Se você tiver alguma informação que o mód
 Repository: https://github.com/davibaltar/swagger-autogen
 
 ## License
-[MIT] (LICENSE) License
+  [MIT](LICENSE) License

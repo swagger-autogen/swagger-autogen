@@ -60,7 +60,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
             const aDataRaw = aData
 
             // Getting the reference of all files brought with 'import' and 'require'
-            var importedFiles = getImportedFiles(aDataRaw)
+            var importedFiles = await getImportedFiles(aDataRaw, relativePath)
 
             // Recursive call to other files
             if (importedFiles && importedFiles.length > 0) {
@@ -144,7 +144,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
                             auxElem = auxElem.join(',')
 
                             // Handling Callback
-                            if (auxElem.split(new RegExp("(\\,|\\(|\\)|\\{|\\}|\\[|\\]|\\s*function\\s*|\\s*=>\\s*)")).length != 1) {
+                            if (auxElem.split(new RegExp("(\\,|\\(|\\)|\\{|\\}|\\[|\\]|\\s+function\\s+|\\(\\s*function\\s*\\(|\\s*=>\\s*)")).length != 1) {
                                 // Getting function not referenced
                                 const callbackOrig = elemOrig.split(middlewares)
                                 if (callbackOrig.length > 1)
@@ -164,7 +164,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
                                 auxMiddlewares = auxMiddlewares.split(',')
                                 for (let index = 0; index < auxMiddlewares.length; ++index) {
                                     let midd = auxMiddlewares[index].trim()
-                                    if (midd.split(new RegExp("(\\,|\\(|\\)|\\{|\\}|\\[|\\]|\\s*function\\s*|\\s*=>\\s*)")).length == 1) {
+                                    if (midd.split(new RegExp("(\\,|\\(|\\)|\\{|\\}|\\[|\\]|\\s+function\\s+|\\(\\s*function\\s*\\(|\\s*=>\\s*)")).length == 1) {
                                         // Getting referenced function 
                                         functions.push(midd.replaceAll(' ', '').replaceAll('\n', ''))
                                     }
@@ -192,9 +192,35 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
                                 if (!func)
                                     continue
 
-                                if (func.split(new RegExp("(\\,|\\(|\\)|\\{|\\}|\\[|\\]|\\s*function\\s*|\\s*=>\\s*)")).length == 1) {
+                                if (func.split(new RegExp("(\\,|\\(|\\)|\\{|\\}|\\[|\\]|\\s+function\\s+|\\(\\s*function\\s*\\(|\\s*=>\\s*)")).length == 1) {
                                     // Getting referenced function 
                                     functions.push(func.replaceAll(' ', '').replaceAll('\n', ''))
+                                } else {
+                                    if (func) {
+                                        const origFunc = func
+                                        func = func.split(new RegExp("\\(.*\\)"))
+                                        func[0] = func[0].replaceAll(' ', '').replaceAll('\n', '')
+                                        var idx = importedFiles.findIndex(e => e.varFileName && func[0] && (e.varFileName == func[0]))
+                                        var exportPath = null
+                                        if (idx == -1) {
+                                            importedFiles.forEach(imp => {
+                                                if (exportPath)
+                                                    return
+                                                let found = imp && imp.exports ? imp.exports.find(e => e.varName && func[0] && (e.varName == func[0])) : null
+                                                if (found) {
+                                                    if (imp.isDirectory)
+                                                        exportPath = found.path
+                                                    else
+                                                        exportPath = imp.fileName      // TODO: change variable name
+                                                }
+                                            })
+                                        }
+
+                                        if ((idx > -1 || exportPath) && func.length > 1 && func[0] != '') {
+                                            elem = elem.replaceAll(origFunc, func[0])
+                                            functions.push(func[0])
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -209,25 +235,32 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
                             } else {
                                 varFileName = func.split(".")[0].trim()
                             }
-                            var idx = importedFiles.findIndex(e => e.varFileName == varFileName)
+                            var idx = importedFiles.findIndex(e => e.varFileName && varFileName && (e.varFileName == varFileName))
+                            var exportPath = null
+                            if (idx == -1) {
+                                importedFiles.forEach(imp => {
+                                    if (exportPath)
+                                        return
+                                    let found = imp && imp.exports ? imp.exports.find(e => e.varName && varFileName && (e.varName == varFileName)) : null
+                                    if (found) {
+                                        if (!refFuncao)
+                                            refFuncao = found.varName
+                                        if (imp.isDirectory)
+                                            exportPath = found.path
+                                        else
+                                            exportPath = imp.fileName      // TODO: change variable name
+                                    }
+                                })
+                            }
+
                             // Referenced in another file
-                            if (idx > -1) {
+                            if (idx > -1 || exportPath) {
                                 // Bringing reference
                                 var pathFile = null
-                                if (relativePath) {
-                                    if (importedFiles[idx].fileName.includes("../")) {
-                                        var foldersToBack = importedFiles[idx].fileName.split("../").length - 1
-                                        var RelativePathBacked = relativePath.split('/')
-                                        RelativePathBacked = RelativePathBacked.slice(0, (-1) * foldersToBack)
-                                        RelativePathBacked = RelativePathBacked.join('/')
-
-                                        pathFile = RelativePathBacked + '/' + importedFiles[idx].fileName.replaceAll('../', '')//.replaceAll('//', '/')
-                                    } else {
-                                        pathFile = relativePath + importedFiles[idx].fileName.replaceAll('./', '/')
-                                    }
-                                } else {
+                                if (exportPath)
+                                    pathFile = exportPath
+                                else
                                     pathFile = importedFiles[idx].fileName
-                                }
                                 var extension = await getExtension(pathFile)
                                 var refFunction = await functionRecognizerInFile(pathFile + extension, refFuncao)
 
@@ -276,6 +309,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
                         const line = aElem[_idx]
                         if (!path) {
                             path = pathRoute + swaggerTags.getPath(elem, line, autoMode)
+                            path = path.replaceAll('//', '/').replaceAll('//', '/').replaceAll('//', '/').replaceAll('//', '/')
                             objEndpoint[path] = {}
                         }
                         if (!method) {
@@ -371,10 +405,12 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
 
                     delete objEndpoint[path][method].path
                     delete objEndpoint[path][method].method
-                    if (paths[path]) // Allow get, post, etc, in same path
-                        paths[path] = { ...paths[path], ...objEndpoint[path] }
-                    else
-                        paths = { ...paths, ...objEndpoint }
+                    if (path.includes('/')) {
+                        if (paths[path]) // Allow get, post, etc, in same path
+                            paths[path] = { ...paths[path], ...objEndpoint[path] }
+                        else
+                            paths = { ...paths, ...objEndpoint }
+                    }
                 }
             }
             elem = elemBKP
@@ -404,18 +440,34 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
                         // TODO?: route with 3 parameters
                     }
 
-                    var idx = importedFiles.findIndex(e => e.varFileName == obj.varFileName)
-                    if (idx > -1) {
-                        if (relativePath)
-                            obj.fileName = relativePath + importedFiles[idx].fileName.replaceAll('./', '/')
-                        else
-                            obj.fileName = importedFiles[idx].fileName
+                    var idx = importedFiles.findIndex(e => e.varFileName && obj.varFileName && (e.varFileName == obj.varFileName))
+                    var exportPath = null
+                    if (idx == -1) {
+                        importedFiles.forEach(imp => {
+                            if (exportPath)
+                                return
+                            let found = imp && imp.exports ? imp.exports.find(e => e.varName && obj.varFileName && (e.varName == obj.varFileName)) : null
+                            if (found) {
+                                if (imp.isDirectory)
+                                    exportPath = found.path
+                                else
+                                    exportPath = imp.fileName      // TODO: change variable name
+                            }
+                        })
+                    }
 
+                    if (idx > -1 || exportPath) {
+                        var pathFile = null
+                        if (exportPath)
+                            pathFile = exportPath
+                        else
+                            pathFile = importedFiles[idx].fileName
+
+                        obj.fileName = pathFile
                         var auxRelativePath = obj.fileName.split('/')
                         auxRelativePath.pop()
                         auxRelativePath = auxRelativePath.join('/')
                         var extension = await getExtension(obj.fileName)
-
                         var auxPaths = await readEndpointFile(obj.fileName + extension, (obj.path || ''), auxRelativePath)
                         allPaths = { ...paths, ...allPaths, ...auxPaths }
                     } else {
@@ -430,56 +482,167 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
     })
 }
 
-function getImportedFiles(aDataRaw) {
-    var importedFiles = []
-    var importeds = aDataRaw.split(new RegExp(`import`, "i"))
-    var requireds = aDataRaw.split(new RegExp(`const|var|let\\s*`, "i"))
-    requireds = requireds.filter(e => e.split(new RegExp(`=\\s*require\\s*\\(`, "i")).length > 1)
+function getImportedFiles(aDataRaw, relativePath) {
+    return new Promise(async (resolve, reject) => {
+        var importedFiles = []
+        var importeds = aDataRaw.split(new RegExp(`import`, "i"))
+        var requireds = aDataRaw.split(new RegExp(`const|var|let\\s*`, "i"))
+        requireds = requireds.filter(e => e.split(new RegExp(`=\\s*require\\s*\\(`, "i")).length > 1)
 
-    if (importeds && importeds.length > 1) {
-        importeds.shift()
-        importeds.forEach(imp => {
-            var obj = { varFileName: null, fileName: null }
-            var varFileName = imp.split(new RegExp(`from`, "i"))[0].trim()
-            if (varFileName.includes('{')) {
-                // TODO: Handling case with multiple calls on 'import', such as: {foo, foo2, ...}
-            } else {
-                obj.varFileName = varFileName
-            }
+        // Such as: import foo, { Foo } from './foo'
+        if (importeds && importeds.length > 1) {
+            importeds.shift()
+            for (let index = 0; index < importeds.length; ++index) {
+                let imp = importeds[index]
+                var obj = { varFileName: null, fileName: null, exports: [] }
+                var varFileName = imp.split(new RegExp(`from`, "i"))[0].trim()
+                if (varFileName.includes('{')) {
 
-            var fileName = imp.split(new RegExp(";|\n"))[0].trim()
-            if (fileName && fileName.split(new RegExp(`from`, "i")).length > 1) {
-                fileName = fileName.split(new RegExp(`from`, "i"))[1].trim()
-            }
-            fileName = fileName.replaceAll('\'', '').replaceAll('\"', '').replaceAll('\`', '').replaceAll(' ', '')
-            // Captures only local files
-            if (fileName.includes("./")) {
-                obj.fileName = fileName
-                importedFiles.push(obj)
-            }
-        })
-    }
+                    // TODO: handle alias 'as'
 
-    if (requireds && requireds.length > 0) {
-        requireds.forEach(req => {
-            var obj = { varFileName: null, fileName: null }
-            var varFileName = req.split(new RegExp(`=\\s*require\\s*\\(`, "i"))[0].trim()
-            obj.varFileName = varFileName
+                    if (varFileName.split(new RegExp(",\\s*{")).length > 1) {     // such as: import foo, { Foo } from './foo'
+                        obj.varFileName = varFileName.split('{')[0].replaceAll(',', '').trim()
+                    }
+                    varFileName = varFileName.replaceAll('\n', '')
+                    varFileName.split('{')[1].split(',').forEach(exp => {
+                        exp = exp.replaceAll('{', '').replaceAll('}', '').replaceAll(',', '').trim()
+                        if (exp == '')
+                            return
+                        obj.exports.push({ varName: exp, path: null })
+                    })
+                } else {
+                    obj.varFileName = varFileName
+                }
 
-            var fileName = req.split(new RegExp(`=\\s*require\\s*\\(`, "i"))[1].trim()
-            fileName = fileName.split(")")[0]
-            fileName = fileName.replaceAll('\'', '').replaceAll('\"', '').replaceAll('\`', '').replaceAll(' ', '')
+                var fileName = imp.split(new RegExp(";|\n"))[0].trim()
+                if (fileName && fileName.split(new RegExp(` from `, "i")).length > 1) {     // TODO: verify case: ...}from
+                    fileName = fileName.split(new RegExp(` from `, "i"))[1].trim()
+                } else if (imp.split(new RegExp(` from `, "i")).length > 1) {
+                    fileName = imp.split(new RegExp(` from `, "i"))[1].trim()
+                }
 
-            // Captures only local files
-            if (fileName.includes("./")) {
-                if (fileName.split(new RegExp(`.json`, "i")).length == 1) { // Will not recognize files with .json extension
-                    obj.fileName = fileName
+                fileName = fileName.replaceAll('\'', '').replaceAll('\"', '').replaceAll('\`', '').replaceAll(' ', '').replaceAll(';', '').replaceAll('\n', '')
+                // Captures only local files
+                if (fileName.includes("./")) {
+                    var pathFile = null
+                    if (relativePath) { // TODO: pass to function
+                        if (fileName.includes("../")) {
+                            var foldersToBack = fileName.split("../").length - 1
+                            var RelativePathBacked = relativePath.split('/')
+                            RelativePathBacked = RelativePathBacked.slice(0, (-1) * foldersToBack)
+                            RelativePathBacked = RelativePathBacked.join('/')
+
+                            pathFile = RelativePathBacked + '/' + fileName.replaceAll('../', '')//.replaceAll('//', '/')
+                        } else {
+                            pathFile = relativePath + fileName.replaceAll('./', '/')
+                        }
+                    } else {
+                        pathFile = fileName
+                    }
+
+                    obj.fileName = pathFile
+                    obj.isDirectory = fs.existsSync(pathFile) && fs.lstatSync(pathFile).isDirectory() ? true : false
+
+                    // Checking if reference is to file
+                    if (obj.isDirectory && obj.exports.length > 0) {
+
+                        let indexExtension = await getExtension(pathFile + '/index')
+
+                        if (indexExtension != '') {    // index exist
+                            let dataFile = await getFileContent(pathFile + '/index' + indexExtension)
+                            if (dataFile) {
+
+                                let imports = await getImportedFiles(dataFile)
+                                for (let idx = 0; idx < imports.length; ++idx) {
+                                    let exp = imports[idx]
+                                    let idxFound = obj.exports.findIndex(e => (e.varName && e.varName.toLowerCase()) == (exp.varFileName && exp.varFileName.toLowerCase()))
+                                    if (idxFound > -1) {
+                                        var pathFile = null
+                                        if (obj.fileName) { // TODO: pass to function
+                                            if (exp.fileName.includes("../")) {
+                                                var foldersToBack = exp.fileName.split("../").length - 1
+                                                var RelativePathBacked = relativePath.split('/')
+                                                RelativePathBacked = RelativePathBacked.slice(0, (-1) * foldersToBack)
+                                                RelativePathBacked = RelativePathBacked.join('/')
+
+                                                pathFile = RelativePathBacked + '/' + exp.fileName.replaceAll('../', '')//.replaceAll('//', '/')
+                                            } else {
+                                                pathFile = obj.fileName + exp.fileName.replaceAll('./', '/')
+                                            }
+                                        } else {
+                                            pathFile = exp.fileName
+                                        }
+                                        let extension = await getExtension(pathFile)
+                                        obj.exports[idxFound].path = pathFile + extension
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        // TODO: reference in the file
+                    }
                     importedFiles.push(obj)
                 }
             }
-        })
-    }
-    return importedFiles
+        }
+
+        // Such as: const foo = required('./foo')
+        if (requireds && requireds.length > 0) {
+            requireds.forEach(req => {
+                var obj = { varFileName: null, fileName: null, exports: [] }
+                var varFileName = req.split(new RegExp(`=\\s*require\\s*\\(`, "i"))[0].trim()
+
+                if (varFileName.includes('{')) {
+
+                    // TODO: handle alias 'as'
+
+                    if (varFileName.split(new RegExp(",\\s*{")).length > 1) {     // such as: import foo, { Foo } from './foo'
+                        obj.varFileName = varFileName.split('{')[0].replaceAll(',', '').trim()
+                    }
+                    varFileName = varFileName.replaceAll('\n', '')
+                    varFileName.split('{')[1].split(',').forEach(exp => {
+                        exp = exp.replaceAll('{', '').replaceAll('}', '').replaceAll(',', '').trim()
+                        if (exp == '')
+                            return
+                        obj.exports.push({ varName: exp, path: null })
+                    })
+                } else {
+                    obj.varFileName = varFileName
+                }
+
+                var fileName = req.split(new RegExp(`=\\s*require\\s*\\(`, "i"))[1].trim()
+                fileName = fileName.split(")")[0]
+                fileName = fileName.replaceAll('\'', '').replaceAll('\"', '').replaceAll('\`', '').replaceAll(' ', '')
+
+                // Captures only local files
+                if (fileName.includes("./")) {
+                    if (fileName.split(new RegExp(`.json`, "i")).length == 1) { // Will not recognize files with .json extension
+                        var pathFile = null
+                        if (relativePath) { // TODO: pass to function
+                            if (fileName.includes("../")) {
+                                var foldersToBack = fileName.split("../").length - 1
+                                var RelativePathBacked = relativePath.split('/')
+                                RelativePathBacked = RelativePathBacked.slice(0, (-1) * foldersToBack)
+                                RelativePathBacked = RelativePathBacked.join('/')
+
+                                pathFile = RelativePathBacked + '/' + fileName.replaceAll('../', '')
+                            } else {
+                                pathFile = relativePath + fileName.replaceAll('./', '/')
+                            }
+                        } else {
+                            pathFile = fileName
+                        }
+
+                        obj.fileName = pathFile
+                        obj.isDirectory = fs.existsSync(pathFile) && fs.lstatSync(pathFile).isDirectory() ? true : false
+
+                        importedFiles.push(obj)
+                    }
+                }
+            })
+        }
+        return resolve(importedFiles)
+    })
 }
 
 function functionRecognizerInFile(fileName, refFuncao) {
@@ -496,26 +659,47 @@ function functionRecognizerInFile(fileName, refFuncao) {
                 return resolve(funcStr)
             } else { // When file has only one exported function
                 cleanedData = cleanedData.replaceAll('\n', ' ').replaceAll('  ', ' ').replaceAll('  ', ' ')
-                var directPattern = cleanedData.split(new RegExp(`module\\.exports\\s*\\=*\\s*\\(.+\\).+\\{`))
-                if (directPattern.length > 1)
-                    directPattern = true
-                else
-                    directPattern = false
-
-                if (directPattern) { // Direct declaration in module.exports
-                    var funcStr = await handleData.functionRecognizerInData(cleanedData, `module\\.exports`)
-                    return resolve(funcStr)
-                } else { // Indirect declaration in module.exports
-                    var funcName = cleanedData.split(new RegExp("module\\.exports\\s*\\n*\\s*\\=\\s*\\n*\\s*"))
-                    if (funcName[1])
-                        funcName = funcName[1].split(/\n| |\t|\;|\{|\}|\(|\)|\[|\]/)
+                if (cleanedData.split(new RegExp("export\\s*default\\s*\\=*\\s*\\(.+\\).+\\{")).length > 1) {
+                    let directPattern = cleanedData.split(new RegExp("export\\s*default\\s*\\=*\\s*\\(.+\\).+\\{"))
+                    if (directPattern.length > 1)
+                        directPattern = true
                     else
-                        return resolve(null)    // TODO: Verify 'null' case 
-                    var funcStr = await handleData.functionRecognizerInData(cleanedData, funcName[0])
-                    return resolve(funcStr)
+                        directPattern = false
+
+                    if (directPattern) { // Direct declaration in module.exports
+                        var funcStr = await handleData.functionRecognizerInData(cleanedData, `export\\s*default`)
+                        return resolve(funcStr)
+                    } else { // Indirect declaration in module.exports
+                        var funcName = cleanedData.split(new RegExp("export\\s*default\\s*\\n*\\s*\\n*\\s*"))
+                        if (funcName[1])
+                            funcName = funcName[1].split(/\n| |\t|\;|\{|\}|\(|\)|\[|\]/)
+                        else
+                            return resolve(null)    // TODO: Verify 'null' case 
+                        var funcStr = await handleData.functionRecognizerInData(cleanedData, funcName[0])
+                        return resolve(funcStr)
+                    }
+                } else {
+                    let directPattern = cleanedData.split(new RegExp(`module\\.exports\\s*\\=*\\s*\\(.+\\).+\\{`))
+                    if (directPattern.length > 1)
+                        directPattern = true
+                    else
+                        directPattern = false
+
+                    if (directPattern) { // Direct declaration in module.exports
+                        var funcStr = await handleData.functionRecognizerInData(cleanedData, `module\\.exports`)
+                        return resolve(funcStr)
+                    } else { // Indirect declaration in module.exports
+                        var funcName = cleanedData.split(new RegExp("module\\.exports\\s*\\n*\\s*\\=\\s*\\n*\\s*"))
+                        if (funcName[1])
+                            funcName = funcName[1].split(/\n| |\t|\;|\{|\}|\(|\)|\[|\]/)
+                        else
+                            return resolve(null)    // TODO: Verify 'null' case 
+                        var funcStr = await handleData.functionRecognizerInData(cleanedData, funcName[0])
+                        return resolve(funcStr)
+                    }
                 }
+
             }
-            // TODO: Verifify 'export default'
         })
     })
 }
@@ -547,6 +731,17 @@ function getExtension(fileName) {
         }
     })
 }
+
+function getFileContent(pathFile) {
+    return new Promise((resolve) => {
+        fs.readFile(pathFile, 'utf8', function (err, data) {
+            if (err)
+                return resolve(null)
+            return resolve(data)
+        })
+    })
+}
+
 
 module.exports = {
     readEndpointFile,

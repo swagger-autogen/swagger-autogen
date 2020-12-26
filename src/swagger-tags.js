@@ -149,8 +149,8 @@ function getAutoTag(elem) {
 function getParametersTag(line, paramName, objParameters) {
     let name = paramName.replaceAll('\"', '\'').replaceAll('`', '\'').getBetweenStrs('\'', '\'')
     line = line ? line.trim() : line
-    if(line && line.slice(-1)[0] == ',')
-        line = line.slice(0,-1)
+    if (line && line.slice(-1)[0] == ',')
+        line = line.slice(0, -1)
 
     try {   // Handling syntax error
         objParameters[name] = { name, ...objParameters[name], ...eval(`(${line.split('=')[1]})`) }
