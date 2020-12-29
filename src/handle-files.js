@@ -9,7 +9,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
         let paths = {}
         fs.readFile(filePath, 'utf8', async function (err, data) {
             if (err) throw console.error(err)
-            let regex = "\\.use\\s*\\(|\\.get\\s*\\(|\\.head\\s*\\(|\\.post\\s*\\(|\\.put\\s*\\(|\\.delete\\s*\\(|\\.patch\\s*\\(|\\.options\\s*\\("
+            let regex = "\\.use\\s*\\(|\\s*\\n*\\s*\\n*\\.get\\s*\\(|\\s*\\n*\\s*\\n*\\.head\\s*\\(|\\s*\\n*\\s*\\n*\\.post\\s*\\(|\\s*\\n*\\s*\\n*\\.put\\s*\\(|\\s*\\n*\\s*\\n*\\.delete\\s*\\(|\\s*\\n*\\s*\\n*\\.patch\\s*\\(|\\s*\\n*\\s*\\n*\\.options\\s*\\("
             let aData = await handleData.removeComments(data, true)
             aData = handleData.clearData(aData)
             let firstPattern = null
@@ -26,7 +26,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
                 patterns.forEach(pattern => {
                     if (!firstPattern)
                         firstPattern = pattern
-                    regex += `( |\\t|\\n|;|\\*\\/)${pattern}.get\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.head\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.post\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.put\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.delete\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.patch\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.options\\s*\\(|`
+                    regex += `( |\\t|\\n|;|\\*\\/)${pattern}\\s*\\n*\\s*\\n*\\.get\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}\\s*\\n*\\s*\\n*\\.head\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}\\s*\\n*\\s*\\n*\\.post\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}\\s*\\n*\\s*\\n*\\.put\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}\\s*\\n*\\s*\\n*\\.delete\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}\\s*\\n*\\s*\\n*\\.patch\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}\\s*\\n*\\s*\\n*\\.options\\s*\\(|`
                 })
                 regex = regex.slice(0, -1)
             } else {
@@ -45,7 +45,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath) {
                 patterns.forEach(pattern => {
                     if (!firstPattern)
                         firstPattern = pattern
-                    regex += `( |\\t|\\n|;|\\*\\/)${pattern}.get\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.head\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.post\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.put\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.delete\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.patch\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}.options\\s*\\(|`
+                    regex += `( |\\t|\\n|;|\\*\\/)${pattern}\\s*\\n*\\s*\\n*\\.get\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}\\s*\\n*\\s*\\n*\\.head\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}\\s*\\n*\\s*\\n*\\.post\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}\\s*\\n*\\s*\\n*\\.put\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}\\s*\\n*\\s*\\n*\\.delete\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}\\s*\\n*\\s*\\n*\\.patch\\s*\\(|( |\\t|\\n|;|\\*\\/)${pattern}\\s*\\n*\\s*\\n*\\.options\\s*\\(|`
                 })
                 regex = regex.slice(0, -1)
                 patternsServer = patterns
