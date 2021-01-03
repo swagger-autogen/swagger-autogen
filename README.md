@@ -4,7 +4,7 @@ This module performs the automatic construction of the Swagger documentation. Th
 
 [![NPM Version](http://img.shields.io/npm/v/swagger-autogen.svg?style=flat)](https://www.npmjs.org/package/commander) [![NPM Downloads](https://img.shields.io/npm/dm/swagger-autogen.svg?style=flat)](https://npmcharts.com/compare/swagger-autogen?minimal=true)
 
-#### NEWS! (version 2.2)
+#### NEWS! (version 2)
 Swagger-autogen now recognizes express Router and TypeScript features.
 
 ## Contents
@@ -57,7 +57,7 @@ const swaggerAutogen = require('swagger-autogen')()
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save swagger-autogen@2.2.0
+$ npm install --save swagger-autogen@2.3.0
 ```
 
 ## Usage
@@ -563,6 +563,8 @@ const doc = {
         }
     },
 }
+
+swaggerAutogen(outputFile, endpointsFiles, doc)
 ```
 
 At the endpoint, add the `#swagger.security` tag, for example:
@@ -658,16 +660,17 @@ Some tutorials with examples:
   - Recognizes TypeScript features
   - Performance improvement
   - Recognizes regex in endpoint's path
-  - Recognizes middlewares of routes (partially implemented)
+  - Recognizes middlewares of routes (partially)
   - Options to disable logs
   - Bug fix
+- Version 2.3.x:
+  - Recognizes 'require-dir' lib (partially)
 
 **TODO:**  
   - Recognize middlewares of routes (completely)
   - Recognize regex in middlewares
   - Recognize referenced path, such as: foo.method(\`/${fooPath1}\` + '/' + fooPath2, foo...)
   - Recognize 'alias' in the import files
-  - Recognize 'require-dir' lib
   - Write more test cases
   - Refactor code
 

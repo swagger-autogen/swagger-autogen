@@ -319,8 +319,15 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                                 var pathFile = null
                                 if (exportPath)
                                     pathFile = exportPath
-                                else
-                                    pathFile = importedFiles[idx].fileName
+                                else {
+                                    if (importedFiles[idx] && importedFiles[idx].isRequireDirLib && func && func.split(".").length == 3) {
+                                        refFuncao = func.split(".")[2].trim()
+                                        pathFile = importedFiles[idx].fileName + '/' + func.split(".")[1].trim()
+                                    } else {
+                                        pathFile = importedFiles[idx].fileName
+                                    }
+                                }
+
                                 var extension = await getExtension(pathFile)
                                 var refFunction = await functionRecognizerInFile(pathFile + extension, refFuncao)
 
@@ -713,7 +720,8 @@ function getImportedFiles(aDataRaw, relativePath) {
 
         // Such as: const foo = required('./foo')
         if (requireds && requireds.length > 0) {
-            requireds.forEach(req => {
+            for (let index = 0; index < requireds.length; ++index) {
+                let req = requireds[index]
                 var obj = { varFileName: null, fileName: null, exports: [] }
                 var varFileName = req.split(new RegExp(`=\\s*\\t*\\s*\\t*require\\s*\\t*\\s*\\t*\\(`, "i"))[0].trim()
 
@@ -761,10 +769,22 @@ function getImportedFiles(aDataRaw, relativePath) {
                         obj.fileName = pathFile
                         obj.isDirectory = fs.existsSync(pathFile) && fs.lstatSync(pathFile).isDirectory() ? true : false
 
+                        // Checking if reference is to file
+                        if (obj.isDirectory) {
+                            let indexExtension = await getExtension(pathFile + '/index')
+                            if (indexExtension != '') {     // index exist
+                                let dataFile = await getFileContent(pathFile + '/index' + indexExtension)
+                                dataFile = await handleData.removeComments(dataFile)
+                                const isRequireDirLib = dataFile && dataFile.split(new RegExp("\\s*\\n*\\t*\\s*\\n*\\t*module\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*exports\\s*\\n*\\t*\\s*\\n*\\t*\\=\\s*\\n*\\t*\\s*\\n*\\t*require\\s*\\n*\\t*\\s*\\n*\\t*\\(\\s*\\n*\\t*\\s*\\n*\\t*.require\\-dir.\\s*\\n*\\t*\\s*\\n*\\t*\\)")) ? true : false
+                                if (isRequireDirLib)        // lib require-dir
+                                    obj.isRequireDirLib = isRequireDirLib
+                            }
+                        }
+
                         importedFiles.push(obj)
                     }
                 }
-            })
+            }
         }
         return resolve(importedFiles)
     })
