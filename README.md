@@ -1,6 +1,6 @@
 # swagger-autogen
 
-This module performs the automatic construction of the Swagger documentation. The module is able to identify the endpoints and automatically capture methods such as get, post, put, and so on, along with the path. In addition to the methods and the path, the module can also identify the parameters in the path, query, body and response status code. It is possible to add information such as: endpoint description, parameter description, defininitions, security, among others. It is also possible to ignore or disable the automatic capture of an endpoint (having to manually inform each information in this case). The module generates a *.json* file with the documentation in the swagger format.
+This module performs the automatic construction of the Swagger documentation. The module is able to identify the endpoints and automatically capture methods such as get, post, put, and so on. The module can also identify the parameters in the path, query, body and response status code. It is possible to add information such as: endpoint description, parameter description, defininitions, security, among others. It is also possible to ignore or disable the automatic capture of an endpoint (having to manually inform each information in this case). The module generates the *.json* file with the documentation in the swagger format.
 
 [![NPM Version](http://img.shields.io/npm/v/swagger-autogen.svg?style=flat)](https://www.npmjs.org/package/commander) [![NPM Downloads](https://img.shields.io/npm/dm/swagger-autogen.svg?style=flat)](https://npmcharts.com/compare/swagger-autogen?minimal=true)
 
@@ -652,7 +652,7 @@ Some tutorials with examples:
   - Recognizes different file import patterns
   - Recognizes some more features of TypeScript
   - Bug fix
-- Version 2.2.0:
+- Version 2.2.x:
   - Recognizes TypeScript features
   - Performance improvement
   - Recognizes regex in endpoint's path
