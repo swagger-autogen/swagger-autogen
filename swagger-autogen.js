@@ -5,8 +5,16 @@ const swaggerTags = require('./src/swagger-tags')
 const handleFiles = require('./src/handle-files')
 const statics = require('./src/statics')
 
-module.exports = function (recLang = null) {
-    swaggerTags.setLanguage(recLang || 'en')
+
+module.exports = function (args) {
+    let options = { language: null, disableLogs: false, disableWarnings: false }
+    let recLang = null
+    if (args && typeof args === 'string')   // will be deprecated in a future version
+        recLang = args
+    else if (args && typeof args === 'object')
+        options = { ...options, ...args }
+
+    swaggerTags.setLanguage(recLang || options.language || 'en-US')
     return async (outputFile, endpointsFiles, data) => {
         return new Promise(async (resolve) => {
             try {
@@ -31,7 +39,8 @@ module.exports = function (recLang = null) {
                     const resp = await fs.existsSync(filePath)
                     if (!resp) {
                         console.error("\nError: Endpoint file not found => " + "'" + filePath + "'")
-                        console.log('Swagger-autogen:', "\x1b[31m", 'Failed ' + symbols.cross, "\033[0m")
+                        if (!options.disableLogs)
+                            console.log('Swagger-autogen:', "\x1b[31m", 'Failed ' + symbols.cross, "\033[0m")
                         return resolve(false)
                     }
 
@@ -44,7 +53,8 @@ module.exports = function (recLang = null) {
 
                     let obj = await handleFiles.readEndpointFile(filePath, '', relativePath)
                     if (obj === false) {
-                        console.log('Swagger-autogen:', "\x1b[31m", 'Failed ' + symbols.cross, "\033[0m")
+                        if (!options.disableLogs)
+                            console.log('Swagger-autogen:', "\x1b[31m", 'Failed ' + symbols.cross, "\033[0m")
                         return resolve(false)
                     }
                     objDoc.paths = { ...objDoc.paths, ...obj }
@@ -55,11 +65,12 @@ module.exports = function (recLang = null) {
                 })
                 let dataJSON = JSON.stringify(objDoc, null, 2)
                 fs.writeFileSync(outputFile, dataJSON)
-
-                console.log('Swagger-autogen:', "\x1b[32m", 'Success ' + symbols.tick, "\033[0m")
+                if (!options.disableLogs)
+                    console.log('Swagger-autogen:', "\x1b[32m", 'Success ' + symbols.tick, "\033[0m")
                 return resolve({ success: true, data: objDoc })
             } catch (err) {
-                console.log('Swagger-autogen:', "\x1b[31m", 'Failed ' + symbols.cross, "\033[0m")
+                if (!options.disableLogs)
+                    console.log('Swagger-autogen:', "\x1b[31m", 'Failed ' + symbols.cross, "\033[0m")
                 return resolve({ success: false, data: null })
             }
         })

@@ -90,7 +90,7 @@ module.exports = function (app) {
 		return res.status(404).send(false)
 	})
 
-	app.patch('/manual/user/:id', (req, res) => {
+	app.patch('/notmanual/user/:id', (req, res) => {
         /*  #swagger.auto = false;
 
             #swagger.path   =    '/manual/user/{id}'  ;   

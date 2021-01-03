@@ -73,7 +73,7 @@ const tableStatusCodes_ptBR = {
     '200': "OK",
     '201': "Criado",
     '202': "Aceito",
-    '203': "Information Não Autorizado",
+    '203': "Informação Não Autorizada",
     '204': "Nenhum Conteúdo",
     '205': "Resetar Conteúdo",
     '206': "Conteúdo Parcial",

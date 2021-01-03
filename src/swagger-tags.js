@@ -72,14 +72,23 @@ function formatDefinitions(def, resp = {}) {
 }
 
 // Path and #swagger.path
-function getPath(elem, line, autoMode) {
+function getPath(elem, lineDeprecated, autoMode) {
+    if (!elem)
+        return null
+
     let path = false
+    var line = elem
+    line = line.trim()
+
     if (autoMode && !elem.includes(statics.SWAGGER_TAG + '.path')) {
-        if (line.split(',').length > 0 && (line.split('\"').length > 2 || line.split('\'').length > 2 || line.split('`').length > 2)) {
-            path = line.replaceAll('\'', '"').replaceAll('`', '"').replaceAll(' ', '').split('"')[1].split('"')[0]
+        const quotMark = line[0]
+        if ((quotMark == '\"' || quotMark == '\'' || quotMark == '\`') && line.split(quotMark).length > 2) {
+            line = line.replaceAll(`\\${quotMark}`, statics.STRING_BREAKER + "quotMark" + statics.STRING_BREAKER) // avoiding problemas caused by: " ... \" ... ", ' ... \' ... ', etc
+            path = line.split(quotMark)[1]
+            path = path.replaceAll(statics.STRING_BREAKER + "quotMark" + statics.STRING_BREAKER, `\\${quotMark}`) // avoiding problemas caused by: " ... \" ... ", ' ... \' ... ', etc
             path = path.split('/').map(p => {
                 if (p.includes(':'))
-                    p = '{' + p.replaceAll(':', '') + '}'
+                    p = '{' + p.replace(':', '') + '}'
                 return p
             })
             path = path.join('/')
@@ -218,7 +227,7 @@ function getRouter(aDataRaw) {
     for (let idx = 0; idx < aDataRawSplited.length; idx++) {
         var elem = aDataRawSplited[idx]
 
-        if (elem.split(new RegExp(`(const|var|let)\\s*\\w*\\s*=\\s*.*Router\\s*\\(.*\\)`, "i")).length > 1) {
+        if (elem.split(new RegExp(`(const|var|let)\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\=\\s*\\n*\\t*.*Router\\s*\\n*\\t*\\([\\s\\S]*\\)`, "i")).length > 1) {
             var varRoute = elem.split(' ')[1].split('=')[0].replaceAll(' ', '')
             return varRoute
         }

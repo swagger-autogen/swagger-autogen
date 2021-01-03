@@ -4,19 +4,19 @@ This module performs the automatic construction of the Swagger documentation. Th
 
 [![NPM Version](http://img.shields.io/npm/v/swagger-autogen.svg?style=flat)](https://www.npmjs.org/package/commander) [![NPM Downloads](https://img.shields.io/npm/dm/swagger-autogen.svg?style=flat)](https://npmcharts.com/compare/swagger-autogen?minimal=true)
 
-#### NEWS! (version 2)
-Swagger-autogen now recognizes routers. See the example:
-
-[Example using Router](https://github.com/davibaltar/example-swagger-autogen-with-router)
+#### NEWS! (version 2.2)
+Swagger-autogen now recognizes express Router and TypeScript features.
 
 ## Contents
 
 - [Installation](#installation)
+- [Update](#update)
 - [Usage](#usage)
   - [Usage (Basic)](#usage-basic)
   - [Usage (With Optionals)](#usage-with-optionals)
 - [Building documentation without starting the project](#building-documentation-without-starting-the-project)
 - [Building documentation at project startup](#building-documentation-at-project-startup)
+- [Options](#options)
 - [Endpoints](#endpoints)
   - [Automatic capture](#automatic-capture)
   - [Description](#description)
@@ -50,6 +50,14 @@ It is loaded using the require() function:
 
 ```js
 const swaggerAutogen = require('swagger-autogen')()
+```
+
+## Update
+
+If you already have the module installed and want to update to the latest version, use the command:
+
+```bash
+$ npm install --save swagger-autogen@2.2.0
 ```
 
 ## Usage
@@ -94,6 +102,8 @@ const doc = {
 const outputFile = './path/swagger-output.json'
 const endpointsFiles = ['./path/endpointsUser.js', './path/endpointsBook.js']
 
+//NOTE: if you use the express 'Router', you must pass in the 'endpointsFiles' only the root file where the route starts.
+
 swaggerAutogen(outputFile, endpointsFiles, doc)
 ```
 
@@ -129,6 +139,8 @@ const doc = {
 const outputFile = './path/swagger-output.json'
 const endpointsFiles = ['./path/endpointsUser.js', './path/endpointsBook.js']
 
+//NOTE: if you use the express 'Router', you must pass in the 'endpointsFiles' only the root file where the route starts.
+
 swaggerAutogen(outputFile, endpointsFiles, doc)
 ```
 
@@ -163,6 +175,21 @@ swaggerAutogen(outputFile, endpointsFiles, doc).then( () => {
 Where *index.js* is your project's root file. Change the *start* script in your project's *package.json* to point to the file containing the `swaggerAutogen(...)` function. If you use Visual Studio Code, change the reference in your *launch.json* in the same way. Now, just run your project as usual. With that the documentation will be generated and soon after the project will start, making the documentation always updated when the project is started.
 
 See: [Complete example](https://github.com/davibaltar/example-swagger-autogen)
+
+## Options
+It is possible to change some options of the module by passing an object as a parameter. This object is **optional**.
+
+```js
+const options = {
+    language: <string>,         // By default is 'en-US'
+    disableLogs: <boolean>,     // By default is false
+    disableWarnings: <boolean>  // By default is false
+}
+
+const swaggerAutogen = require('swagger-autogen')(options)
+```
+
+To see the available languages, go to the section [Response Language](#response-language)
 
 ## Endpoints
 The way to configure the module is done within comments, and can be in the format `// ...` or `/* ... */`. The used pattern will be `#swagger.something` tag. Each comment can contain one or more `#swagger.something` tags. **NOTE:** ALL COMMENTS CONTAINING `#swagger.something` MUST BE WITHIN OF FUNCTIONS.
@@ -552,21 +579,12 @@ At the endpoint, add the `#swagger.security` tag, for example:
 ```
 
 ## Response Language
-It is possible to change the default language (English) of the description in the automatic response, for example: status code 404, the description will be: 'Not Found'. To change, just do in the module declaration:
+It is possible to change the default language (English) of the description in the automatic response, for example: status code 404, the description will be: 'Not Found'. To change, pass an object with the following parameter:
 
-
-**English (by default)**  
-```js
-const swaggerAutogen = require('swagger-autogen')()
-// In this case, for example, the description of status code 404 will be: 
-// 'Not Found'
-```
-
-OR 
 
 **Portuguese (Brazil)**  
 ```js
-const swaggerAutogen = require('swagger-autogen')('pt-BR') 
+const swaggerAutogen = require('swagger-autogen')({ language: 'pt-BR' }) 
 // In this case, for example, the description of status code 404 will be: 
 // 'Não Encontrado'
 ```
@@ -575,10 +593,20 @@ OR
 
 **Chinese (Simplified)**  
 ```js
-const swaggerAutogen = require('swagger-autogen')('zh-CN')
+const swaggerAutogen = require('swagger-autogen')({ language: 'zh-CN' }) 
 // In this case, for example, the description of status code 404 will be: 
 // '未找到'
 ```
+
+OR 
+
+**English (by default)**  
+```js
+const swaggerAutogen = require('swagger-autogen')()
+// In this case, for example, the description of status code 404 will be: 
+// 'Not Found'
+```
+
 
 For now, the module has only the languages: English, Portuguese (Brazil) and Chinese (Simplified).
 
@@ -624,12 +652,22 @@ Some tutorials with examples:
   - Recognizes different file import patterns
   - Recognizes some more features of TypeScript
   - Bug fix
+- Version 2.2.0:
+  - Recognizes TypeScript features
+  - Performance improvement
+  - Recognizes regex in endpoint's path
+  - Recognizes middlewares of routes (partially implemented)
+  - Options to disable logs
+  - Bug fix
 
 **TODO:**  
-- Recognize TypeScript completely
-- Recognize 'require-dir' lib
-- Write more test cases
-- Refactor code
+  - Recognize middlewares of routes (completely)
+  - Recognize regex in middlewares
+  - Recognize referenced path, such as: foo.method(\`/${fooPath1}\` + '/' + fooPath2, foo...)
+  - Recognize 'alias' in the import files
+  - Recognize 'require-dir' lib
+  - Write more test cases
+  - Refactor code
 
 ## Help us!
 Help us improve this module. If you have any information that the module does not provide or provides incompletely or incorrectly, please use our [Github](https://github.com/davibaltar/swagger-autogen) repository.
