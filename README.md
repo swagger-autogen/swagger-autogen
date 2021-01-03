@@ -102,7 +102,8 @@ const doc = {
 const outputFile = './path/swagger-output.json'
 const endpointsFiles = ['./path/endpointsUser.js', './path/endpointsBook.js']
 
-//NOTE: if you use the express 'Router', you must pass in the 'endpointsFiles' only the root file where the route starts.
+// NOTE: if you use the express 'Router', you must pass in the 'endpointsFiles' only 
+// the root file where the route starts.
 
 swaggerAutogen(outputFile, endpointsFiles, doc)
 ```
@@ -139,7 +140,8 @@ const doc = {
 const outputFile = './path/swagger-output.json'
 const endpointsFiles = ['./path/endpointsUser.js', './path/endpointsBook.js']
 
-//NOTE: if you use the express 'Router', you must pass in the 'endpointsFiles' only the root file where the route starts.
+// NOTE: if you use the express 'Router', you must pass in the 'endpointsFiles' only 
+// the root file where the route starts.
 
 swaggerAutogen(outputFile, endpointsFiles, doc)
 ```
