@@ -18,6 +18,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                 "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*delete\\s*\\n*\\t*\\s*\\n*\\t*\\(|" +
                 "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*patch\\s*\\n*\\t*\\s*\\n*\\t*\\(|" +
                 "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*options\\s*\\n*\\t*\\s*\\n*\\t*\\("
+
+            let regexRouteMiddlewares = ''
             let aData = await handleData.removeComments(data, true)
             aData = handleData.clearData(aData)
             let firstPattern = null
@@ -35,15 +37,18 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                     if (!firstPattern)
                         firstPattern = pattern
                     // TODO: refactor this. Loop to build string?
-                    regex += `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*get\\s*\\n*\\t*\\(|` +
+                    regex += `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*get\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
                         `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*head\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
                         `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*post\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
                         `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*put\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
                         `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*delete\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
                         `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*patch\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
                         `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*options\\s*\\n*\\t*\\s*\\n*\\t*\\(|`
+
+                    regexRouteMiddlewares += `\\/?\\s*\\n*\\t*\\s*\\n*\\t*${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*use\\s*\\n*\\t*\\s*\\n*\\t*\\(|`
                 })
                 regex = regex.slice(0, -1)
+                regexRouteMiddlewares = regexRouteMiddlewares.slice(0, -1)
             } else {
                 // Automatic pattern recognition
                 let serverVars = []
@@ -61,21 +66,39 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                     if (!firstPattern)
                         firstPattern = pattern
                     // TODO: refactor this. Loop to build string?
-                    regex += `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*get\\s*\\n*\\t*\\(|` +
+                    regex += `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*get\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
                         `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*head\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
                         `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*post\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
                         `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*put\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
                         `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*delete\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
                         `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*patch\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
-                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*options\\s*\\n*\\t*\\s*\\n*\\t*\\(|`
+                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*options\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
+                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*route\\s*\\n*\\t*\\s*\\n*\\t*\\(|`
+
+                    regexRouteMiddlewares += `\\/?\\s*\\n*\\t*\\s*\\n*\\t*${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*use\\s*\\n*\\t*\\s*\\n*\\t*\\(\\s*\\n*\\t*\\s*\\n*\\t*|`
                 })
                 regex = regex.slice(0, -1)
+                regexRouteMiddlewares = regexRouteMiddlewares.slice(0, -1)
                 patternsServer = patterns
             }
 
             let aForcedsEndpoints = swaggerTags.getForcedEndpoints(aData)
             aForcedsEndpoints = aForcedsEndpoints.map(forced => {
                 return forced += "\n" + statics.STRING_BREAKER + "FORCED" + statics.STRING_BREAKER + "\n"
+            })
+
+            // TODO: refactor this: pass to function
+            // Handling case: router.use(middleware).get(...).post(...) ...
+            var rawRouteMiddlewares = aData.split(new RegExp(regexRouteMiddlewares))
+            var routeMiddlewares = []
+            rawRouteMiddlewares.shift()
+            rawRouteMiddlewares.forEach(midd => {
+                if (!midd || midd.split('(')[0].split(new RegExp("\\)\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\s*\\n*\\t*")).length == 1)
+                    return
+                let middleware = midd.split(new RegExp(regex))[0].split(')')[0].replaceAll('\t', '').replaceAll('\n', '').replaceAll(' ', '')
+                let rawRoute = midd.split(new RegExp(regex))[0].replace(')', statics.STRING_BREAKER)
+                rawRoute = rawRoute.split(statics.STRING_BREAKER)[1]
+                routeMiddlewares.push({ middleware, rawRoute })
             })
 
             aData = await handleData.addReferenceToMethods(aData, firstPattern)
@@ -256,6 +279,11 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                                 }
                             }
                         }
+
+                        const endpointRegex = `\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*${predefMethod}\\s*\\n*\\t*\\s*\\n*\\t*\\(\\s*\\n*\\t*\\s*\\n*\\t*.${rawPath}.\\s*\\n*\\t*\\s*\\n*\\t*\\,`
+                        const found = routeMiddlewares.find(midd => midd.rawRoute && midd.rawRoute.split(new RegExp(endpointRegex)).length > 1)
+                        if (found)
+                            functions.push(found.middleware)
 
                         for (var index = 0; index < functions.length; index++) {
                             let func = functions[index]
