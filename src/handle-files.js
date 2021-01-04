@@ -609,7 +609,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                             allPaths = { ...paths, ...allPaths, ...auxPaths }
                         }
                     } else {
-                        // Referenced in the same file. (TODO?)
+                        // TODO: Middleware referenced in the same file
+                        allPaths = { ...paths, ...allPaths }
                     }
                     if (file == aRoutes.length - 1)
                         return resolve(allPaths)
