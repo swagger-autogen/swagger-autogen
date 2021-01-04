@@ -8,7 +8,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
     return new Promise((resolve, reject) => {
         let paths = {}
         fs.readFile(filePath, 'utf8', async function (err, data) {
-            if (err) throw console.error(err)
+            if (err) return resolve(false)
             // TODO: refactor this. Loop to build string?
             let regex = "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*use\\s*\\n*\\t*\\s*\\n*\\t*\\(|" +
                 "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*get\\s*\\n*\\t*\\s*\\n*\\t*\\(|" +
@@ -221,7 +221,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                                     let midd = auxMiddlewares[index].trim()
                                     if (midd.split(new RegExp("(\\,|\\(|\\)|\\{|\\}|\\[|\\]|\\s+function\\s+|\\(\\s*function\\s*\\(|\\s*\\t*\\s*\\t*=>\\s*\\t*\\s*\\t*)")).length == 1) {
                                         // Getting referenced function 
-                                        functions.push(midd.replaceAll(' ', '').replaceAll('\n', ''))
+                                        functions.unshift(midd.replaceAll(' ', '').replaceAll('\n', ''))
                                     }
                                 }
                             }
@@ -273,7 +273,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
 
                                         if ((idx > -1 || exportPath) && func.length > 1 && func[0] != '') {
                                             elem = elem.replaceAll(origFunc, func[0])
-                                            functions.push(func[0])
+                                            functions.unshift(func[0])
                                         }
                                     }
                                 }
@@ -283,7 +283,11 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                         const endpointRegex = `\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*${predefMethod}\\s*\\n*\\t*\\s*\\n*\\t*\\(\\s*\\n*\\t*\\s*\\n*\\t*.${rawPath}.\\s*\\n*\\t*\\s*\\n*\\t*\\,`
                         const found = routeMiddlewares.find(midd => midd.rawRoute && midd.rawRoute.split(new RegExp(endpointRegex)).length > 1)
                         if (found)
-                            functions.push(found.middleware)
+                            functions.unshift(found.middleware)
+
+                        // Middlewares lastly, so that 'req' and 'res' are captured "without noise"
+                        if (functions && functions.length > 1)
+                            functions = functions.reverse()
 
                         for (var index = 0; index < functions.length; index++) {
                             let func = functions[index]
@@ -593,9 +597,16 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                         var auxRelativePath = obj.fileName.split('/')
                         auxRelativePath.pop()
                         auxRelativePath = auxRelativePath.join('/')
-                        var extension = await getExtension(obj.fileName)
-                        var auxPaths = await readEndpointFile(obj.fileName + extension, (obj.path || ''), auxRelativePath, obj.routeMiddleware)
-                        allPaths = { ...paths, ...allPaths, ...auxPaths }
+
+                        if (idx > -1 && importedFiles[idx] && importedFiles[idx].isDirectory) {
+                            var extension = await getExtension(obj.fileName + '/index')
+                            var auxPaths = await readEndpointFile(obj.fileName + '/index' + extension, (obj.path || ''), obj.fileName, obj.routeMiddleware)
+                            allPaths = { ...paths, ...allPaths, ...auxPaths }
+                        } else {
+                            var extension = await getExtension(obj.fileName)
+                            var auxPaths = await readEndpointFile(obj.fileName + extension, (obj.path || ''), auxRelativePath, obj.routeMiddleware)
+                            allPaths = { ...paths, ...allPaths, ...auxPaths }
+                        }
                     } else {
                         // Referenced in the same file. (TODO?)
                     }
@@ -618,6 +629,15 @@ function getImportedFiles(aDataRaw, relativePath) {
         // Such as: import foo, { Foo } from './foo'
         if (importeds && importeds.length > 1) {
             importeds.shift()
+
+            // TODO: refactor this. Pass to outside
+            var tsPaths = []
+            var tsconfig = await getFileContent(process.cwd() + '/tsconfig.json')
+            if (tsconfig) {
+                tsconfig = JSON.parse(tsconfig)
+                tsPaths = tsconfig.compilerOptions && tsconfig.compilerOptions.paths && typeof tsconfig.compilerOptions.paths === 'object' ? Object.entries(tsconfig.compilerOptions.paths) : null
+            }
+
             for (let index = 0; index < importeds.length; ++index) {
                 let imp = importeds[index]
                 var obj = { varFileName: null, fileName: null, exports: [] }
@@ -648,6 +668,36 @@ function getImportedFiles(aDataRaw, relativePath) {
                 }
 
                 fileName = fileName.replaceAll('\'', '').replaceAll('\"', '').replaceAll('\`', '').replaceAll(' ', '').replaceAll(';', '').replaceAll('\n', '')
+
+                if (fileName[0] === '@') {    // reference to tsconfig.json
+                    var refFileName = fileName.split('/')[0]
+                    var found = tsPaths.find(path => path && path[0] && (path[0].split('/')[0] == refFileName) ? true : false)
+                    if (found) {
+                        if (Array.isArray(found[1])) {
+                            var realPath = found[1][0]
+                            if (realPath) {
+                                realPath = realPath.replaceAll('/*', '')
+                                fileName = './' + fileName.replace(refFileName, realPath)
+                                relativePath = relativePath.split('/')
+                                var rootPath = realPath ? realPath.split('/')[0] : null
+                                var rootFound = false
+
+                                relativePath = relativePath.filter(path => {
+                                    if (rootFound)
+                                        return false
+                                    if (path == rootPath) {
+                                        rootFound = true
+                                        return false
+                                    }
+                                    return true
+                                })
+
+                                relativePath = relativePath.join('/')
+                            }
+                        }
+                    }
+                }
+
                 // Captures only local files
                 if (fileName.includes("./")) {
                     var pathFile = null

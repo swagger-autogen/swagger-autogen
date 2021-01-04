@@ -57,7 +57,7 @@ const swaggerAutogen = require('swagger-autogen')()
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save swagger-autogen@2.3.0
+$ npm install --save swagger-autogen@2.3.1
 ```
 
 ## Usage
@@ -645,11 +645,11 @@ Some tutorials with examples:
 
 ## Changelog
 - Version 2.0.x:
-  - Recognition of Routes and referenced functions
+  - Recognizes of Routes and referenced functions
   - Endpoint with referenced callback now it's done automatically
   - Multiple patterns now it's done automatically
   - Partial TypeScript recognition
-  - Recognize middleware and middleware array
+  - Recognizes middleware and middleware array
   - Refactored code
   - Bug fix
 - Version 2.1.x:
@@ -657,7 +657,7 @@ Some tutorials with examples:
   - Recognizes some more features of TypeScript
   - Bug fix
 - Version 2.2.x:
-  - Recognizes TypeScript features
+  - Recognizes some more features of TypeScript
   - Performance improvement
   - Recognizes regex in endpoint's path
   - Recognizes middlewares of routes (partially)
@@ -665,6 +665,8 @@ Some tutorials with examples:
   - Bug fix
 - Version 2.3.x:
   - Recognizes 'require-dir' lib (partially)
+  - Recognizes some more features of TypeScript
+  - Bug fix
 
 **TODO:**  
   - Recognize middlewares of routes (completely)
