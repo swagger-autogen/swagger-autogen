@@ -184,7 +184,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
 
                         auxElem = auxElem.replaceAll('\n', '').replaceAll(' ', '')
                         // Handling foo.method('/path', [..., ..., ...], ...)
-                        if (auxElem.split(",").length > 2 && auxElem.split(",")[1].includes("[")) {
+                        if (auxElem.split(",").length > 2 && auxElem.split(",")[1].includes("[") && !auxElem.split(",")[1].split('[')[0].includes('(')) {
                             auxElemArray = [...functionsInParameters]
                             auxElemArray.shift()
                             auxElemArray = auxElemArray.join(',')
@@ -254,6 +254,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                                     if (func) {
                                         const origFunc = func
                                         func = func.split(new RegExp("\\([\\s\\S]*\\)"))
+                                        func[0] = func[0].split('(')[0]
                                         func[0] = func[0].replaceAll(' ', '').replaceAll('\n', '')
                                         var idx = importedFiles.findIndex(e => e.varFileName && func[0] && (e.varFileName == func[0]))
                                         var exportPath = null
@@ -271,7 +272,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                                             })
                                         }
 
-                                        if ((idx > -1 || exportPath) && func.length > 1 && func[0] != '') {
+                                        if ((idx > -1 || exportPath) && func.length >= 1 && func[0] != '') {
                                             elem = elem.replaceAll(origFunc, func[0])
                                             functions.unshift(func[0])
                                         }
