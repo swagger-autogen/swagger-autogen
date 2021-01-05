@@ -116,7 +116,26 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                     return false
                 })
 
-                var elemBKP = null
+                // Recognizing local middlewares, such as: router.use(middleware)
+                var localMiddleware = ''
+                var aDataRawCleaned = await handleData.removeComments(aDataRaw, true)
+                aDataRawCleaned = aDataRawCleaned.replaceAll('\n', ' ')
+                var aRoutes = aDataRawCleaned.split(new RegExp(`\\s*\\t*\\s*\\t*\\w\\s*\\t*\\s*\\t*\\.\\s*\\t*\\s*\\t*use\\s*\\t*\\s*\\t*\\(`))
+                if (aRoutes.length > 1) {
+                    aRoutes.shift()
+                    for (let file = 0; file < aRoutes.length; file++) {
+                        var obj = { path: null, varFileName: null, middleware: null, fileName: null }
+                        var r = aRoutes[file]
+                        var data = r.split(')')[0]
+                        if (data.split(',').length == 1) { // route with 1 parameter
+                            if (data)
+                                localMiddleware = await handleData.functionRecognizerInData(aDataRaw, data)
+                            if (!localMiddleware || localMiddleware.split(')')[0].split(',').length < 3)
+                                localMiddleware = ''
+                        }
+                    }
+                }
+
                 for (let idxElem = 0; idxElem < aData.length; idxElem++) {
                     var elem = aData[idxElem]
                     if (!elem) continue
@@ -199,7 +218,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                             auxElem = auxElem.join(',')
 
                             // Handling Callback
-                            if (auxElem.split(new RegExp("(\\,|\\(|\\)|\\{|\\}|\\[|\\]|\\s+function\\s+|\\(\\s*function\\s*\\(|\\s*\\t*\\s*\\t*=>\\s*\\t*\\s*\\t*)")).length != 1) {
+                            if (auxElem.split(new RegExp("(\\(|\\)|\\{|\\}|\\[|\\]|\\s+function\\s+|\\(\\s*function\\s*\\(|\\s*\\t*\\s*\\t*=>\\s*\\t*\\s*\\t*)")).length != 1) {
                                 // Getting function not referenced
                                 const callbackOrig = elemOrig.split(middlewares)
                                 if (callbackOrig.length > 1)
@@ -209,7 +228,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                                 callbackIsSetted = true
                             } else {
                                 // Getting referenced function 
-                                functions.push(auxElem.replaceAll(' ', '').replaceAll('\n', ''))
+                                var elemArray = auxElem.replaceAll(' ', '').replaceAll('\n', '').split(',')
+                                elemArray.forEach(e => functions.push(e))
+
                             }
 
                             // Handling middlewares array
@@ -374,7 +395,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                     // routes.get('/path', /* #swagger.tags = ['Tool'] */ [middleware], callback);
                     elem += statics.STRING_BREAKER + "," + elemOrig + (routeMiddleware ? "," + routeMiddleware : '')
 
-                    elemBKP = elem
+                    if (localMiddleware != '')
+                        elem += localMiddleware
+
                     elem = elem.replaceAll('\n', '').replaceAll('/*', '\n').replaceAll('*/', '\n').replaceAll(statics.SWAGGER_TAG, '\n' + statics.SWAGGER_TAG)
                     const aElem = elem.split(/;|\n/)
                     for (var _idx in aElem) {
@@ -485,9 +508,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                     }
                 }
             }
-            elem = elemBKP
-            const router = swaggerTags.getRouter(aDataRaw)
-            let aDataRawCleaned = await handleData.removeComments(aDataRaw, true)
+
+            var aDataRawCleaned = await handleData.removeComments(aDataRaw, true)
             aDataRawCleaned = aDataRawCleaned.replaceAll('\n', ' ')
             var aRoutes = aDataRawCleaned.split(new RegExp(`\\s*\\t*\\s*\\t*\\w\\s*\\t*\\s*\\t*\\.\\s*\\t*\\s*\\t*use\\s*\\t*\\s*\\t*\\(`))
 
@@ -850,6 +872,12 @@ function functionRecognizerInFile(fileName, refFuncao) {
 
             var cleanedData = await handleData.removeComments(data, true)
             cleanedData = cleanedData.replaceAll(" async ", ' ')
+            cleanedData = cleanedData.split(new RegExp("\\=\\s*async\\s*\\("))
+            cleanedData = cleanedData.join('= (')
+            cleanedData = cleanedData.split(new RegExp("\\=\\s*function\\s*\\("))
+            cleanedData = cleanedData.join('= function (')
+            cleanedData = cleanedData.split(new RegExp("\\:\\s*function\\s*\\("))
+            cleanedData = cleanedData.join(': function (')
 
             if (refFuncao) { // When file has more than one exported function
                 var funcStr = await handleData.functionRecognizerInData(cleanedData, refFuncao)

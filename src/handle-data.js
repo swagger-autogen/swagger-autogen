@@ -27,7 +27,10 @@ function clearData(data) {
     aData = aData.replaceAll("\`content-type\`", "__¬¬¬__content-type__¬¬¬__").replaceAll("\`application/json\`", "__¬¬¬__application/json__¬¬¬__").replaceAll("\`application/xml\`", "__¬¬¬__application/xml__¬¬¬__")
     aData = aData.replaceAll(statics.STRING_BREAKER, '\n')
     aData = aData.replaceAll(" async ", '')
-
+    aData = aData.split(new RegExp("\\=\\s*async\\s*\\("))
+    aData = aData.join('= (')
+    aData = aData.split(new RegExp("\\:\\s*async\\s*\\("))
+    aData = aData.join(': (')
     // TypeScript case: foo.method('/path', ... (req: Request, res: Response) => fooFoo.foo(req, res) )
     // TODO: refactor this
     const regex = "\\,\\s*\\n*\\t*\\s*\\n*\\t*\\(\\s*\\n*\\t*\\s*\\n*\\t*.+\\s*\\n*\\t*\\s*\\n*\\t*\\:\\s*\\n*\\t*\\s*\\n*\\t*Request\\s*\\n*\\t*\\s*\\n*\\t*\\,\\s*\\n*\\t*\\s*\\n*\\t*.+\\s*\\n*\\t*\\s*\\n*\\t*\\:\\s*\\n*\\t*\\s*\\n*\\t*Response\\s*\\n*\\t*\\s*\\n*\\t*\\)\\s*\\n*\\t*\\s*\\n*\\t*=>|" +
@@ -441,7 +444,7 @@ async function functionRecognizerInData(data, refFuncao) {
         if (arrowFunction.length == 1) {
             arrowFunctionWithoutCurlyBracket = data.split(new RegExp(`(${refFuncao}\\s*\\n*\\t*\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\s*\\n*\\t*\\=\\s*\\n*\\t*\\s*\\n*\\t*\\([\\s\\S]*\\)\\s*\\t*\\s*\\t*=>)`))
             if (arrowFunctionWithoutCurlyBracket.length == 1)
-                traditionalFunction = data.split(new RegExp(`(${refFuncao}\\s*\\n*\\t*\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\s*\\n*\\t*\\([\\s\\S]*\\)\\s*\\n*\\t*\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\<?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\>?\\s*\\n*\\t*\\s*\\n*\\t*\\{)`))
+                traditionalFunction = data.split(new RegExp(`(${refFuncao}\\s*\\n*\\t*\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\s*\\n*\\t*\\=?\\s*\\n*\\t*\\s*\\n*\\t*\\([\\s\\S]*\\)\\s*\\n*\\t*\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\<?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\>?\\s*\\n*\\t*\\s*\\n*\\t*\\{)`))
         }
 
         var isArrowFunction = false
@@ -489,9 +492,9 @@ async function functionRecognizerInData(data, refFuncao) {
                 if (isArrowFunction)
                     funcStr = data.split(new RegExp(`${refFuncao}\\s*\\n*\\t*\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\s*\\n*\\t*\\=\\s*\\n*\\t*\\s*\\n*\\t*\\(`))[1]
                 else if (isTraditionalFunction)
-                    funcStr = data.split(new RegExp(`${refFuncao}\\s*\\n*\\t*\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\s*\\n*\\t*\\(`))[1]
+                    funcStr = data.split(new RegExp(`${refFuncao}\\s*\\n*\\t*\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\s*\\n*\\t*\\=?\\s*\\n*\\t*\\s*\\n*\\t*\\(`))[1]
 
-                if (funcStr.split('}').length > 1)
+                if (funcStr && funcStr.split('}').length > 1)
                     funcStr = funcStr.split('{')[0]
                 funcStr = '(' + funcStr + (isArrowFunction ? ' { ' : ' => { ')    // TODO: Verify case 'funcStr' with '=> =>'
                 let finalFunc = await stackSymbolRecognizer(func, '{', '}')
