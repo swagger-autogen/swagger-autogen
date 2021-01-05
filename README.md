@@ -5,7 +5,7 @@ This module performs the automatic construction of the Swagger documentation. Th
 [![NPM Version](http://img.shields.io/npm/v/swagger-autogen.svg?style=flat)](https://www.npmjs.org/package/commander) [![NPM Downloads](https://img.shields.io/npm/dm/swagger-autogen.svg?style=flat)](https://npmcharts.com/compare/swagger-autogen?minimal=true)
 
 #### NEWS! (version 2)
-Swagger-autogen now recognizes express Router and TypeScript features.
+Swagger-autogen now recognizes Express Router and TypeScript features.
 
 ## Contents
 
