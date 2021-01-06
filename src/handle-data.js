@@ -341,7 +341,7 @@ function getHeader(elem, path, method, res, objEndpoint) {
 function getQuery(elem, req, objParameters) {
     if (req && (elem.split(req + '.query.').length > 1)) {
         elem.split(req + '.query.').splice(1).forEach(p => {
-            let name = p.split(/\(|\)|\{|\}|\[|\]|\/|\\|\;|\:|\?|\+|,|\||\&|\t|\n| /)[0].replaceAll(' ', '')
+            let name = p.split(/\(|\)|\{|\}|\[|\]|\/|\\|\;|\:|\!|\@|\$|\#|\=|\?|\+|,|\||\&|\t|\n| /)[0].replaceAll(' ', '')
             if (name.includes('.'))
                 name = name.split('.')[0]
             if (!!objParameters[name] === false)    // Checks if the parameter name already exists
