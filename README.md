@@ -57,7 +57,7 @@ const swaggerAutogen = require('swagger-autogen')()
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save swagger-autogen@2.3.5
+$ npm install --save swagger-autogen@2.3.6
 ```
 
 ## Usage
@@ -672,6 +672,7 @@ Some tutorials with examples:
   - Recognize middlewares of routes (completely)
   - Recognize regex in middlewares
   - Recognize referenced path, such as: foo.method(\`/${fooPath1}\` + '/' + fooPath2, foo...)
+  - Recognize direct import, such as: router.use(..., require('./routes.js'))
   - Recognize 'alias' in the import files
   - Write more test cases
   - Refactor code

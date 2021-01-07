@@ -10,7 +10,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
         fs.readFile(filePath, 'utf8', async function (err, data) {
             if (err) return resolve(false)
             // TODO: refactor this. Loop to build string?
-            let regex = "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*use\\s*\\n*\\t*\\s*\\n*\\t*\\(|" +
+            let regex = "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*route\\s*\\n*\\t*\\s*\\n*\\t*\\(|" +
+                "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*use\\s*\\n*\\t*\\s*\\n*\\t*\\(|" +
                 "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*get\\s*\\n*\\t*\\s*\\n*\\t*\\(|" +
                 "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*head\\s*\\n*\\t*\\s*\\n*\\t*\\(|" +
                 "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*post\\s*\\n*\\t*\\s*\\n*\\t*\\(|" +
@@ -34,6 +35,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                 }
                 regex = ''
                 patterns.forEach(pattern => {
+                    if (pattern.split(new RegExp("\\!|\\=|\\<|\\>|\\,|\\;|\\:|\\{|\\}|\\(|\\)|\\[|\\]|axios|superagent|request|fetch|supertest", "i")).length > 1)
+                        return
                     if (!firstPattern)
                         firstPattern = pattern
                     // TODO: refactor this. Loop to build string?
@@ -63,6 +66,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
 
                 regex = ''
                 patterns.forEach(pattern => {
+                    if (pattern.split(new RegExp("\\!|\\=|\\<|\\>|\\,|\\;|\\:|\\{|\\}|\\(|\\)|\\[|\\]|axios|superagent|request|fetch|supertest", "i")).length > 1)
+                        return
                     if (!firstPattern)
                         firstPattern = pattern
                     // TODO: refactor this. Loop to build string?

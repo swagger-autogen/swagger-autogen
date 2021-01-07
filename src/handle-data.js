@@ -31,6 +31,9 @@ function clearData(data) {
     aData = aData.join('= (')
     aData = aData.split(new RegExp("\\:\\s*async\\s*\\("))
     aData = aData.join(': (')
+    aData = aData.split(new RegExp("axios\\s*\\n*\\t*\\.\\w*", "i"))
+    aData = aData.join('axios.method')
+
     // TypeScript case: foo.method('/path', ... (req: Request, res: Response) => fooFoo.foo(req, res) )
     // TODO: refactor this
     const regex = "\\,\\s*\\n*\\t*\\s*\\n*\\t*\\(\\s*\\n*\\t*\\s*\\n*\\t*.+\\s*\\n*\\t*\\s*\\n*\\t*\\:\\s*\\n*\\t*\\s*\\n*\\t*Request\\s*\\n*\\t*\\s*\\n*\\t*\\,\\s*\\n*\\t*\\s*\\n*\\t*.+\\s*\\n*\\t*\\s*\\n*\\t*\\:\\s*\\n*\\t*\\s*\\n*\\t*Response\\s*\\n*\\t*\\s*\\n*\\t*\\)\\s*\\n*\\t*\\s*\\n*\\t*=>|" +
