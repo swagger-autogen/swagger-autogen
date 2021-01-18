@@ -226,7 +226,7 @@ function getParametersTag(data, objParameters) {
             try {
                 objParameters[name] = { name, ...objParameters[name], ...eval(`(${'{' + parameter + '}'})`) }
             } catch (err) {
-                console.error('Syntax error: ' + line)
+                console.error('Syntax error: ' + parameter)
                 console.error(err)
                 return resolve(false)
             }
@@ -261,7 +261,7 @@ function getProducesTag(data) {
                 if (prod)
                     produces = [...produces, ...eval(`(${'[' + prod.toLowerCase() + ']'})`)]
             } catch (err) {
-                console.error('Syntax error: ' + data)
+                console.error('Syntax error: ' + prod)
                 console.error(err)
                 return resolve(false)
             }
@@ -291,7 +291,7 @@ function getConsumesTag(data) {
                 if (cons)
                     consumes = [...consumes, ...eval(`(${'[' + cons.toLowerCase() + ']'})`)]
             } catch (err) {
-                console.error('Syntax error: ' + data)
+                console.error('Syntax error: ' + cons)
                 console.error(err)
                 return resolve(false)
             }
@@ -323,7 +323,7 @@ function getResponsesTag(data, objResponses) {
                 try {   // Handling syntax error
                     objResp = { ...eval(`(${'{' + objResp + '}'})`) }
                 } catch (err) {
-                    console.error('Syntax error: ' + line)
+                    console.error('Syntax error: ' + objResp)
                     console.error(err)
                     return resolve(false)
                 }
@@ -450,7 +450,7 @@ function getSecurityTag(data) {
         try {   // Handling syntax error
             security = eval(`(${'[' + securityParameters + ']'})`)
         } catch (err) {
-            console.error('Syntax error: ' + data)
+            console.error('Syntax error: ' + securityParameters)
             console.error(err)
             return resolve(false)
         }
