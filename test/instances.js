@@ -188,7 +188,8 @@ const expectedPaths = {
                 {
                     "name": "id",
                     "in": "path",
-                    "required": true
+                    "required": true,
+                    "type": 'string'
                 },
                 {
                     "name": "obj",
@@ -241,7 +242,8 @@ const expectedPaths = {
                 {
                     "name": "id",
                     "in": "path",
-                    "required": true
+                    "required": true,
+                    "type": 'string'
                 }
             ],
             "responses": {
@@ -269,6 +271,7 @@ const expectedPaths = {
                     "name": "id",
                     "in": "path",
                     "required": true,
+                    "type": 'string',
                     "description": "User ID."
                 }
             ],
@@ -322,7 +325,8 @@ const expectedPaths = {
                     "name": "id",
                     "in": "path",
                     "description": "User ID.",
-                    "required": true
+                    "required": true,
+                    "type": 'string'
                 },
                 {
                     "name": "obj",
@@ -343,7 +347,6 @@ const expectedPaths = {
                     "description": "Server Failure."
                 }
             },
-            "auto": false,
             "produces": [
                 "application/json"
             ],
@@ -392,6 +395,7 @@ const expectedPaths = {
                     "name": "id",
                     "in": "path",
                     "required": true,
+                    "type": 'string',
                     "description": "User ID."
                 },
                 {

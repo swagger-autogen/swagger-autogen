@@ -57,7 +57,7 @@ const swaggerAutogen = require('swagger-autogen')()
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save swagger-autogen@2.3.6
+$ npm install --save swagger-autogen@2.4.0
 ```
 
 ## Usage
@@ -267,10 +267,10 @@ All optional parameters for the tag parameter:
 } */
 ```
 
-**in:** 'path', 'query' or 'body'  
+**in:** 'path', 'query' or 'body'               // by default is 'query'
 **description:** The parameter description  
 **required:** true or false  
-**type:** 'string', 'integer', 'object', etc.  
+**type:** 'string', 'integer', 'object', etc.   // by default is 'string'
 **format:** 'int64', etc.  
 **schema:** See section [Schema and Definitions](#schema-and-definitions)  
 
@@ -650,7 +650,7 @@ Some tutorials with examples:
   - Multiple patterns now it's done automatically
   - Partial TypeScript recognition
   - Recognizes middleware and middleware array
-  - Refactored code
+  - Code refactoring
   - Bug fix
 - Version 2.1.x:
   - Recognizes different file import patterns
@@ -667,14 +667,22 @@ Some tutorials with examples:
   - Recognizes 'require-dir' lib (partially)
   - Recognizes some more features of TypeScript
   - Bug fix
+- Version 2.4.x:
+  - Recognizes direct import, such as: router.use(..., require('./routes.js'))
+  - Recognizes new Router({ prefix: '...' })
+  - Added some default parameters values
+  - Code refactoring
+  - Bug fix
+
 
 **TODO:**  
   - Recognize middlewares of routes (completely)
   - Recognize regex in middlewares
+  - Recognize multiples "express.Router()" in the same file"
   - Recognize referenced path, such as: foo.method(\`/${fooPath1}\` + '/' + fooPath2, foo...)
-  - Recognize direct import, such as: router.use(..., require('./routes.js'))
   - Recognize 'alias' in the import files
   - Write more test cases
+  - Improve performance
   - Refactor code
 
 ## Help us!

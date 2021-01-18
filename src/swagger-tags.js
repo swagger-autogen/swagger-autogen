@@ -9,6 +9,10 @@ function getLanguage() {
     return lang
 }
 
+/**
+ * TODO: fill
+ * @param {*} newLang 
+ */
 function setLanguage(newLang) {
     lang = newLang
     return lang
@@ -20,6 +24,11 @@ function setDefinitions(def) {
 }
 
 // TODO: Refactor
+/**
+ * TODO: fill
+ * @param {*} def 
+ * @param {*} resp 
+ */
 function formatDefinitions(def, resp = {}) {
     if (def.$ref) {
         let param = def.$ref.split('#/definitions/')[1].replaceAll(' ', '')
@@ -71,8 +80,12 @@ function formatDefinitions(def, resp = {}) {
     return resp
 }
 
-// Path and #swagger.path
-function getPath(elem, lineDeprecated, autoMode) {
+/**
+ * TODO: fill
+ * @param {*} elem 
+ * @param {*} autoMode 
+ */
+function getPath(elem, autoMode) {
     if (!elem)
         return null
 
@@ -102,24 +115,21 @@ function getPath(elem, lineDeprecated, autoMode) {
     return path
 }
 
-// Get method in *.get, *.post and so on; Get #swagger.method
-function getMethod(elem, line, autoMode, aDataRaw) {
-    let method = false
-    if (autoMode && !elem.includes(statics.SWAGGER_TAG + '.method')) {
-        const dataOneLine = aDataRaw.replaceAll('\n', '').replaceAll('//', '').replaceAll(' ', '') // used to get methods
-        method = dataOneLine.split(line.replaceAll(' ', ''))[0].split('.').slice(-1)[0].split('(')[0].trim()
-    } else if (elem.includes(statics.SWAGGER_TAG + '.method')) // Search for #swagger.method
-        method = elem.split(statics.SWAGGER_TAG + '.method')[1].replaceAll(' ', '').replaceAll('\'', '\"').replaceAll('`', '\"').split('=')[1].getBetweenStrs('\"', '\"')
-    else
-        throw console.error("\nError: 'method' not found.")
-
-    if (!statics.METHODS.includes(method)) {
-        method = 'get'
+// Get #swagger.method
+function getMethodTag(data) {
+    if (data.includes(statics.SWAGGER_TAG + '.method')) {
+        let method = data.split(new RegExp(statics.SWAGGER_TAG + ".method" + "\\s*\\=\\s*"))[1]
+        method = popString(method)
+        if (method && statics.METHODS.includes(method.toLowerCase()))
+            return method.toLowerCase()
     }
-    return method
+    return false
 }
 
-// Get #swagger.start and #swagger.end
+/**
+ * Get #swagger.start and #swagger.end
+ * @param {*} aData 
+ */
 function getForcedEndpoints(aData) {
     let aForcedsEndpoints = aData.split(new RegExp(".*#swagger.start.*|.*#swagger.end.*", "i"))
     if (aForcedsEndpoints.length > 1) {
@@ -139,7 +149,10 @@ function getForcedEndpoints(aData) {
     return aForcedsEndpoints
 }
 
-// Search for #swagger.ignore
+/**
+ * Search for #swagger.ignore
+ * @param {*} elem 
+ */
 function getIgnoreTag(elem) {
     if (elem.includes(statics.SWAGGER_TAG + '.ignore'))
         if (elem.split(statics.SWAGGER_TAG + '.ignore')[1].replaceAll(' ', '').split('=')[1].slice(0, 4) == 'true')
@@ -147,90 +160,209 @@ function getIgnoreTag(elem) {
     return false
 }
 
-// Search for #swagger.auto = false   (by default is true)
-function getAutoTag(elem) {
-    if (elem.includes(statics.SWAGGER_TAG + '.auto'))
-        if (elem.split(statics.SWAGGER_TAG + '.auto')[1].replaceAll(' ', '').split('=')[1].slice(0, 5) == 'false')
+/**
+ * Search for #swagger.auto = false   (by default is true)
+ * @param {*} data 
+ */
+function getAutoTag(data) {
+    if (data.includes(statics.SWAGGER_TAG + ".auto")) {
+        let auto = data.split(new RegExp(statics.SWAGGER_TAG + ".auto" + "\\s*\\=\\s*"))[1]
+        auto = auto.split(new RegExp("\\s|\\n|\\t|\\;"))[0]
+        if (auto && auto.toLowerCase() === 'false')
             return false
+    }
     return true
 }
 
-function getParametersTag(line, paramName, objParameters) {
-    let name = paramName.replaceAll('\"', '\'').replaceAll('`', '\'').getBetweenStrs('\'', '\'')
-    line = line ? line.trim() : line
-    if (line && line.slice(-1)[0] == ',')
-        line = line.slice(0, -1)
+// pass to separated file
+/**
+ * TODO: fill
+ * @param {*} data 
+ * @param {*} startSymbol 
+ * @param {*} endSymbol 
+ */
+function stack0SymbolRecognizer(data, startSymbol, endSymbol) {
+    return new Promise((resolve) => {
+        var stack = 0
+        var rec = 0
+        let strVect = []
 
-    try {   // Handling syntax error
-        objParameters[name] = { name, ...objParameters[name], ...eval(`(${line.split('=')[1]})`) }
-    } catch (err) {
-        console.error('Syntax error: ' + line)
-        console.error(err)
-        return false
-    }
-    if (objParameters[name].schema && !objParameters[name].schema.$ref)
-        objParameters[name].schema = formatDefinitions(objParameters[name].schema)
-    return objParameters
+        for (let idx = 0; idx < data.length; ++idx) {
+            let c = data[idx]
+
+            if (rec == 0 && c == startSymbol) rec = 1
+            if (c == startSymbol && rec == 1) stack += 1
+            if (c == endSymbol && rec == 1) stack -= 1
+            if (stack == 0 && rec == 1) rec = 2
+
+            if (rec == 1)
+                strVect.push(c)
+
+            if ((idx === data.length - 1 && rec == 1) || (idx === data.length - 1 && rec == 0))
+                return resolve(null)
+
+            if (idx === data.length - 1) {
+                strVect = strVect.join('')
+                return resolve(strVect.slice(1))
+            }
+        }
+    })
 }
 
-function getProducesTag(line, objEndpoint, path, method) {
-    try {   // Handling syntax error
-        objEndpoint[path][method].produces = eval(line.replaceAll("__¬¬¬__", "\"").split('=')[1])
-    } catch (err) {
-        console.error('Syntax error: ' + line)
-        console.error(err)
-        return false
-    }
-    return objEndpoint
+/**
+ * TODO: fill
+ * @param {*} data 
+ * @param {*} objParameters 
+ */
+function getParametersTag(data, objParameters) {
+    return new Promise(async (resolve) => {
+        data = data.replaceAll('\"', '\'').replaceAll('`', '\'').replaceAll('\`', '\'').replaceAll('\n', ' ')
+        let swaggerParameters = data.split(new RegExp("#swagger.parameters"))
+        swaggerParameters.shift()
+        for (let idx = 0; idx < swaggerParameters.length; ++idx) {
+            let parameter = await stack0SymbolRecognizer(swaggerParameters[idx], '{', '}')
+            let name = swaggerParameters[idx].split(new RegExp("\\[|\\]"))[1].replaceAll('\'', '')
+
+            try {
+                objParameters[name] = { name, ...objParameters[name], ...eval(`(${'{' + parameter + '}'})`) }
+            } catch (err) {
+                console.error('Syntax error: ' + line)
+                console.error(err)
+                return resolve(false)
+            }
+
+            if (!objParameters[name].in)   // by default: 'in' is 'query'
+                objParameters[name].in = 'query'
+
+            if (!objParameters[name].type)   // by default: 'type' is 'string'
+                objParameters[name].type = 'string'
+
+            if (objParameters[name].schema && !objParameters[name].schema.$ref)
+                objParameters[name].schema = formatDefinitions(objParameters[name].schema)
+        }
+
+        return resolve(objParameters)
+    })
 }
 
-function getConsumesTag(line, objEndpoint, path, method) {
-    try {   // Handling syntax error
-        objEndpoint[path][method].consumes = eval(line.replaceAll("__¬¬¬__", "\"").split('=')[1])
-    } catch (err) {
-        console.error('Syntax error: ' + line)
-        console.error(err)
-        return false
-    }
-    return objEndpoint
+/**
+ * TODO: fill
+ * @param {*} data 
+ */
+function getProducesTag(data) {
+    return new Promise(async (resolve) => {
+        data = data.replaceAll('\n', ' ').replaceAll("__¬¬¬__", "\"")
+        let produces = []
+        let swaggerProduces = data.split(new RegExp("#swagger.produces\\s*\\=\\s*"))
+        swaggerProduces.shift()
+        for (let idx = 0; idx < swaggerProduces.length; ++idx) {
+            let prod = await stack0SymbolRecognizer(swaggerProduces[idx], '[', ']')
+            try {   // Handling syntax error
+                if (prod)
+                    produces = [...produces, ...eval(`(${'[' + prod.toLowerCase() + ']'})`)]
+            } catch (err) {
+                console.error('Syntax error: ' + data)
+                console.error(err)
+                return resolve(false)
+            }
+        }
+
+        // avoid duplicates
+        let cleanedProduces = new Set()
+        cleanedProduces.add(...produces)
+        return resolve([...cleanedProduces])
+    })
 }
 
-function getResponsesTag(line, paramName, objResponses) {
-    paramName = paramName.replaceAll('\"', '\'').replaceAll('`', '\'')
-    let statusCode = paramName.includes('\'') ? paramName.getBetweenStrs('\'', '\'') : paramName.getBetweenStrs('[', ']')
-    let objResp = null;
-    try { // Handling syntax error
-        objResp = eval(`(${line.split('=')[1]})`)
-    } catch (err) {
-        console.error('Syntax error: ' + line)
-        console.error(err)
-        return false
-    }
-    if (objResp && objResp.schema && !objResp.schema.$ref) {
-        objResponses[statusCode] = { ...objResponses[statusCode], ...objResp, schema: formatDefinitions(objResp.schema) }
-        if (objResponses[statusCode].xmlName) {
-            objResponses[statusCode].schema['xml'] = { name: objResponses[statusCode].xmlName }
-            delete objResponses[statusCode].xmlName
-        } else
-            objResponses[statusCode].schema['xml'] = { name: 'main' }
-    } else
-        objResponses[statusCode] = { ...objResponses[statusCode], ...objResp }
-    if (!objResponses[statusCode].description)
-        objResponses[statusCode].description = tables.getHttpStatusDescription(statusCode, lang)
-    return objResponses
+/**
+ * TODO: fill
+ * @param {*} data 
+ */
+function getConsumesTag(data) {
+    return new Promise(async (resolve) => {
+        data = data.replaceAll('\n', ' ').replaceAll("__¬¬¬__", "\"")
+        let consumes = []
+        let swaggerConsumes = data.split(new RegExp("#swagger.consumes\\s*\\=\\s*"))
+        swaggerConsumes.shift()
+        for (let idx = 0; idx < swaggerConsumes.length; ++idx) {
+            let cons = await stack0SymbolRecognizer(swaggerConsumes[idx], '[', ']')
+
+            try {   // Handling syntax error
+                if (cons)
+                    consumes = [...consumes, ...eval(`(${'[' + cons.toLowerCase() + ']'})`)]
+            } catch (err) {
+                console.error('Syntax error: ' + data)
+                console.error(err)
+                return resolve(false)
+            }
+        }
+
+        // avoid duplicates
+        let cleanedConsumes = new Set()
+        cleanedConsumes.add(...consumes)
+        return resolve([...cleanedConsumes])
+    })
 }
 
+/**
+ * TODO: fill
+ * @param {*} data 
+ * @param {*} objResponses 
+ */
+function getResponsesTag(data, objResponses) {
+    return new Promise(async (resolve) => {
+        data = data.replaceAll('\n', ' ')
+        let swaggerResponses = data.split(new RegExp("#swagger.responses"))
+        swaggerResponses.shift()
+        for (let idx = 0; idx < swaggerResponses.length; ++idx) {
+            let statusCode = swaggerResponses[idx].split(new RegExp("\\[|\\]"))[1].replaceAll('\"', '').replaceAll('\'', '').replaceAll('\`', '')
+
+            if (swaggerResponses[idx].split(new RegExp(`\\[\\s*\\t*\\s*\\t*${statusCode}\\s*\\t*\\s*\\t*\\]\\s*\\t*\\s*\\t*\\=\\s*\\t*\\s*\\t*\\{`)).length > 1) {  // has object
+                let objResp = await stack0SymbolRecognizer(swaggerResponses[idx], '{', '}')
+
+                try {   // Handling syntax error
+                    objResp = { ...eval(`(${'{' + objResp + '}'})`) }
+                } catch (err) {
+                    console.error('Syntax error: ' + line)
+                    console.error(err)
+                    return resolve(false)
+                }
+
+                if (objResp && objResp.schema && !objResp.schema.$ref) {
+                    objResponses[statusCode] = { ...objResponses[statusCode], ...objResp, schema: formatDefinitions(objResp.schema) }
+                    if (objResponses[statusCode].xmlName) {
+                        objResponses[statusCode].schema['xml'] = { name: objResponses[statusCode].xmlName }
+                        delete objResponses[statusCode].xmlName
+                    } else
+                        objResponses[statusCode].schema['xml'] = { name: 'main' }
+                } else
+                    objResponses[statusCode] = { ...objResponses[statusCode], ...objResp }
+            } else {
+                // There isn't any object
+                objResponses[statusCode] = {}
+            }
+
+            if (!objResponses[statusCode].description)
+                objResponses[statusCode].description = tables.getHttpStatusDescription(statusCode, lang)
+
+            if (idx == swaggerResponses.length - 1)
+                return resolve(objResponses)
+        }
+    })
+}
+
+/**
+ * TODO: fill
+ * @param {*} aDataRaw 
+ */
 function getRouter(aDataRaw) {
     if (!aDataRaw)
         return null
-    var aDataRawSplited = aDataRaw.split('\n')
-    for (let idx = 0; idx < aDataRawSplited.length; idx++) {
-        var elem = aDataRawSplited[idx]
 
-        if (elem.split(new RegExp(`(const|var|let)\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\=\\s*\\n*\\t*.*Router\\s*\\n*\\t*\\([\\s\\S]*\\)`, "i")).length > 1) {
-            var varRoute = elem.split(' ')[1].split('=')[0].replaceAll(' ', '')
-            return varRoute
-        }
+    const regexNewRouter = /=\s*\n*\t*new\s*\n*\t*Router\s*\n*\t*\(\s*\n*\t*{/
+    if (aDataRaw.split(new RegExp(`(const|var|let)\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\=\\s*\\n*\\t*.*Router\\s*\\n*\\t*\\([\\s\\S]*\\)`, "i")).length > 1) {
+        var varRoute = elem.split(' ')[1].split('=')[0].replaceAll(' ', '')
+        return varRoute
     }
 
     if (aDataRaw.includes(statics.SWAGGER_TAG + '.router')) { // Search for #swagger.router
@@ -239,12 +371,100 @@ function getRouter(aDataRaw) {
     return null
 }
 
+/**
+ * TODO: fill
+ * @param {*} data 
+ */
+function popString(data) {
+    let dataAux = data.split('')
+    for (let idx = 0; idx < dataAux.length; ++idx) {
+        if (dataAux[idx] == '\"' || dataAux[idx] == '\'' || dataAux[idx] == '\`') {
+            data = data.slice(idx)
+            break
+        }
+
+    }
+    const quotMark = data[0]
+    if ((quotMark == '\"' || quotMark == '\'' || quotMark == '\`') && data.split(quotMark).length > 2) {
+        let aux = data.replaceAll(`\\${quotMark}`, statics.STRING_BREAKER + "quotMark" + statics.STRING_BREAKER)
+        aux = aux.split(quotMark)
+        data = aux[1]
+        data = data.replaceAll(statics.STRING_BREAKER + "quotMark" + statics.STRING_BREAKER, `\\${quotMark}`)
+        if (data === '')
+            return null
+        return data
+    }
+    return null
+}
+
+/**
+ * TODO: fill
+ * @param {*} data 
+ */
+function getDescription(data) {
+    let swaggerDescription = data.split(new RegExp("#swagger.description\\s*\\=\\s*"))[1]
+    const quotMark = swaggerDescription[0]
+    if ((quotMark == '\"' || quotMark == '\'' || quotMark == '\`') && swaggerDescription.split(quotMark).length > 2) {
+        let aux = swaggerDescription.replaceAll(`\\${quotMark}`, statics.STRING_BREAKER + "quotMark" + statics.STRING_BREAKER)
+        aux = aux.split(quotMark)
+        swaggerDescription = aux[1]
+        swaggerDescription = swaggerDescription.replaceAll(statics.STRING_BREAKER + "quotMark" + statics.STRING_BREAKER, `\\${quotMark}`)
+        return swaggerDescription
+    }
+    return ""
+}
+
+/**
+ * TODO: fill
+ * @param {*} data 
+ */
+function getTags(data) {
+    let tags = []
+    let swaggerTags = data.split(new RegExp("#swagger.tags\\s*\\=\\s*"))[1]
+    const symbol = swaggerTags[0]
+    if (symbol == '[' && swaggerTags.split(new RegExp("\\[|\\]")).length > 2) {
+        let aux = swaggerTags.split(new RegExp("\\[|\\]"))
+        swaggerTags = aux[1]
+        for (let idx = 0; idx < 15; ++idx) {  // max limit of tags = 15
+            let str = popString(swaggerTags)
+            if (!str)
+                break
+
+            swaggerTags = swaggerTags.replace(str, '').replaceAll("\"\"", "").replaceAll("\'\'", "").replaceAll("\`\`", "")
+            tags.push(str)
+        }
+        return tags
+    }
+    return []
+}
+
+/**
+ * TODO: fill
+ * @param {*} data 
+ */
+function getSecurityTag(data) {
+    return new Promise(async (resolve) => {
+        let security = []
+        let swaggerSecurity = data.split(new RegExp("#swagger.security\\s*\\=\\s*"))[1]
+        let securityParameters = await stack0SymbolRecognizer(swaggerSecurity, '[', ']')
+        try {   // Handling syntax error
+            security = eval(`(${'[' + securityParameters + ']'})`)
+        } catch (err) {
+            console.error('Syntax error: ' + data)
+            console.error(err)
+            return resolve(false)
+        }
+        return resolve(security)
+    })
+}
+
+
 module.exports = {
     formatDefinitions,
     getLanguage,
     setLanguage,
     getPath,
-    getMethod,
+    getMethodTag,
     getForcedEndpoints,
     getIgnoreTag,
     getAutoTag,
@@ -253,5 +473,8 @@ module.exports = {
     getConsumesTag,
     getResponsesTag,
     setDefinitions,
-    getRouter
+    getRouter,
+    getDescription,
+    getTags,
+    getSecurityTag
 }

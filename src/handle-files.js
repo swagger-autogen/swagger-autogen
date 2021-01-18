@@ -3,12 +3,20 @@ const swaggerTags = require('./swagger-tags')
 const handleData = require('./handle-data')
 const statics = require('./statics')
 
-
-function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddleware) {
+/**
+ * TODO: fill
+ * @param {*} filePath 
+ * @param {*} pathRoute 
+ * @param {*} relativePath 
+ * @param {*} receivedRouteMiddlewares 
+ */
+function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteMiddlewares = []) {
     return new Promise((resolve, reject) => {
         let paths = {}
         fs.readFile(filePath, 'utf8', async function (err, data) {
-            if (err) return resolve(false)
+            if (err || data.trim() === '')
+                return resolve(false)
+
             // TODO: refactor this. Loop to build string?
             let regex = "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*route\\s*\\n*\\t*\\s*\\n*\\t*\\(|" +
                 "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*use\\s*\\n*\\t*\\s*\\n*\\t*\\(|" +
@@ -20,23 +28,103 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                 "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*patch\\s*\\n*\\t*\\s*\\n*\\t*\\(|" +
                 "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*options\\s*\\n*\\t*\\s*\\n*\\t*\\("
 
+            let dataToGetPatterns = data    // Remove string, comments and inside parentheses
+            dataToGetPatterns = await handleData.removeComments(dataToGetPatterns, false)
+            dataToGetPatterns = await handleData.removeStrings(dataToGetPatterns)
+            dataToGetPatterns = await handleData.removeInsideParentheses(dataToGetPatterns, true)
+
+            let propRoutes = []             // Used to store the new Router() properties, such as 'prefix'
             let regexRouteMiddlewares = ''
             let aData = await handleData.removeComments(data, true)
-            aData = handleData.clearData(aData)
+            aData = await handleData.clearData(aData)
+
+            /**
+             * Eliminating unwanted patterns within endpoints
+             * Avoinding cases, such as: route.get('/path', ... ...query().delete().where(...); whithin of the endpoint's functions make problems because of the '.delete()'
+             */
+            let aDataAux = aData
+            let finished = false
+            let aDataToClean = new Set()
+            let count = 0
+            while (!finished && count < 300) {
+                count += 1  //To avoid infinite loop
+                let data = await handleData.stack0SymbolRecognizer(aDataAux, '(', ')')
+                if (data == null) {
+                    finished = true
+                    continue
+                }
+
+                aDataToClean.add(data)
+                data = '(' + data + ')'
+                aDataAux = aDataAux.replace(data, ' ')
+            }
+
+            let regexFindMethods = ''
+            for (let idxMethod = 0; idxMethod < statics.METHODS.length; ++idxMethod) {
+                regexFindMethods += `\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*${statics.METHODS[idxMethod]}\\s*\\n*\\t*\\s*\\n*\\t*\\(|`
+            }
+            regexFindMethods = regexFindMethods.replace(/\|$/, '')
+
+            aDataToClean = [...aDataToClean]    // converting to array
+            for (let idxData = 0; idxData < aDataToClean.length; ++idxData) {
+                let data = aDataToClean[idxData]
+                let swaggerComments = await handleData.getSwaggerComments(data)
+                data = await handleData.removeComments(data)
+                data = data.split(new RegExp(regexFindMethods))
+                data = data.join(' (')
+                data = '(' + data + (swaggerComments !== '' ? '\n' + swaggerComments : '') + ')'
+                aData = aData.replaceAll('(' + aDataToClean[idxData] + ')', data)
+            }
+
+            // CASE: const router = new Router({ prefix: '/api/v1' });
+            const regexNewRouter = /(\w*\s*\n*\t*\=\s*\n*\t*new\s*\n*\t*Router\s*\n*\t*\(\s*\n*\t*{)/
+            if (regexNewRouter.test(aData)) {
+                const routes = aData.split(regexNewRouter)
+                for (let index = 1; index < routes.length; index += 2) {
+                    let route = routes[index]
+                    let prop = routes[index + 1]
+                    let routerObj = { routeName: null }
+
+                    if (route.includes("Router") && prop.includes("prefix")) {
+                        routerObj.routeName = route.split(new RegExp("\\=|\\s|\\n|\\t"))[0].replaceAll(' ', '')
+                        let prefix = prop
+                        prefix = prefix.split(/\}\s*\n*\t*\)/)[0]
+                        if (prefix.split(new RegExp("\\s*prefix\\s*\\n*\\t*\\:").length > 1)) {
+                            prefix = prefix.split(new RegExp("\\s*prefix\\s*\\n*\\t*\\:\\s*\\n*\\t*"))[1].trimLeft()
+                            prefix = prefix.split(new RegExp("\\s|\\n|\\t|\\,"))[0].trim()
+                            prefix = prefix.replaceAll('\'', '').replaceAll('\"', '').replaceAll('\`', '')
+                        }
+                        routerObj.prefix = prefix
+                        propRoutes.push(routerObj)
+                    }
+                }
+            }
+
             let firstPattern = null
-            if (aData.includes(statics.SWAGGER_TAG + '.patterns')) { // Manual pattern recognition
-                let patterns = null
-                try {  // Handling syntax error
+            var patternsServer = []     // Stores patterns, such as: route, app, etc...
+
+            if (aData.includes(statics.SWAGGER_TAG + '.patterns')) {
+                /**
+                 * Manual pattern recognition
+                 */
+
+                let patterns = new Set()
+                try {
                     patterns = eval(aData.replaceAll(' ', '').split(statics.SWAGGER_TAG + '.patterns=')[1].split('*/')[0])
                 } catch (err) {
                     console.error('Syntax error: ' + statics.SWAGGER_TAG + '.patterns' + aData.split(statics.SWAGGER_TAG + '.patterns')[1].split('*/')[0])
                     console.error(err)
                     return resolve(false)
                 }
+
+                if (patterns.size > 0)
+                    patterns.add("____CHAINED____") // TO CASE: router.get(...).post(...).put(...)...
+
                 regex = ''
                 patterns.forEach(pattern => {
                     if (pattern.split(new RegExp("\\!|\\=|\\<|\\>|\\,|\\;|\\:|\\{|\\}|\\(|\\)|\\[|\\]|axios|superagent|request|fetch|supertest", "i")).length > 1)
                         return
+
                     if (!firstPattern)
                         firstPattern = pattern
                     // TODO: refactor this. Loop to build string?
@@ -52,17 +140,25 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                 })
                 regex = regex.slice(0, -1)
                 regexRouteMiddlewares = regexRouteMiddlewares.slice(0, -1)
+                patternsServer = [...patterns]
             } else {
-                // Automatic pattern recognition
+                /** 
+                 * Automatic pattern recognition
+                 */
+
                 let serverVars = []
                 let patterns = new Set()
-                serverVars = aData.split(new RegExp(regex))
+
+                serverVars = dataToGetPatterns.split(new RegExp(regex))
                 if (serverVars && serverVars.length > 1)
                     serverVars.forEach(pattern => {
                         let auxPattern = (pattern.split(new RegExp(regex))[0].split(/\n|\s|\t|';'|\{|\}|\(|\)|\[|\]/).splice(-1)[0])  // ex.: app, route, server, etc.      
                         if (auxPattern && auxPattern != '')
                             patterns.add(auxPattern)
                     })
+
+                if (patterns.size > 0)
+                    patterns.add("____CHAINED____") // TO CASE: router.get(...).post(...).put(...)...
 
                 regex = ''
                 patterns.forEach(pattern => {
@@ -80,11 +176,12 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                         `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*options\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
                         `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*route\\s*\\n*\\t*\\s*\\n*\\t*\\(|`
 
-                    regexRouteMiddlewares += `\\/?\\s*\\n*\\t*\\s*\\n*\\t*${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*use\\s*\\n*\\t*\\s*\\n*\\t*\\(\\s*\\n*\\t*\\s*\\n*\\t*|`
+                    regexRouteMiddlewares += `(\\/?\\s*\\n*\\t*\\s*\\n*\\t*${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*use\\s*\\n*\\t*\\s*\\n*\\t*\\(\\s*\\n*\\t*\\s*\\n*\\t*)|`
                 })
                 regex = regex.slice(0, -1)
+
                 regexRouteMiddlewares = regexRouteMiddlewares.slice(0, -1)
-                patternsServer = patterns
+                patternsServer = [...patterns]
             }
 
             let aForcedsEndpoints = swaggerTags.getForcedEndpoints(aData)
@@ -92,63 +189,57 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                 return forced += "\n" + statics.STRING_BREAKER + "FORCED" + statics.STRING_BREAKER + "\n"
             })
 
-            // TODO: refactor this: pass to function
-            // Handling case: router.use(middleware).get(...).post(...) ...
-            var rawRouteMiddlewares = aData.split(new RegExp(regexRouteMiddlewares))
-            var routeMiddlewares = []
-            rawRouteMiddlewares.shift()
-            rawRouteMiddlewares.forEach(midd => {
-                if (!midd || midd.split('(')[0].split(new RegExp("\\)\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\s*\\n*\\t*")).length == 1)
-                    return
-                let middleware = midd.split(new RegExp(regex))[0].split(')')[0].replaceAll('\t', '').replaceAll('\n', '').replaceAll(' ', '')
-                let rawRoute = midd.split(new RegExp(regex))[0].replace(')', statics.STRING_BREAKER)
-                rawRoute = rawRoute.split(statics.STRING_BREAKER)[1]
-                routeMiddlewares.push({ middleware, rawRoute })
-            })
+            // routeMiddlewares: Middlewares to pass to the next route
+            var routeMiddlewares = [...receivedRouteMiddlewares.map(r => { r.path = false; r.fixedRoute = true; return r })]
 
-            aData = await handleData.addReferenceToMethods(aData, firstPattern)
+            /**
+             * CASE: router.use(middleware).get(...).post(...).put(...)...
+             * TODO: refactor this: pass to function
+             */
+            var rawRouteMiddlewares = aData.split(new RegExp(regexRouteMiddlewares))
+            rawRouteMiddlewares.shift()
+            var localRouteMiddlewares = []  // localRouteMiddlewares: Used to store and to apply middleware's route in the local endpoints
+
+            aData = await handleData.addReferenceToMethods(aData, patternsServer)
             const aDataRaw = aData
 
-            // Getting the reference of all files brought with 'import' and 'require'
+            /**
+             * Getting the reference of all files brought with 'import' and 'require'
+             */
             var importedFiles = await getImportedFiles(aDataRaw, relativePath)
 
-            if (regex != '') { // Some pattern was found like: .get, .post, etc.
+            if (regex != '') {          // Some method was found like: .get, .post, etc.
                 aData = [...aData.split(new RegExp(regex)), ...aForcedsEndpoints]
                 aData[0] = undefined    // Delete 'header' in file
                 aData = aData.filter(data => {
                     if (data && data.replaceAll('\n', '').replaceAll(' ', '').replaceAll('\t', '') != '')
                         return true
+
                     return false
                 })
 
-                // Recognizing local middlewares, such as: router.use(middleware)
-                var localMiddleware = ''
                 var aDataRawCleaned = await handleData.removeComments(aDataRaw, true)
+
                 aDataRawCleaned = aDataRawCleaned.replaceAll('\n', ' ')
                 var aRoutes = aDataRawCleaned.split(new RegExp(`\\s*\\t*\\s*\\t*\\w\\s*\\t*\\s*\\t*\\.\\s*\\t*\\s*\\t*use\\s*\\t*\\s*\\t*\\(`))
-                if (aRoutes.length > 1) {
+                if (aRoutes.length > 1)
                     aRoutes.shift()
-                    for (let file = 0; file < aRoutes.length; file++) {
-                        var obj = { path: null, varFileName: null, middleware: null, fileName: null }
-                        var r = aRoutes[file]
-                        var data = r.split(')')[0]
-                        if (data.split(',').length == 1) { // route with 1 parameter
-                            if (data)
-                                localMiddleware = await handleData.functionRecognizerInData(aDataRaw, data)
-                            if (!localMiddleware || localMiddleware.split(')')[0].split(',').length < 3)
-                                localMiddleware = ''
-                        }
-                    }
-                }
 
+                aData = [...aRoutes, ...aData]
+
+                var routePrefix = ''        // prefix of new Router()
+                var lastValidPattern = ''
                 for (let idxElem = 0; idxElem < aData.length; idxElem++) {
                     var elem = aData[idxElem]
-                    if (!elem) continue
-
-                    let verifyPath = elem.split(',')
-                    if (verifyPath.length == 1 || (!verifyPath[0].includes('\"') && !verifyPath[0].includes('\'') && !verifyPath[0].includes('\`')))
+                    if (!elem || elem.slice(0, 3) !== "[_[")
                         continue
 
+                    let endpointFunctions = []
+                    let verifyPath = elem.split(',')
+                    if (!verifyPath[0].includes('[_[use]_])([_[') && (verifyPath.length == 1 || (!verifyPath[0].includes('\"') && !verifyPath[0].includes('\'') && !verifyPath[0].includes('\`'))))
+                        continue
+
+                    let endpointSwaggers = null
                     let objEndpoint = {}
                     let path = false
                     let predefPath = false
@@ -162,13 +253,49 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                     let objParameters = {}
                     let objResponses = {}
                     let forced = false
+                    let predefPattern = false
+                    let swaggerDescriptionOut = null
+                    let isChained = false
 
                     if (elem.includes('[_[') && elem.includes(']_]')) {
                         elem = elem.split(new RegExp("\\[_\\[|\\]_\\]\\)\\("))
                         predefMethod = elem[1]
-                        elem = elem[2]
-                        predefPath = swaggerTags.getPath(elem, null, autoMode)
+                        predefPattern = elem[3]
+
+                        if (predefPattern === "____CHAINED____") {// TO CASE: router.get(...).post(...).put(...)...
+                            predefPattern = lastValidPattern
+                            isChained = true
+                        } else
+                            lastValidPattern = predefPattern
+
+                        // CASE: router.use(middleware).get(...).post(...).put(...)...
+                        if (elem[4] && elem[4].includes("____CHAINED____")) {
+                            let midd = elem[4].split("____CHAINED____")[0]
+                            localRouteMiddlewares.push({ middleware: midd, rawRoute: aData[idxElem].split(midd)[1] })
+                            continue
+                        }
+
+                        let prefixFound = propRoutes.find(r => r.routeName === predefPattern)
+                        if (prefixFound)
+                            routePrefix = prefixFound.prefix || ''
+                        else
+                            routePrefix = ''
+
+                        if (elem.length < 5) {
+                            // Forced Endpoint
+                            let found = elem.find(e => e.includes("/_undefined_path_0x"))
+                            if (found) {
+                                elem = found
+                                endpointFunctions.push({ metadata: null, callbackParameters: null, func: found })
+                            } else
+                                continue
+                        } else
+                            elem = elem[4]
+
+                        predefPath = swaggerTags.getPath(elem, autoMode)
                         elem = elem.trim()
+
+                        // Identifying which symbol the path stars and ends ( \", \' or \` )
                         const quotMark = elem[0]
                         if ((quotMark == '\"' || quotMark == '\'' || quotMark == '\`') && !elem.includes("#swagger.path") && elem.split(quotMark).length > 2) {
                             let elemAux = elem.replaceAll(`\\${quotMark}`, statics.STRING_BREAKER + "quotMark" + statics.STRING_BREAKER)
@@ -178,11 +305,23 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                         }
 
                         if (elem.includes("#swagger.path")) {
-                            rawPath = pathRoute + swaggerTags.getPath(elem, null, autoMode)
+                            rawPath = pathRoute + routePrefix + swaggerTags.getPath(elem, autoMode)
                         }
                     }
 
                     elem = await handleData.stackSymbolRecognizer(elem, '(', ')')
+
+                    /**
+                     * CASE (continuing): router.use(middleware).get(...).post(...).put(...)... 
+                     * Adding middleware to be processed together with the other endpoint functions 
+                     */
+                    if (isChained) {
+                        const endpointRegex = `\\(\\[\\_\\[${predefMethod}\\]\\_\\]\\)\\(\\[\\_\\[____CHAINED____\\]\\_\\]\\)\\(\\s*\\n*\\t*\\s*\\n*\\t*.${rawPath}.\\s*\\n*\\t*\\s*\\n*\\t*\\,`
+                        const found = localRouteMiddlewares.find(midd => midd.rawRoute && midd.rawRoute.split(new RegExp(endpointRegex)).length > 1)
+                        if (found)
+                            elem += ',' + found.middleware
+                    }
+
                     if (elem.includes(statics.STRING_BREAKER + "FORCED" + statics.STRING_BREAKER))
                         forced = true
 
@@ -192,162 +331,148 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                     autoMode = swaggerTags.getAutoTag(elem)
                     const elemOrig = elem
 
-                    // Handling passed functions in the parameter
+                    /**
+                     * Handling passed functions in the endpoint parameter, such as: app.get("/path", ...)
+                     */
                     var elemParam = await handleData.removeStrings(elem)
                     elemParam = await handleData.removeComments(elemParam)
-                    if (elemParam.split(",").length > 1 && !forced) {
-                        var functions = []
-                        let middlewares = null
-                        let callbackIsSetted = false
+                    if ((elemParam.split(",").length > 1 && !forced) || predefMethod === 'use') {
+                        var functions = []      // Array that contains possible functions in other files
                         var auxElem = await handleData.removeComments(elem)
                         auxElem = auxElem.replace(rawPath, "")
                         let functionsInParameters = auxElem
-                        if (functionsInParameters.slice(-1)[0] == ')') // if last elem is ')'
+                        if (functionsInParameters.slice(-1)[0] == ')') // if the last elem is ')'
                             functionsInParameters = functionsInParameters.slice(0, -1)
                         functionsInParameters = functionsInParameters.split(',')
 
                         auxElem = auxElem.replaceAll('\n', '').replaceAll(' ', '')
-                        // Handling foo.method('/path', [..., ..., ...], ...)
-                        if (auxElem.split(",").length > 2 && auxElem.split(",")[1].includes("[") && !auxElem.split(",")[1].split('[')[0].includes('(')) {
-                            auxElemArray = [...functionsInParameters]
-                            auxElemArray.shift()
-                            auxElemArray = auxElemArray.join(',')
-                            auxElemArray = auxElemArray.split('[')
-                            auxElemArray.shift()
-                            auxElemArray = auxElemArray.join('[')
-                            middlewares = ('[' + await handleData.stackSymbolRecognizer(auxElemArray, '[', ']')).trim()
-                            auxElem = functionsInParameters.join(',').split(middlewares)
-                            elem = auxElem[0]
-                            auxElem = auxElem[1].split(",")
-                            auxElem.shift()
-                            auxElem = auxElem.join(',')
+                        if ((auxElem.split(",").length > 1) || predefMethod === 'use') { // 
+                            /**
+                             * Handling foo.method('/path', ..., ...)'
+                             * Getting function not referenced ( such as: (req, res) => { ... } )
+                             */
 
-                            // Handling Callback
-                            if (auxElem.split(new RegExp("(\\(|\\)|\\{|\\}|\\[|\\]|\\s+function\\s+|\\(\\s*function\\s*\\(|\\s*\\t*\\s*\\t*=>\\s*\\t*\\s*\\t*)")).length != 1) {
-                                // Getting function not referenced
-                                const callbackOrig = elemOrig.split(middlewares)
-                                if (callbackOrig.length > 1)
-                                    elem += statics.STRING_BREAKER + callbackOrig[1]
-                                else
-                                    elem += statics.STRING_BREAKER + "," + auxElem
-                                callbackIsSetted = true
-                            } else {
-                                // Getting referenced function 
-                                var elemArray = auxElem.replaceAll(' ', '').replaceAll('\n', '').split(',')
-                                elemArray.forEach(e => functions.push(e))
-
-                            }
-
-                            // Handling middlewares array
-                            if (middlewares[0] == '[' && middlewares.slice(-1)[0] == ']') { // Is Array
-                                middlewares = middlewares.slice(1, -1)
-                                let auxMiddlewares = middlewares
-                                auxMiddlewares = auxMiddlewares.split(',')
-                                for (let index = 0; index < auxMiddlewares.length; ++index) {
-                                    let midd = auxMiddlewares[index].trim()
-                                    if (midd.split(new RegExp("(\\,|\\(|\\)|\\{|\\}|\\[|\\]|\\s+function\\s+|\\(\\s*function\\s*\\(|\\s*\\t*\\s*\\t*=>\\s*\\t*\\s*\\t*)")).length == 1) {
-                                        // Getting referenced function 
-                                        functions.unshift(midd.replaceAll(' ', '').replaceAll('\n', ''))
-                                    }
-                                }
-                            }
-
-                        } else if (auxElem.split(",").length > 1) { // Handling: foo.method('/path', middleware, controller)'
-                            // Getting function not referenced
                             let functionArray = elemOrig.replace(rawPath, "").split(',')
                             elem = rawPath
-                            functionArray.shift()
+                            if (functionArray.length > 1)
+                                functionArray.shift()
                             functionArray = functionArray.join(',')
-                            let funcNotReferenced1 = await handleData.popFunction(functionArray)
-                            if (funcNotReferenced1) {
-                                functionArray = functionArray.split(funcNotReferenced1)
-                                functionArray = functionArray.join('')
-                                elem += ',' + statics.STRING_BREAKER + "," + funcNotReferenced1
-                                let funcNotReferenced2 = await handleData.popFunction(functionArray)
-                                if (funcNotReferenced2)
-                                    elem += "," + funcNotReferenced2
+
+                            for (let idxFunc = 0; idxFunc < 15; ++idxFunc) {
+
+                                // Adding '(' and ')' to arrow functions that not contains '(' and ')', such as: async req => {
+                                if (functionArray && functionArray.split(new RegExp("\\s*\\t*\\s*\\t*=>\\s*\\n*\\t*\\s*\\n*\\t*").length > 1)) {
+                                    let params = functionArray.trim().split(new RegExp("\\s*\\t*\\s*\\t*=>\\s*\\n*\\t*\\s*\\n*\\t*"))
+                                    if (params[0].trim().slice(-1)[0] !== ')') {
+                                        let paramsAux = params[0].split(new RegExp("\\s+|\\n+|\\t+|\\,|\\.|\\;|\\:"))
+                                        paramsAux = paramsAux.slice(-1)[0]
+                                        if (paramsAux.split(new RegExp("\\(|\\)")).length === 1)
+                                            functionArray = functionArray.replace(new RegExp(`${paramsAux}\\s*\\t*\\s*\\t*=>\\s*\\n*\\t*\\s*\\n*\\t*`), `(${paramsAux}) => `)
+                                    }
+                                }
+
+                                let funcNotReferenced = await handleData.popFunction(functionArray)
+                                if (predefMethod == 'use' && funcNotReferenced) {
+                                    if (funcNotReferenced.split(')')[0].split(',').length > 2) {
+                                        let isLocalRouteMiddleware = false
+                                        if (aData[idxElem].split(new RegExp(regex)).length > 1)  // Verify if is not a local route middleware, such as: route.use(middleware).get(...).post(...)...
+                                            isLocalRouteMiddleware = true
+                                        routeMiddlewares.push({ metadata: func, callbackParameters: null, func: funcNotReferenced, middleware: true, path: rawPath, isLocalRouteMiddleware })
+                                    }
+                                } else if (funcNotReferenced) {
+                                    functionArray = functionArray.replace(funcNotReferenced, ' ')
+                                    if (funcNotReferenced.includes("(") && funcNotReferenced.includes(")")) {
+                                        endpointFunctions.push({ metadata: null, callbackParameters: null, func: funcNotReferenced })
+                                    }
+                                } else
+                                    break
                             }
 
-                            for (let index = 1; index < functionsInParameters.length; ++index) {
-                                let func = functionsInParameters[index]
-                                if (!func)
+                            // endpointSwaggers: Keep 'global' #swaggers in the endpoints, such as: foo.get('/path', /* #swagger.description = "..." */ functions...)
+                            endpointSwaggers = await handleData.getSwaggerComments(functionArray)
+                            functionArray = await handleData.removeComments(functionArray)
+                            functions = [...functions, ...functionArray.split(',')]
+                        }
+
+                        /**
+                         * functions: Array that contains possible functions in other files
+                         */
+                        for (var index = 0; index < functions.length; index++) {
+                            let func = functions[index]
+                            if (!func)
+                                continue
+
+                            let funcTest = func.replaceAll('\n', '').replaceAll('\t', '').replaceAll(' ', '')
+                            if (funcTest == '' || funcTest == ')')
+                                continue
+
+                            var exportPath = null
+                            const rexRequire = /\s*require\s*\n*\t*\(/
+                            if (rexRequire.test(func)) {
+                                /**
+                                 * CASE: foo.method('/path', require('./pathToFile.js'))
+                                 */
+                                exportPath = func.split(rexRequire)
+                                exportPath = exportPath.slice(-1)[0]
+                                exportPath = exportPath.split(')')[0]
+                                if (exportPath && exportPath.includes('./')) {
+                                    if (exportPath.includes("../")) {
+                                        let foldersToBack = exportPath.split("../").length - 1
+                                        let RelativePathBacked = relativePath.split('/')
+                                        RelativePathBacked = RelativePathBacked.slice(0, (-1) * foldersToBack)
+                                        RelativePathBacked = RelativePathBacked.join('/')
+
+                                        exportPath = RelativePathBacked + '/' + exportPath.replaceAll('\'', '').replaceAll('\"', '').replaceAll('\`', '').replaceAll(' ', '').replaceAll('\n', '').replaceAll('../', '')
+                                    } else {
+                                        exportPath = relativePath + exportPath.replaceAll('\'', '').replaceAll('\"', '').replaceAll('\`', '').replaceAll(' ', '').replaceAll('\n', '').replaceAll('./', '/')
+                                    }
+                                }
+                            } else {
+                                func = func.replaceAll('\n', '').replaceAll('\t', '').replaceAll(' ', '').replaceAll('[', '').replaceAll(']', '')
+                                func = func.split(new RegExp("\\(|\\)"))[0]
+                                if (func.split(new RegExp("\\(|\\)|\\[|\\]|\\{|\\}|\\!|\\=|\\>|\\<")).length > 1 || func.trim() == '')
                                     continue
 
-                                if (func.split(new RegExp("(\\,|\\(|\\)|\\{|\\}|\\[|\\]|\\s+function\\s+|\\(\\s*function\\s*\\(|\\s*\\t*\\s*\\t*=>\\s*\\t*\\s*\\t*)")).length == 1) {
-                                    // Getting referenced function 
-                                    functions.push(func.replaceAll(' ', '').replaceAll('\n', ''))
+                                var refFuncao = null
+                                var varFileName = null
+                                if (func.split(".").length > 1) {
+                                    // Identifying subfunction reference, such as: 'controller.store' in the foo.get('/path', controller.store)
+                                    refFuncao = func.split(".")[1].trim()
+                                    varFileName = func.split(".")[0].trim()
                                 } else {
-                                    if (func) {
-                                        const origFunc = func
-                                        func = func.split(new RegExp("\\([\\s\\S]*\\)"))
-                                        func[0] = func[0].split('(')[0]
-                                        func[0] = func[0].replaceAll(' ', '').replaceAll('\n', '')
-                                        var idx = importedFiles.findIndex(e => e.varFileName && func[0] && (e.varFileName == func[0]))
-                                        var exportPath = null
-                                        if (idx == -1) {
-                                            importedFiles.forEach(imp => {
-                                                if (exportPath)
-                                                    return
-                                                let found = imp && imp.exports ? imp.exports.find(e => e.varName && func[0] && (e.varName == func[0])) : null
-                                                if (found) {
-                                                    if (imp.isDirectory)
-                                                        exportPath = found.path
-                                                    else
-                                                        exportPath = imp.fileName      // TODO: change variable name
-                                                }
-                                            })
-                                        }
+                                    varFileName = func.split(".")[0].trim()
+                                }
 
-                                        if ((idx > -1 || exportPath) && func.length >= 1 && func[0] != '') {
-                                            elem = elem.replaceAll(origFunc, func[0])
-                                            functions.unshift(func[0])
+                                // First, tries to find in the import/require
+                                var idx = importedFiles.findIndex(e => e.varFileName && varFileName && (e.varFileName == varFileName))
+                                if (idx == -1) {
+                                    // Second, tries to find in the 'exports' of import/require, such as 'foo' in the: import { foo } from './fooFile'
+                                    importedFiles.forEach(imp => {
+                                        if (exportPath)
+                                            return
+                                        let found = imp && imp.exports ? imp.exports.find(e => e.varName && varFileName && (e.varName == varFileName)) : null
+                                        if (found) {
+                                            if (!refFuncao)
+                                                refFuncao = found.varName
+                                            if (imp.isDirectory)
+                                                exportPath = found.path
+                                            else
+                                                exportPath = imp.fileName      // TODO: change variable name
                                         }
+                                    })
+                                } else {
+                                    if (importedFiles[idx].isDirectory && !importedFiles[idx].isRequireDirLib) {
+                                        exportPath = importedFiles[idx].fileName + '/index'
                                     }
                                 }
                             }
-                        }
 
-                        const endpointRegex = `\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*${predefMethod}\\s*\\n*\\t*\\s*\\n*\\t*\\(\\s*\\n*\\t*\\s*\\n*\\t*.${rawPath}.\\s*\\n*\\t*\\s*\\n*\\t*\\,`
-                        const found = routeMiddlewares.find(midd => midd.rawRoute && midd.rawRoute.split(new RegExp(endpointRegex)).length > 1)
-                        if (found)
-                            functions.unshift(found.middleware)
-
-                        // Middlewares lastly, so that 'req' and 'res' are captured "without noise"
-                        if (functions && functions.length > 1)
-                            functions = functions.reverse()
-
-                        for (var index = 0; index < functions.length; index++) {
-                            let func = functions[index]
-                            var refFuncao = null
-                            var varFileName = null
-                            if (func.split(".").length > 1) {// Identifying subfunction reference
-                                refFuncao = func.split(".")[1].trim()
-                                varFileName = func.split(".")[0].trim()
-                            } else {
-                                varFileName = func.split(".")[0].trim()
-                            }
-                            var idx = importedFiles.findIndex(e => e.varFileName && varFileName && (e.varFileName == varFileName))
-                            var exportPath = null
-                            if (idx == -1) {
-                                importedFiles.forEach(imp => {
-                                    if (exportPath)
-                                        return
-                                    let found = imp && imp.exports ? imp.exports.find(e => e.varName && varFileName && (e.varName == varFileName)) : null
-                                    if (found) {
-                                        if (!refFuncao)
-                                            refFuncao = found.varName
-                                        if (imp.isDirectory)
-                                            exportPath = found.path
-                                        else
-                                            exportPath = imp.fileName      // TODO: change variable name
-                                    }
-                                })
-                            }
-
-                            // Referenced in another file
+                            // If found, so is a reference to another file
                             if (idx > -1 || exportPath) {
-                                // Bringing reference
-                                var pathFile = null
+                                /**
+                                 * Bringing reference
+                                 */
+                                let pathFile = null
                                 if (exportPath)
                                     pathFile = exportPath
                                 else {
@@ -359,248 +484,257 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
                                     }
                                 }
 
-                                var extension = await getExtension(pathFile)
-                                var refFunction = await functionRecognizerInFile(pathFile + extension, refFuncao)
+                                let extension = await getExtension(pathFile)
+                                let refFunction = await functionRecognizerInFile(pathFile + extension, refFuncao)
 
-                                // Replacing function in the referenced location
-                                if (refFunction) {
-                                    refFunction = handleData.clearData(refFunction)
-                                    if (middlewares && middlewares.includes(func)) {
-                                        middlewares = middlewares.replace(func, refFunction)
-                                    } else {
-                                        if (index == 0 && !callbackIsSetted)
-                                            elem += statics.STRING_BREAKER + "," + refFunction
-                                        else
-                                            elem += "," + refFunction
+                                if (predefMethod == 'use' && refFunction) {
+                                    if (refFunction.split(')')[0].split(',').length > 2) {
+                                        let isLocalRouteMiddleware = false
+                                        if (aData[idxElem].split(new RegExp(regex)).length > 1)  // Verify if is not a local route middleware, such as: route.use(middleware).get(...).post(...)...
+                                            isLocalRouteMiddleware = true
+                                        routeMiddlewares.push({ metadata: func, callbackParameters: null, func: refFunction, middleware: true, path: rawPath, isLocalRouteMiddleware })
                                     }
+                                } else if (refFunction) {
+                                    refFunction = await handleData.clearData(refFunction)
+                                    endpointFunctions.push({ metadata: func, callbackParameters: null, func: refFunction })
                                 }
                             } else {
-                                // Referenced in the same file
-                                var refFunction = await handleData.functionRecognizerInData(aDataRaw, varFileName)
-                                if (refFunction) {
-                                    refFunction = handleData.clearData(refFunction)
-                                    if (middlewares && middlewares.includes(func)) {
-                                        middlewares = middlewares.replace(func, refFunction)
-                                    } else {
-                                        if (index == 0 && !callbackIsSetted)
-                                            elem += statics.STRING_BREAKER + "," + refFunction
-                                        else
-                                            elem += "," + refFunction
+                                /**
+                                 * Referenced in the same file
+                                 */
+                                let refFunction = await handleData.functionRecognizerInData(aDataRaw, varFileName)
+                                if (predefMethod == 'use' && refFunction) {
+                                    if (refFunction.split(')')[0].split(',').length > 2) {
+                                        let isLocalRouteMiddleware = false
+                                        if (aData[idxElem].split(new RegExp(regex)).length > 1)  // Verify if is not a local route middleware, such as: route.use(middleware).get(...).post(...)...
+                                            isLocalRouteMiddleware = true
+                                        routeMiddlewares.push({ metadata: func, callbackParameters: null, func: refFunction, middleware: true, path: rawPath, isLocalRouteMiddleware })
                                     }
+                                } else if (refFunction) {
+                                    refFunction = await handleData.clearData(refFunction)
+                                    endpointFunctions.push({ metadata: func, callbackParameters: null, func: refFunction })
                                 }
                             }
                         }
-                        if (middlewares)
-                            elem += "," + middlewares
                     }
 
-                    // TODO: Optimize this. 
-                    // Concatenates all original content at the end to recognize the swagger tags 
-                    // declared outside the middleware and callback functions, such as: 
-                    // routes.get('/path', /* #swagger.tags = ['Tool'] */ [middleware], callback);
-                    elem += statics.STRING_BREAKER + "," + elemOrig + (routeMiddleware ? "," + routeMiddleware : '')
+                    if (predefMethod == 'use')
+                        continue
 
-                    if (localMiddleware != '')
-                        elem += localMiddleware
+                    /**
+                     * endpointFunctions: receives the endpoint functions and local middleware
+                     */
+                    endpointFunctions = [...routeMiddlewares.filter(r => r.path === false), ...endpointFunctions]
 
-                    elem = elem.replaceAll('\n', '').replaceAll('/*', '\n').replaceAll('*/', '\n').replaceAll(statics.SWAGGER_TAG, '\n' + statics.SWAGGER_TAG)
-                    const aElem = elem.split(/;|\n/)
-                    for (var _idx in aElem) {
-                        const line = aElem[_idx]
-                        if (!path) {
-                            path = pathRoute + swaggerTags.getPath(elemOrig, line, autoMode)
-                            path = path.replaceAll('//', '/').replaceAll('//', '/').replaceAll('//', '/').replaceAll('//', '/')
-                            objEndpoint[path] = {}
-                        }
-                        if (!method) {
-                            method = swaggerTags.getMethod(elem, line.includes(statics.STRING_BREAKER) ? line.split(statics.STRING_BREAKER)[0] : line, autoMode, aDataRaw) //line.includes(statics.STRING_BREAKER) esta presente quando uma funcao eh refenrenciada
-                            if (predefMethod)
-                                method = predefMethod
-                            objEndpoint[path][method] = {}
-                            objEndpoint[path][method].tags = []
-                            objEndpoint[path][method].description = ''
-                            objEndpoint[path][method].parameters = []
-                            objEndpoint[path][method].responses = {}
+                    // Getting  'request', 'response' and 'next' parameters in the endpointFunctions
+                    for (let efIdx = 0; efIdx < endpointFunctions.length; ++efIdx) {
+                        let ef = endpointFunctions[efIdx]
+                        const callbackParameters = await handleData.getCallbackParameters(',' + ef.func)
+                        ef.callbackParameters = callbackParameters
+                        endpointFunctions[efIdx] = ef
+                    }
 
-                            if (path.includes('_undefined_path_0x'))
-                                objEndpoint[path][method].tags.push({ name: 'Endpoints without path or method' })
-                        }
+                    if (endpointSwaggers && endpointSwaggers !== '')
+                        endpointFunctions.push({ metadata: null, callbackParameters: null, func: endpointSwaggers })
 
-                        // Geting callback parameters: 'req', 'res' and 'next'
-                        if (autoMode && !req && !res) {
-                            if (forced) {
-                                res = elem.split(/([a-zA-Z]*|[0-9]|\_|\-)*\.status\(/)
-                                if (res[1] && res[1] != '')
-                                    res = res[1]
-                                else
-                                    res = null
-                            } else {
-                                const callbackParameters = handleData.getCallbackParameters(line.includes(statics.STRING_BREAKER) ? line.split(statics.STRING_BREAKER)[1] : line)
-                                req = callbackParameters.req
-                                res = callbackParameters.res
-                                next = callbackParameters.next
+                    // Getting Path
+                    if (!path) {
+                        path = pathRoute + routePrefix + swaggerTags.getPath(elemOrig, autoMode)
+                        path = path.replaceAll('//', '/').replaceAll('//', '/').replaceAll('//', '/').replaceAll('//', '/')
+                        objEndpoint[path] = {}
+                    }
+
+                    // Getting Method
+                    if (!method) {
+                        method = swaggerTags.getMethodTag(elemOrig)
+                        if (!method)
+                            method = predefMethod
+                        objEndpoint[path][method] = {}
+                        objEndpoint[path][method].tags = []
+                        objEndpoint[path][method].description = ''
+                        objEndpoint[path][method].parameters = []
+                        objEndpoint[path][method].responses = {}
+
+                        if (path.includes('_undefined_path_0x'))    // When the path is not found
+                            objEndpoint[path][method].tags.push({ name: 'Endpoints without path or method' })
+                    }
+
+                    if ((!path || !method))
+                        throw console.error("\nError: 'path' or 'method' not found.")
+
+                    /**
+                     * Handling all endpoint functions
+                     */
+                    if (endpointFunctions && endpointFunctions.length == 0) {
+                        paths = { ...paths, ...objEndpoint }
+                    } else {
+                        for (var _idxEF in endpointFunctions) {
+                            let endpoint = endpointFunctions[_idxEF].func
+                            endpoint = endpoint.replaceAll('\n', '').replaceAll('/*', '\n').replaceAll('*/', '\n').replaceAll(statics.SWAGGER_TAG, '\n' + statics.SWAGGER_TAG)
+
+                            req = null
+                            res = null
+                            next = null
+
+                            if (endpoint.replaceAll('\n', '').replaceAll(' ', '') === '')
+                                continue
+
+                            // Geting callback parameters: 'request', 'response' and 'next'
+                            if (autoMode && !req && !res) {
+                                if (forced) {
+                                    res = elemOrig.split(/([a-zA-Z]*|[0-9]|\_|\-)*\.status\(/)
+                                    if (res[1] && res[1] != '')
+                                        res = res[1]
+                                    else
+                                        res = null
+                                } else {
+                                    const callbackParameters = endpointFunctions[_idxEF].callbackParameters
+                                    if (callbackParameters) {
+                                        req = callbackParameters.req
+                                        res = callbackParameters.res
+                                        next = callbackParameters.next
+                                    }
+                                }
                             }
-                        }
 
-                        if ((!path || !method))
-                            throw console.error("\nError: 'path' or 'method' not found.")
+                            if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.auto')) {
+                                autoMode = swaggerTags.getAutoTag(endpoint)
+                            }
 
-                        if (autoMode && Object.entries(objParameters).length == 0)// Checking parameters in the path
-                            objParameters = await handleData.getPathParameters(path, objParameters)
+                            if (autoMode && Object.entries(objParameters).length == 0) {  // Checking parameters in the path
+                                objParameters = await handleData.getPathParameters(path, objParameters)
+                            }
 
-                        let paramName = null
-                        if (line.includes(statics.SWAGGER_TAG + '.'))
-                            paramName = line.getBetweenStrs(statics.SWAGGER_TAG + ".", "=").trim()
+                            if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.parameters') && endpoint.includes('[') && endpoint.includes(']')) {
+                                objParameters = await swaggerTags.getParametersTag(endpoint, objParameters)
+                            }
+                            if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.produces')) {
+                                objEndpoint[path][method].produces = await swaggerTags.getProducesTag(endpoint)
+                            }
+                            if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.consumes')) {
+                                objEndpoint[path][method].consumes = await swaggerTags.getConsumesTag(endpoint)
+                            }
+                            if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.responses')) {
+                                objResponses = await swaggerTags.getResponsesTag(endpoint, objResponses)
+                            }
+                            if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.description')) {
+                                objEndpoint[path][method]['description'] = swaggerTags.getDescription(endpoint)
+                            }
+                            if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.tags')) {
+                                objEndpoint[path][method]['tags'] = swaggerTags.getTags(endpoint)
+                            }
+                            if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.security')) {
+                                objEndpoint[path][method]['security'] = await swaggerTags.getSecurityTag(endpoint)
+                            }
 
-                        if (paramName && paramName.includes('parameters') && paramName.includes('[') && paramName.includes(']')) {
-                            objParameters = swaggerTags.getParametersTag(line, paramName, objParameters)    // Search for #swagger.parameters
-                        } else if (paramName && paramName.includes('produces')) {
-                            objEndpoint = swaggerTags.getProducesTag(line, objEndpoint, path, method)       // Search for #swagger.produces
-                        } else if (paramName && paramName.includes('consumes')) {
-                            objEndpoint = swaggerTags.getConsumesTag(line, objEndpoint, path, method)       // Search for #swagger.consumes
-                        } else if (paramName && paramName.includes('responses') && paramName.includes('[') && paramName.includes(']')) {
-                            objResponses = swaggerTags.getResponsesTag(line, paramName, objResponses)       // Search for #swagger.responses
-                        } else if (paramName) {
-                            try {   // #swagger: description, tags, auto, method, path, etc
-                                objEndpoint[path][method][paramName] = eval(`(${line.split('=')[1]})`)
-                            } catch (err) {
-                                console.error('Syntax error: ' + line)
-                                console.error(err)
+                            if (objResponses === false || objParameters === false || objEndpoint === false)
                                 return resolve(false)
+
+                            if (autoMode && ((req && req.length > 0) || (res && res.length > 0))) {
+                                endpoint = await handleData.removeStrings(endpoint) // Avoiding .status(...) in string
+                                endpoint = endpoint.replaceAll('__¬¬¬__', '"')
+                                if (req) {
+                                    objParameters = handleData.getQuery(endpoint, req, objParameters)              // Search for parameters in the query (directy)
+                                    objParameters = handleData.getQueryIndirecty(endpoint, req, objParameters)     // Search for parameters in the query (indirecty)
+                                }
+                                if (res) {
+                                    objResponses = handleData.getStatus(endpoint, res, objResponses)               // Search for response status
+                                    objEndpoint = handleData.getHeader(endpoint, path, method, res, objEndpoint)   // Search for resonse header
+                                }
+                            }
+
+                            Object.values(objParameters).forEach(objParam => {
+                                if (objEndpoint[path][method].parameters) {
+                                    let idxFound = objEndpoint[path][method].parameters.findIndex(e => e.name === objParam.name)
+                                    if (idxFound > -1)
+                                        objEndpoint[path][method].parameters[idxFound] = objParam
+                                    else
+                                        objEndpoint[path][method].parameters.push(objParam)
+                                }
+                            })
+                            objEndpoint[path][method].responses = objResponses
+
+                            delete objEndpoint[path][method].path
+                            delete objEndpoint[path][method].method
+                            if (path.includes('/')) {
+                                if (paths[path]) // Allow get, post, etc, in same path
+                                    paths[path] = { ...paths[path], ...objEndpoint[path] }
+                                else
+                                    paths = { ...paths, ...objEndpoint }
                             }
                         }
-                        if (objResponses === false || objParameters === false || objEndpoint === false)
-                            return resolve(false)
-                    }
-
-                    // req | res: Is the last, because must eliminate comments and strings to get .status only from the code.
-                    // TODO: req and res, create arrays with all variables, such as: ['res', 'response']
-                    if (autoMode && (req || res)) {
-                        elem = await handleData.removeStrings(elem) // Avoiding .status(...), etc in string
-                        elem = elem.replaceAll('__¬¬¬__', '"')
-                        if (req) {
-                            objParameters = handleData.getQuery(elem, req, objParameters)              // Search for parameters in the query (directy)
-                            objParameters = handleData.getQueryIndirecty(elem, req, objParameters)     // Search for parameters in the query (indirecty)
-                        }
-                        if (res) {
-                            objResponses = handleData.getStatus(elem, res, objResponses)               // Search for response status
-                            objEndpoint = handleData.getHeader(elem, path, method, res, objEndpoint)   // Search for resonse header
-                        }
-                    }
-
-                    Object.values(objParameters).forEach(o => objEndpoint[path][method].parameters.push(o))
-                    objEndpoint[path][method].responses = objResponses
-
-                    if (objEndpoint[path][method].produces) {
-                        let uniqueProduces = new Set()
-                        objEndpoint[path][method].produces.map(p => uniqueProduces.add(p.toLowerCase()))
-                        objEndpoint[path][method].produces = [...uniqueProduces]
-                    }
-
-                    if (objEndpoint[path][method].consumes) {
-                        let uniqueConsumes = new Set()
-                        objEndpoint[path][method].consumes.map(p => uniqueConsumes.add(p.toLowerCase()))
-                        objEndpoint[path][method].consumes = [...uniqueConsumes]
-                    }
-
-                    delete objEndpoint[path][method].path
-                    delete objEndpoint[path][method].method
-                    if (path.includes('/')) {
-                        if (paths[path]) // Allow get, post, etc, in same path
-                            paths[path] = { ...paths[path], ...objEndpoint[path] }
-                        else
-                            paths = { ...paths, ...objEndpoint }
                     }
                 }
             }
 
-            var aDataRawCleaned = await handleData.removeComments(aDataRaw, true)
-            aDataRawCleaned = aDataRawCleaned.replaceAll('\n', ' ')
-            var aRoutes = aDataRawCleaned.split(new RegExp(`\\s*\\t*\\s*\\t*\\w\\s*\\t*\\s*\\t*\\.\\s*\\t*\\s*\\t*use\\s*\\t*\\s*\\t*\\(`))
-
-            if (aRoutes.length > 1) {
-                aRoutes.shift()
+            if (aRoutes && aRoutes.length >= 1) {
                 var allPaths = {}
                 for (let file = 0; file < aRoutes.length; file++) {
-                    var obj = { path: null, varFileName: null, middleware: null, fileName: null }
-                    var r = aRoutes[file]
-                    var data = r.split(')')[0]
+                    var rt = aRoutes[file]
+                    if (rt.split(']_])').length < 3)
+                        continue
 
-                    if (data.split(',').length == 1) { // route with 1 parameter
-                        // TODO: verify
+                    var obj = { path: null, varFileName: null, middleware: null, fileName: null }
+                    var data = rt.split(']_])(')
+                    var routeName = data[1].split('[_[')[1].trim()
+
+                    data = await handleData.stackSymbolRecognizer(data[2], '(', ')')
+
+                    let routeFound = propRoutes.find(r => r.routeName === routeName)
+                    if (routeFound)
+                        routePrefix = routeFound.prefix || ''
+                    else
+                        routePrefix = ''
+
+                    var exportPath = null
+                    const rexRequire = /\s*require\s*\n*\t*\(/
+                    if (rexRequire.test(data)) {
+                        /**
+                         * CASE: foo.use(require('./routes.js'))
+                         */
+
+                        exportPath = data.split(rexRequire)
+                        exportPath = exportPath.slice(-1)[0]
+                        exportPath = exportPath.split(')')[0]
+                        if (exportPath && exportPath.includes('./')) {
+                            if (exportPath.includes("../")) {
+                                let foldersToBack = exportPath.split("../").length - 1
+                                let RelativePathBacked = relativePath.split('/')
+                                RelativePathBacked = RelativePathBacked.slice(0, (-1) * foldersToBack)
+                                RelativePathBacked = RelativePathBacked.join('/')
+
+                                exportPath = RelativePathBacked + '/' + exportPath.replaceAll('\'', '').replaceAll('\"', '').replaceAll('\`', '').replaceAll(' ', '').replaceAll('\n', '').replaceAll('../', '')
+                            } else {
+                                exportPath = relativePath + exportPath.replaceAll('\'', '').replaceAll('\"', '').replaceAll('\`', '').replaceAll(' ', '').replaceAll('\n', '').replaceAll('./', '/')
+                            }
+                        }
+                    } else if (data.split(',').length == 1) { // route with 1 parameter, such as: route.use(middleware)
+                        if (rt.split(new RegExp(regex)).length > 1)
+                            continue
+
                         obj.path = ''
                         obj.varFileName = data
                         obj.varFileName = obj.varFileName.replaceAll('(', '').replaceAll(')', '').replaceAll(' ', '')
-                    } else if (data.split(',').length == 2) { // route with 2 parameters
-                        obj.path = data.split(',')[0]
-                        obj.path = obj.path.getBetweenStrs("\`", "\`") || obj.path.getBetweenStrs("\'", "\'") || obj.path.getBetweenStrs("\"", "\"")
-                        obj.path = pathRoute + obj.path
-                        obj.varFileName = data.split(',')[1]
-                        obj.varFileName = obj.varFileName.replaceAll('(', '').replaceAll(')', '').replaceAll(' ', '')
+                        obj.routeMiddlewares = routeMiddlewares.filter(r => (r.path !== false) && (r.path === obj.path) || (r.fixedRoute === true))
+                        obj.path = pathRoute + routePrefix + obj.path
+                        obj.path = obj.path.replaceAll('////', '/').replaceAll('///', '/').replaceAll('//', '/')
                     } else {
                         obj.path = data.split(',')[0]
                         obj.path = obj.path.getBetweenStrs("\`", "\`") || obj.path.getBetweenStrs("\'", "\'") || obj.path.getBetweenStrs("\"", "\"")
-                        obj.path = pathRoute + obj.path
-                        obj.routeMiddleware = data.split(',')[1]
-                        if (obj.routeMiddleware.includes('[')) {
-                            // TODO: handle array of middlwares
-                        } else {
-                            obj.routeMiddleware = obj.routeMiddleware.replaceAll('(', '').replaceAll(')', '').replaceAll(' ', '')
-                        }
-                        obj.varFileName = data.split(',')[2]
+                        obj.routeMiddlewares = routeMiddlewares.filter(r => (r.path !== false) && (r.path === obj.path) || (r.fixedRoute === true))
+                        obj.path = pathRoute + routePrefix + obj.path
+                        obj.path = obj.path.replaceAll('////', '/').replaceAll('///', '/').replaceAll('//', '/')
+                        obj.varFileName = data.split(',').slice(-1)[0]
                         obj.varFileName = obj.varFileName.replaceAll('(', '').replaceAll(')', '').replaceAll(' ', '')
                     }
 
-                    // handle middlewares in Routes | TODO: refactor this
-                    if (obj.routeMiddleware) {
-                        let func = obj.routeMiddleware
-                        var refFuncao = null
-                        var varFileName = null
-                        if (func.split(".").length > 1) {// Identifying subfunction reference
-                            refFuncao = func.split(".")[1].trim()
-                            varFileName = func.split(".")[0].trim()
-                        } else {
-                            varFileName = func.split(".")[0].trim()
-                        }
+                    if (obj.varFileName && obj.varFileName.split(new RegExp("\\:|\\;|\\=|\\>|\\<|\\{|\\}|\\(|\\)|\\[|\\]|\\,")).length > 1)
+                        obj.varFileName = null
 
-                        var idx = importedFiles.findIndex(e => e.varFileName && varFileName && (e.varFileName == varFileName))
-                        var exportPath = null
-                        if (idx == -1) {
-                            importedFiles.forEach(imp => {
-                                if (exportPath)
-                                    return
-                                let found = imp && imp.exports ? imp.exports.find(e => e.varName && varFileName && (e.varName == varFileName)) : null
-                                if (found) {
-                                    if (!refFuncao)
-                                        refFuncao = found.varName
-                                    if (imp.isDirectory)
-                                        exportPath = found.path
-                                    else
-                                        exportPath = imp.fileName      // TODO: change variable name
-                                }
-                            })
-                        }
-
-                        // Referenced in another file
-                        if (idx > -1 || exportPath) {
-                            // Bringing reference
-                            var pathFile = null
-                            if (exportPath)
-                                pathFile = exportPath
-                            else
-                                pathFile = importedFiles[idx].fileName
-                            var extension = await getExtension(pathFile)
-                            obj.routeMiddleware = await functionRecognizerInFile(pathFile + extension, refFuncao)
-                        } else {
-                            // Referenced in the same file
-                            obj.routeMiddleware = await handleData.functionRecognizerInData(aDataRaw, varFileName)
-                        }
-                    }
-                    // end handle middlewares
-
+                    // First, tries to find in the import/require
                     var idx = importedFiles.findIndex(e => e.varFileName && obj.varFileName && (e.varFileName == obj.varFileName))
-                    var exportPath = null
                     if (idx == -1) {
+                        // Second, tries to find in the 'exports' of import/require, such as 'foo' in the: import { foo } from './fooFile'
                         importedFiles.forEach(imp => {
                             if (exportPath)
                                 return
@@ -628,15 +762,20 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
 
                         if (idx > -1 && importedFiles[idx] && importedFiles[idx].isDirectory) {
                             var extension = await getExtension(obj.fileName + '/index')
-                            var auxPaths = await readEndpointFile(obj.fileName + '/index' + extension, (obj.path || ''), obj.fileName, obj.routeMiddleware)
-                            allPaths = { ...paths, ...allPaths, ...auxPaths }
+                            var auxPaths = await readEndpointFile(obj.fileName + '/index' + extension, (obj.path || ''), obj.fileName, obj.routeMiddlewares)
+                            if (auxPaths)
+                                allPaths = { ...paths, ...allPaths, ...auxPaths }
+                            else
+                                allPaths = { ...paths, ...allPaths }
                         } else {
                             var extension = await getExtension(obj.fileName)
-                            var auxPaths = await readEndpointFile(obj.fileName + extension, (obj.path || ''), auxRelativePath, obj.routeMiddleware)
-                            allPaths = { ...paths, ...allPaths, ...auxPaths }
+                            var auxPaths = await readEndpointFile(obj.fileName + extension, routePrefix + (obj.path || ''), auxRelativePath, obj.routeMiddlewares)
+                            if (auxPaths)
+                                allPaths = { ...paths, ...allPaths, ...auxPaths }
+                            else
+                                allPaths = { ...paths, ...allPaths }
                         }
                     } else {
-                        // TODO: Middleware referenced in the same file
                         allPaths = { ...paths, ...allPaths }
                     }
                     if (file == aRoutes.length - 1)
@@ -648,6 +787,11 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, routeMiddlewar
     })
 }
 
+/**
+ * TODO: fill
+ * @param {*} aDataRaw 
+ * @param {*} relativePath 
+ */
 function getImportedFiles(aDataRaw, relativePath) {
     return new Promise(async (resolve, reject) => {
         var importedFiles = []
@@ -750,13 +894,10 @@ function getImportedFiles(aDataRaw, relativePath) {
 
                     // Checking if reference is to file
                     if (obj.isDirectory && obj.exports.length > 0) {
-
                         let indexExtension = await getExtension(pathFile + '/index')
-
                         if (indexExtension != '') {    // index exist
                             let dataFile = await getFileContent(pathFile + '/index' + indexExtension)
                             if (dataFile) {
-
                                 let imports = await getImportedFiles(dataFile, obj.fileName)
                                 for (let idx = 0; idx < obj.exports.length; ++idx) {
                                     var varName = obj.exports[idx].varName
@@ -854,12 +995,11 @@ function getImportedFiles(aDataRaw, relativePath) {
                             if (indexExtension != '') {     // index exist
                                 let dataFile = await getFileContent(pathFile + '/index' + indexExtension)
                                 dataFile = await handleData.removeComments(dataFile)
-                                const isRequireDirLib = dataFile && dataFile.split(new RegExp("\\s*\\n*\\t*\\s*\\n*\\t*module\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*exports\\s*\\n*\\t*\\s*\\n*\\t*\\=\\s*\\n*\\t*\\s*\\n*\\t*require\\s*\\n*\\t*\\s*\\n*\\t*\\(\\s*\\n*\\t*\\s*\\n*\\t*.require\\-dir.\\s*\\n*\\t*\\s*\\n*\\t*\\)")) ? true : false
+                                const isRequireDirLib = dataFile && dataFile.split(new RegExp("\\s*\\n*\\t*\\s*\\n*\\t*module\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*exports\\s*\\n*\\t*\\s*\\n*\\t*\\=\\s*\\n*\\t*\\s*\\n*\\t*require\\s*\\n*\\t*\\s*\\n*\\t*\\(\\s*\\n*\\t*\\s*\\n*\\t*.require\\-dir.\\s*\\n*\\t*\\s*\\n*\\t*\\)")).length > 1 ? true : false
                                 if (isRequireDirLib)        // lib require-dir
                                     obj.isRequireDirLib = isRequireDirLib
                             }
                         }
-
                         importedFiles.push(obj)
                     }
                 }
@@ -869,6 +1009,11 @@ function getImportedFiles(aDataRaw, relativePath) {
     })
 }
 
+/**
+ * TODO: fill
+ * @param {*} fileName 
+ * @param {*} refFuncao 
+ */
 function functionRecognizerInFile(fileName, refFuncao) {
     return new Promise((resolve, reject) => {
         fs.readFile(fileName, 'utf8', async function (err, data) {
@@ -880,9 +1025,31 @@ function functionRecognizerInFile(fileName, refFuncao) {
             cleanedData = cleanedData.split(new RegExp("\\=\\s*async\\s*\\("))
             cleanedData = cleanedData.join('= (')
             cleanedData = cleanedData.split(new RegExp("\\=\\s*function\\s*\\("))
-            cleanedData = cleanedData.join('= function (')
+            cleanedData = cleanedData.join('= (')
             cleanedData = cleanedData.split(new RegExp("\\:\\s*function\\s*\\("))
-            cleanedData = cleanedData.join(': function (')
+            cleanedData = cleanedData.join(': (')
+
+            // TODO: passa to function
+            // adding '(' and ')' to arrow functions without '(' and ')', such as: ... async req => {
+            if (cleanedData.split(new RegExp("\\s*\\n*\\t*\\s*\\n*\\t*=>\\s*\\n*\\t*\\s*\\n*\\t*").length > 1)) {
+                let params = cleanedData.trim().split(new RegExp("\\s*\\n*\\t*\\s*\\n*\\t*=>\\s*\\n*\\t*\\s*\\n*\\t*"))
+                for (let idx = 0; idx < params.length - 1; idx += 2) {
+                    let param = params[idx]
+                    if (param && param.slice(-1)[0] !== ')') {
+                        let aux = param.split(new RegExp("\\s|\\n|\\t|\\="))
+                        aux = aux.slice(-1)[0]
+                        param = param.split(aux)
+                        param.pop()
+                        param = param.join(aux)
+                        param += '(' + aux + ')'
+                        params[idx] = param
+                    }
+                }
+                cleanedData = params.join(" => ")
+            }
+
+            cleanedData = cleanedData.split(new RegExp("=>\\s*\\n*\\t*\\s*\\n*\\t*=>"))
+            cleanedData = cleanedData.join("=>")
 
             if (refFuncao) { // When file has more than one exported function
                 var funcStr = await handleData.functionRecognizerInData(cleanedData, refFuncao)
@@ -928,7 +1095,6 @@ function functionRecognizerInFile(fileName, refFuncao) {
                         return resolve(funcStr)
                     }
                 }
-
             }
         })
     })
@@ -945,6 +1111,10 @@ function verifyRouteInFile(fileName) {
     })
 }
 
+/**
+ * TODO: fill
+ * @param {*} fileName 
+ */
 function getExtension(fileName) {
     return new Promise(async (resolve, reject) => {
         var data = fileName.split('.').slice(-1)[0].toLowerCase()
@@ -962,6 +1132,10 @@ function getExtension(fileName) {
     })
 }
 
+/**
+ * TODO: fill
+ * @param {*} pathFile 
+ */
 function getFileContent(pathFile) {
     return new Promise((resolve) => {
         fs.readFile(pathFile, 'utf8', function (err, data) {
