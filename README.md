@@ -267,10 +267,10 @@ All optional parameters for the tag parameter:
 } */
 ```
 
-**in:** 'path', 'query' or 'body'               // by default is 'query'
+**in:** 'path', 'query' or 'body'               // by default is 'query'  
 **description:** The parameter description  
 **required:** true or false  
-**type:** 'string', 'integer', 'object', etc.   // by default is 'string'
+**type:** 'string', 'integer', 'object', etc.   // by default is 'string'  
 **format:** 'int64', etc.  
 **schema:** See section [Schema and Definitions](#schema-and-definitions)  
 
