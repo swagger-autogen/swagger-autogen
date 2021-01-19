@@ -229,6 +229,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                 var routePrefix = ''        // prefix of new Router()
                 var lastValidPattern = ''
+                /**
+                 * All endpoints will be processed here
+                 */
                 for (let idxElem = 0; idxElem < aData.length; idxElem++) {
                     var elem = aData[idxElem]
                     if (!elem || elem.slice(0, 3) !== "[_[")
@@ -735,13 +738,18 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     var idx = importedFiles.findIndex(e => e.varFileName && obj.varFileName && (e.varFileName == obj.varFileName))
                     if (idx == -1) {
                         // Second, tries to find in the 'exports' of import/require, such as 'foo' in the: import { foo } from './fooFile'
-                        importedFiles.forEach(imp => {
+                        importedFiles.forEach((imp, importIdx) => {
                             if (exportPath)
                                 return
                             let found = imp && imp.exports ? imp.exports.find(e => e.varName && obj.varFileName && (e.varName == obj.varFileName)) : null
                             if (found) {
-                                if (imp.isDirectory)
+                                if (imp.isDirectory && found.path) {
                                     exportPath = found.path
+                                    idx = importIdx
+                                } else if (imp.isDirectory && !found.path) {
+                                    exportPath = imp.fileName
+                                    idx = importIdx
+                                }
                                 else
                                     exportPath = imp.fileName      // TODO: change variable name
                             }
