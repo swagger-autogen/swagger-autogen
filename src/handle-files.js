@@ -552,11 +552,18 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         method = swaggerTags.getMethodTag(elemOrig)
                         if (!method)
                             method = predefMethod
+
+                        // Order
                         objEndpoint[path][method] = {}
                         objEndpoint[path][method].tags = []
+                        objEndpoint[path][method].summary = undefined
                         objEndpoint[path][method].description = ''
+                        objEndpoint[path][method].operationId = undefined
+                        objEndpoint[path][method].consumes = undefined
+                        objEndpoint[path][method].produces = undefined
                         objEndpoint[path][method].parameters = []
                         objEndpoint[path][method].responses = {}
+                        objEndpoint[path][method].security = undefined
 
                         if (path.includes('_undefined_path_0x'))    // When the path is not found
                             objEndpoint[path][method].tags.push({ name: 'Endpoints without path or method' })
@@ -608,6 +615,12 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 objParameters = await handleData.getPathParameters(path, objParameters)
                             }
 
+                            if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.operationId')) {
+                                objEndpoint[path][method]['operationId'] = swaggerTags.getOperationId(endpoint)
+                            }
+                            if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.summary')) {
+                                objEndpoint[path][method]['summary'] = swaggerTags.getSummary(endpoint)
+                            }
                             if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.parameters') && endpoint.includes('[') && endpoint.includes(']')) {
                                 objParameters = await swaggerTags.getParametersTag(endpoint, objParameters)
                             }

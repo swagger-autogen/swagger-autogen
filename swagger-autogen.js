@@ -40,7 +40,7 @@ module.exports = function (args) {
                     if (!resp) {
                         console.error("\nError: Endpoint file not found => " + "'" + filePath + "'")
                         if (!options.disableLogs)
-                            console.log('Swagger-autogen:', "\x1b[31m", 'Failed ' + symbols.cross, "\033[0m")
+                            console.log('Swagger-autogen:', "\x1b[31m", 'Failed ' + symbols.cross, "\x1b[0m")
                         return resolve(false)
                     }
 
@@ -54,7 +54,7 @@ module.exports = function (args) {
                     let obj = await handleFiles.readEndpointFile(filePath, '', relativePath, [])
                     if (obj === false) {
                         if (!options.disableLogs)
-                            console.log('Swagger-autogen:', "\x1b[31m", 'Failed ' + symbols.cross, "\033[0m")
+                            console.log('Swagger-autogen:', "\x1b[31m", 'Failed ' + symbols.cross, "\x1b[0m")
                         return resolve(false)
                     }
                     objDoc.paths = { ...objDoc.paths, ...obj }
@@ -66,11 +66,11 @@ module.exports = function (args) {
                 let dataJSON = JSON.stringify(objDoc, null, 2)
                 fs.writeFileSync(outputFile, dataJSON)
                 if (!options.disableLogs)
-                    console.log('Swagger-autogen:', "\x1b[32m", 'Success ' + symbols.tick, "\033[0m")
+                    console.log('Swagger-autogen:', "\x1b[32m", 'Success ' + symbols.tick, "\x1b[0m")
                 return resolve({ success: true, data: objDoc })
             } catch (err) {
                 if (!options.disableLogs)
-                    console.log('Swagger-autogen:', "\x1b[31m", 'Failed ' + symbols.cross, "\033[0m")
+                    console.log('Swagger-autogen:', "\x1b[31m", 'Failed ' + symbols.cross, "\x1b[0m")
                 return resolve({ success: false, data: null })
             }
         })

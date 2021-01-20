@@ -418,6 +418,40 @@ function getDescription(data) {
  * TODO: fill
  * @param {*} data 
  */
+function getSummary(data) {
+    let swaggerSummary = data.split(new RegExp("#swagger.summary\\s*\\=\\s*"))[1]
+    const quotMark = swaggerSummary[0]
+    if ((quotMark == '\"' || quotMark == '\'' || quotMark == '\`') && swaggerSummary.split(quotMark).length > 2) {
+        let aux = swaggerSummary.replaceAll(`\\${quotMark}`, statics.STRING_BREAKER + "quotMark" + statics.STRING_BREAKER)
+        aux = aux.split(quotMark)
+        swaggerSummary = aux[1]
+        swaggerSummary = swaggerSummary.replaceAll(statics.STRING_BREAKER + "quotMark" + statics.STRING_BREAKER, `\\${quotMark}`)
+        return swaggerSummary
+    }
+    return ""
+}
+
+/**
+ * TODO: fill
+ * @param {*} data 
+ */
+function getOperationId(data) {
+    let swaggerOperationId = data.split(new RegExp("#swagger.operationId\\s*\\=\\s*"))[1]
+    const quotMark = swaggerOperationId[0]
+    if ((quotMark == '\"' || quotMark == '\'' || quotMark == '\`') && swaggerOperationId.split(quotMark).length > 2) {
+        let aux = swaggerOperationId.replaceAll(`\\${quotMark}`, statics.STRING_BREAKER + "quotMark" + statics.STRING_BREAKER)
+        aux = aux.split(quotMark)
+        swaggerOperationId = aux[1]
+        swaggerOperationId = swaggerOperationId.replaceAll(statics.STRING_BREAKER + "quotMark" + statics.STRING_BREAKER, `\\${quotMark}`)
+        return swaggerOperationId
+    }
+    return ""
+}
+
+/**
+ * TODO: fill
+ * @param {*} data 
+ */
 function getTags(data) {
     let tags = []
     let swaggerTags = data.split(new RegExp("#swagger.tags\\s*\\=\\s*"))[1]
@@ -476,5 +510,7 @@ module.exports = {
     getRouter,
     getDescription,
     getTags,
-    getSecurityTag
+    getSecurityTag,
+    getSummary,
+    getOperationId
 }

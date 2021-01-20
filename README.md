@@ -19,11 +19,13 @@ Swagger-autogen now recognizes Express Router and TypeScript features.
 - [Options](#options)
 - [Endpoints](#endpoints)
   - [Automatic capture](#automatic-capture)
-  - [Description](#description)
   - [Tags](#tags)
+  - [Summary](#summary)
+  - [Description](#description)
+  - [Operation ID](#operation-id)
+  - [Consumes and Produces](#consumes-and-produces)
   - [Parameters](#parameters)
   - [Responses](#responses)
-  - [Consumes and Produces](#consumes-and-produces)
   - [Schema and Definitions](#schema-and-definitions)
   - [Endpoint as deprecated](#endpoint-as-deprecated)
   - [Ignoring endpoint](#ignoring-endpoint)
@@ -57,7 +59,7 @@ const swaggerAutogen = require('swagger-autogen')()
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save swagger-autogen@2.4.2
+$ npm install --save swagger-autogen@2.5.0
 ```
 
 ## Usage
@@ -224,6 +226,34 @@ The capture of the method, path, parameters and status of the response will be a
 
 See [Complete example here!](#examples)
 
+### Tags
+To inform which tags the endpoinst belongs to, use the `#swagger.tags` tag, for example:
+
+```js
+    ...
+    app.get('/users', (req, res) => {
+        ...
+        // #swagger.tags = ['Users']
+        ...
+    })
+```
+
+See [Complete example here!](#examples)
+
+### Summary
+This is the summary of the Endpoint. To add it, use the `#swagger.summary` tag, for example:
+
+```js
+    ...
+    app.get('/users/:id', (req, res) => {
+        ...
+        // #swagger.summary = 'Your summary here'
+        ...
+    })
+```
+
+See [Complete example here!](#examples)
+
 ### Description
 This is the description of the Endpoint. To add it, use the `#swagger.description` tag, for example:
 
@@ -238,14 +268,45 @@ This is the description of the Endpoint. To add it, use the `#swagger.descriptio
 
 See [Complete example here!](#examples)
 
-### Tags
-To inform which tags the endpoinst belongs to, use the `#swagger.tags` tag, for example:
+### Operation ID
+This is the operationId of the Endpoint. To add it, use the `#swagger.operationId` tag, for example:
 
 ```js
     ...
-    app.get('/users', (req, res) => {
+    app.get('/users/:id', (req, res) => {
         ...
-        // #swagger.tags = ['Users']
+        // #swagger.operationId = 'Your_operationId_here'
+        ...
+    })
+```
+
+See [Complete example here!](#examples)
+
+### Consumes and Produces
+Use the `#swagger.produces = ['contentType']` or `#swagger.consumes = ['contentType']` tag to add a new produce or a new consume, respectively. In the example below, the two endpoints will have the same result in the documentation:
+
+**Example (Consumes):**  
+```js
+    ...
+    app.get('/users/:id', (req, res) => {
+        ...
+        res.setHeader('Content-Type', 'application/xml')
+        ...
+    })
+
+    app.get('/v2/users/:id', (req, res) => {
+        ...
+        // #swagger.consumes = ['application/xml']
+        ...
+    })
+```
+
+**Example (Produces):**  
+```js
+    ...
+    app.get('/v2/users/:id', (req, res) => {
+        ...
+        // #swagger.produces = ['application/json']
         ...
     })
 ```
@@ -328,26 +389,6 @@ It is possible to create or complement automatically detected responses. Use the
 **NOTE:** For more information about **schema** and **definitions**, see the section: [Schema and Definitions](#schema-and-definitions)  
 
 **NOTE:** As the 404 status description was not entered, "Not Found" will automatically be added. It is possible to change the language of the automatic response, see the [Response Language](#response-language) section.  
-
-See [Complete example here!](#examples)
-
-### Consumes and Produces
-Use the `#swagger.produces = ['contentType']` or `#swagger.consumes = ['contentType']` tag to add a new produce or a new consume, respectively. In the example below, the two endpoints will have the same result in the documentation:
-
-```js
-    ...
-    app.get('/users/:id', (req, res) => {
-        ...
-        res.setHeader('Content-Type', 'application/xml')
-        ...
-    })
-
-    app.get('/v2/users/:id', (req, res) => {
-        ...
-        // #swagger.consumes = ['application/xml']
-        ...
-    })
-```
 
 See [Complete example here!](#examples)
 
@@ -673,6 +714,8 @@ Some tutorials with examples:
   - Added some default parameters values
   - Code refactoring
   - Bug fix
+- Version 2.5.x:
+  - New features: #swagger.summary and #swagger.operationId
 
 
 **TODO:**  
