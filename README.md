@@ -283,18 +283,21 @@ This is the operationId of the Endpoint. To add it, use the `#swagger.operationI
 See [Complete example here!](#examples)
 
 ### Consumes and Produces
-Use the `#swagger.produces = ['contentType']` or `#swagger.consumes = ['contentType']` tag to add a new produce or a new consume, respectively. In the example below, the two endpoints will have the same result in the documentation:
+Use the `#swagger.produces = ['contentType']` or `#swagger.consumes = ['contentType']` tag to add a new produce or a new consume, respectively. In the **Example (Consumes)** below, the two endpoints will have the same result in the documentation.
 
 **Example (Consumes):**  
 ```js
     ...
     app.get('/users/:id', (req, res) => {
         ...
+        // Recognizes the 'consumes' automatically
         res.setHeader('Content-Type', 'application/xml')
         ...
     })
-
-    app.get('/v2/users/:id', (req, res) => {
+```
+OR
+```
+    app.get('/users/:id', (req, res) => {
         ...
         // #swagger.consumes = ['application/xml']
         ...
