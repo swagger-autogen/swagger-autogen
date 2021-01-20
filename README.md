@@ -296,7 +296,7 @@ Use the `#swagger.produces = ['contentType']` or `#swagger.consumes = ['contentT
     })
 ```
 OR
-```
+```js
     app.get('/users/:id', (req, res) => {
         ...
         // #swagger.consumes = ['application/xml']
