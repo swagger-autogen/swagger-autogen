@@ -59,7 +59,7 @@ const swaggerAutogen = require('swagger-autogen')()
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save swagger-autogen@2.5.1
+$ npm install --save swagger-autogen@2.5.2
 ```
 
 ## Usage
@@ -199,7 +199,7 @@ To see the available languages, go to the section [Response Language](#response-
 The way to configure the module is done within comments, and can be in the format `// ...` or `/* ... */`. The used pattern will be `#swagger.something` tag. Each comment can contain one or more `#swagger.something` tags. **NOTE:** ALL COMMENTS CONTAINING `#swagger.something` MUST BE WITHIN OF FUNCTIONS.
 
 ### Automatic capture
-In this case it is not necessary to do anything. Considering, for example, the file containing endpoints:
+In this case it is not necessary to do anything. Considering, for example, if the pattern of your API is as follows:
 
 ```js
     ...
@@ -212,17 +212,10 @@ In this case it is not necessary to do anything. Considering, for example, the f
         ...
         return res.status(500).send(false)
     })
-
-    app.get('/users/:id', (req, res) => {
-        ...
-        if(...)
-            return res.status(200).send(data)
-        ...
-        return res.status(404).send(false)
-    })
+    ...
 ```
 
-The capture of the method, path, parameters and status of the response will be automatic.
+The recognition of the method, path, parameters and status of the response will be automatic.
 
 See [Complete example here!](#examples)
 
@@ -322,12 +315,12 @@ It is possible to create or complement automatically detected parameters. Use th
 All optional parameters for the tag parameter:
 ```js
 /* #swagger.parameters['parameterName'] = {
-        in: string,
-        description: string,
-        required: boolean,
-        type: string,
-        format: string,
-        schema: object
+        in: <string>,
+        description: <string>,
+        required: <boolean>,
+        type: <string>,
+        format: <string>,
+        schema: <object>
 } */
 ```
 

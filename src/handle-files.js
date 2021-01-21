@@ -366,10 +366,10 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 // Adding '(' and ')' to arrow functions that not contains '(' and ')', such as: async req => {
                                 if (functionArray && functionArray.split(new RegExp("\\s*\\t*\\s*\\t*=>\\s*\\n*\\t*\\s*\\n*\\t*").length > 1)) {
                                     let params = functionArray.trim().split(new RegExp("\\s*\\t*\\s*\\t*=>\\s*\\n*\\t*\\s*\\n*\\t*"))
-                                    if (params[0].trim().slice(-1)[0] !== ')') {
+                                    if (params && params.length > 1 && params[0].trim().slice(-1)[0] !== ')') {
                                         let paramsAux = params[0].split(new RegExp("\\s+|\\n+|\\t+|\\,|\\.|\\;|\\:"))
                                         paramsAux = paramsAux.slice(-1)[0]
-                                        if (paramsAux.split(new RegExp("\\(|\\)")).length === 1)
+                                        if (paramsAux.split(/\*|\\|\/|\(|\)|\{|\}|\[|\]/).length === 1)
                                             functionArray = functionArray.replace(new RegExp(`${paramsAux}\\s*\\t*\\s*\\t*=>\\s*\\n*\\t*\\s*\\n*\\t*`), `(${paramsAux}) => `)
                                     }
                                 }
