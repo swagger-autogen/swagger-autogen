@@ -653,21 +653,21 @@ function getCallbackParameters(line) {
                     let typeParam = params[0].split(':')[1].toLocaleLowerCase()
                     let param = params[0].split(':')[0].replaceAll('\n', '').replaceAll('\t', '').replaceAll(' ', '')
                     if (typeParam.includes('res')) {
-                        if (param.split(new RegExp(regex)).length === 1)
+                        if (param.split(new RegExp(regex)).length === 1 && param && param.trim() !== '')
                             res.add(param)
                     } else if (typeParam.includes('req')) {
-                        if (param.split(new RegExp(regex)).length === 1)
+                        if (param.split(new RegExp(regex)).length === 1 && param && param.trim() !== '')
                             req.add(param)
                     } else if (typeParam.includes('next')) {
-                        if (param.split(new RegExp(regex)).length === 1)
+                        if (param.split(new RegExp(regex)).length === 1 && param && param.trim() !== '')
                             next.add(param)
                     } else {    // any
-                        if (param.split(new RegExp(regex)).length === 1)
+                        if (param.split(new RegExp(regex)).length === 1 && param && param.trim() !== '')
                             req.add(param)
                     }
                 } else if (params[0]) {                         // JS
                     let param = params[0].replaceAll('\n', '').replaceAll('\t', '').replaceAll(' ', '')
-                    if (param.split(new RegExp(regex)).length === 1)
+                    if (param.split(new RegExp(regex)).length === 1 && param && param.trim() !== '')
                         req.add(param)
                 }
 
@@ -676,21 +676,21 @@ function getCallbackParameters(line) {
                     let typeParam = params[1].split(':')[1].toLocaleLowerCase()
                     let param = params[1].split(':')[0].replaceAll('\n', '').replaceAll('\t', '').replaceAll(' ', '')
                     if (typeParam.includes('res')) {
-                        if (param.split(new RegExp(regex)).length === 1)
+                        if (param.split(new RegExp(regex)).length === 1 && param && param.trim() !== '')
                             res.add(param)
                     } else if (typeParam.includes('req')) {
-                        if (param.split(new RegExp(regex)).length === 1)
+                        if (param.split(new RegExp(regex)).length === 1 && param && param.trim() !== '')
                             req.add(param)
                     } else if (typeParam.includes('next')) {
-                        if (param.split(new RegExp(regex)).length === 1)
+                        if (param.split(new RegExp(regex)).length === 1 && param && param.trim() !== '')
                             next.add(param)
                     } else {    // any
-                        if (param.split(new RegExp(regex)).length === 1)
+                        if (param.split(new RegExp(regex)).length === 1 && param && param.trim() !== '')
                             res.add(param)
                     }
                 } else if (params[1]) {                         // JS
                     let param = params[1].replaceAll('\n', '').replaceAll('\t', '').replaceAll(' ', '')
-                    if (param.split(new RegExp(regex)).length === 1)
+                    if (param.split(new RegExp(regex)).length === 1 && param && param.trim() !== '')
                         res.add(param)
                 }
 
@@ -699,21 +699,21 @@ function getCallbackParameters(line) {
                     let typeParam = params[2].split(':')[1].toLocaleLowerCase()
                     let param = params[2].split(':')[0].replaceAll('\n', '').replaceAll('\t', '').replaceAll(' ', '')
                     if (typeParam.includes('res')) {
-                        if (param.split(new RegExp(regex)).length === 1)
+                        if (param.split(new RegExp(regex)).length === 1 && param && param.trim() !== '')
                             res.add(param)
                     } else if (typeParam.includes('req')) {
-                        if (param.split(new RegExp(regex)).length === 1)
+                        if (param.split(new RegExp(regex)).length === 1 && param && param.trim() !== '')
                             req.add(param)
                     } else if (typeParam.includes('next')) {
-                        if (param.split(new RegExp(regex)).length === 1)
+                        if (param.split(new RegExp(regex)).length === 1 && param && param.trim() !== '')
                             next.add(param)
                     } else {    // any
-                        if (param.split(new RegExp(regex)).length === 1)
+                        if (param.split(new RegExp(regex)).length === 1 && param && param.trim() !== '')
                             next.add(param)
                     }
                 } else if (params[2]) {                         // JS
                     let param = params[2].replaceAll('\n', '').replaceAll('\t', '').replaceAll(' ', '')
-                    if (param.split(new RegExp(regex)).length === 1)
+                    if (param.split(new RegExp(regex)).length === 1 && param && param.trim() !== '')
                         next.add(param)
                 }
             }
