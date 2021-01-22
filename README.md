@@ -60,7 +60,7 @@ const swaggerAutogen = require('swagger-autogen')()
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save swagger-autogen@2.5.3
+$ npm install --save swagger-autogen@2.5.4
 ```
 
 ## Usage
@@ -537,12 +537,12 @@ app.get('/responses', (req, res) => {
 
   /* #swagger.responses[008] = {
       description: "myArrayOfObjects",
-      schema: { $ref: "#definitions/myArrayOfObjects" }
+      schema: { $ref: "#/definitions/myArrayOfObjects" }
   } */
 
   /* #swagger.responses[009] = {
       description: "myReferencedObjectArray",
-      schema: { $ref: "#definitions/myReferencedObjectArray" }
+      schema: { $ref: "#/definitions/myReferencedObjectArray" }
   } */
 })
 ```
