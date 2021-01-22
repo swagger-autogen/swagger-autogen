@@ -31,6 +31,9 @@ function setDefinitions(def) {
  */
 function formatDefinitions(def, resp = {}) {
     if (def.$ref) {
+        if (def.$ref.split('#/definitions/').length === 1) {
+            throw console.error("[Swagger-autogen] Syntax error: ", def.$ref)
+        }
         let param = def.$ref.split('#/definitions/')[1].replaceAll(' ', '')
         return { xml: { name: param.toLowerCase() }, $ref: def.$ref }
     }
