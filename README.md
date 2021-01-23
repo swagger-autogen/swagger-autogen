@@ -60,7 +60,7 @@ const swaggerAutogen = require('swagger-autogen')()
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save swagger-autogen@2.5.4
+$ npm install --save swagger-autogen@2.5.5
 ```
 
 ## Usage
@@ -105,7 +105,7 @@ const doc = {
 const outputFile = './path/swagger-output.json'
 const endpointsFiles = ['./path/endpointsUser.js', './path/endpointsBook.js']
 
-// NOTE: if you use the express 'Router', you must pass in the 
+// NOTE: if you use the express Router, you must pass in the 
 // 'endpointsFiles' only the root file where the route starts.
 
 swaggerAutogen(outputFile, endpointsFiles, doc)
@@ -143,7 +143,7 @@ const doc = {
 const outputFile = './path/swagger-output.json'
 const endpointsFiles = ['./path/endpointsUser.js', './path/endpointsBook.js']
 
-// NOTE: if you use the express 'Router', you must pass in the 
+// NOTE: if you use the express Router, you must pass in the 
 // 'endpointsFiles' only the root file where the route starts.
 
 swaggerAutogen(outputFile, endpointsFiles, doc)
@@ -497,7 +497,7 @@ const doc = {
 }
 ```
 
-**Endtpoint:** 
+**Endpoint:** 
 ```js
 app.get('/responses', (req, res) => {
   /* #swagger.responses[001] = {

@@ -1042,8 +1042,6 @@ function functionRecognizerInFile(fileName, refFuncao) {
                 return resolve(null)
 
             var cleanedData = data
-            cleanedData = cleanedData.replaceAll('://', ':/' + statics.STRING_BREAKER + '/')  // TODO: improve this. Avoiding cases such as: ... http://... be handled as a comment
-
             cleanedData = await handleData.removeComments(cleanedData, true)
             cleanedData = cleanedData.replaceAll(" async ", ' ')
             cleanedData = cleanedData.split(new RegExp("\\=\\s*async\\s*\\("))
@@ -1053,8 +1051,6 @@ function functionRecognizerInFile(fileName, refFuncao) {
             cleanedData = cleanedData.split(new RegExp("\\:\\s*function\\s*\\("))
             cleanedData = cleanedData.join(': (')
             cleanedData = cleanedData.replaceAll(" function ", ' ')
-
-            cleanedData = cleanedData.replaceAll(':/' + statics.STRING_BREAKER + '/', '://')
 
             // TODO: passa to function
             // adding '(' and ')' to arrow functions without '(' and ')', such as: ... async req => {

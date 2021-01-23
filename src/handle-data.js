@@ -21,7 +21,7 @@ function clearData(data) {
         data = data.replaceAll('*//*', '*/\n/*')
         data = data.replaceAll('*///', '*/\n//')
         data = data.replaceAll('///', '//')
-        data = data.replaceAll('://', ':/' + statics.STRING_BREAKER + '/')  // TODO: improve this. Avoiding cases such as: ... http://... be handled as a comment
+        data = data.replaceAll('://', ':/' + statics.STRING_BREAKER + '/')  // REFACTOR: improve this. Avoiding cases such as: ... http://... be handled as a comment
 
         data = data.split('//').map((e, idx) => {
             if (idx != 0)
@@ -132,7 +132,7 @@ function removeComments(data, keepSwaggerTags = false) {
             }
 
             // Type //
-            if (c == '/' && data[idx + 1] == '/' && stackComment1 == 0 && stackComment2 == 0)
+            if (c == '/' && data[idx + 1] == '/' && data[idx - 1] != ':' && stackComment1 == 0 && stackComment2 == 0)   // REFACTOR: improve this. Avoiding cases such as: ... http://... be handled as a comment
                 stackComment1 = 1
             if (c == '\n' && stackComment1 == 1)
                 stackComment1 = 2
@@ -567,12 +567,12 @@ function getHeader(elem, path, method, response, objEndpoint) {
         let res = response[idx]
         if (res && (elem.replaceAll(' ', '').includes(res + '.setHeader('))) {
             elem = elem.replaceAll(' ', '')
-            let aContentType = []
+            let aContentType = new Set()    // To avoid repetition
             elem.split(res + '.setHeader(').splice(1).forEach(s => {
                 if (s.includes(',') && s.split(',')[0].includes('content-type'))
-                    aContentType.push(s.split(',\"')[1].split('\")')[0])
+                    aContentType.add(s.split(',\"')[1].split('\")')[0])
             })
-            objEndpoint[path][method].produces = aContentType
+            objEndpoint[path][method].produces = [...aContentType]
         }
     }
     return objEndpoint
