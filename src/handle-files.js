@@ -690,7 +690,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     if (rt.split(']_])').length < 3)
                         continue
 
-                    var obj = { path: null, varFileName: null, middleware: null, fileName: null }
+                    var obj = { path: null, varFileName: null, middleware: null, fileName: null, isDirectory: null }
                     var data = rt.split(']_])(')
                     var routeName = data[1].split('[_[')[1].trim()
 
@@ -723,8 +723,17 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             } else {
                                 exportPath = relativePath + exportPath.replaceAll('\'', '').replaceAll('\"', '').replaceAll('\`', '').replaceAll(' ', '').replaceAll('\n', '').replaceAll('./', '/')
                             }
+                            obj.hasRequire = true
+                            const isDirectory = fs.existsSync(exportPath) && fs.lstatSync(exportPath).isDirectory() ? true : false
+                            if (isDirectory) {
+                                obj.isDirectory = true
+                                // TODO: Verify other cases
+                                exportPath = exportPath + '/index'
+                            }
                         }
-                    } else if (data.split(',').length == 1) { // route with 1 parameter, such as: route.use(middleware)
+                    }
+
+                    if (data.split(',').length == 1) { // route with 1 parameter, such as: route.use(middleware)
                         if (rt.split(new RegExp(regex)).length > 1)
                             continue
 
@@ -732,13 +741,21 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         obj.varFileName = data
                         obj.varFileName = obj.varFileName.replaceAll('(', '').replaceAll(')', '').replaceAll(' ', '')
                         obj.routeMiddlewares = routeMiddlewares.filter(r => (r.path !== false) && (r.path === obj.path) || (r.fixedRoute === true))
-                        obj.path = pathRoute + routePrefix + obj.path
+                        if (obj.hasRequire && routePrefix)  // TODO: Verify other cases
+                            obj.path = ''
+                        else
+                            obj.path = pathRoute + routePrefix + obj.path
                         obj.path = obj.path.replaceAll('////', '/').replaceAll('///', '/').replaceAll('//', '/')
                     } else {
                         obj.path = data.split(',')[0]
                         obj.path = obj.path.getBetweenStrs("\`", "\`") || obj.path.getBetweenStrs("\'", "\'") || obj.path.getBetweenStrs("\"", "\"")
                         obj.routeMiddlewares = routeMiddlewares.filter(r => (r.path !== false) && (r.path === obj.path) || (r.fixedRoute === true))
-                        obj.path = pathRoute + routePrefix + obj.path
+
+                        if (obj.hasRequire && routePrefix)  // TODO: Verify other cases
+                            obj.path = ''
+                        else
+                            obj.path = pathRoute + routePrefix + obj.path
+
                         obj.path = obj.path.replaceAll('////', '/').replaceAll('///', '/').replaceAll('//', '/')
                         obj.varFileName = data.split(',').slice(-1)[0]
                         obj.varFileName = obj.varFileName.replaceAll('(', '').replaceAll(')', '').replaceAll(' ', '')
@@ -747,9 +764,11 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     if (obj.varFileName && obj.varFileName.split(new RegExp("\\:|\\;|\\=|\\>|\\<|\\{|\\}|\\(|\\)|\\[|\\]|\\,")).length > 1)
                         obj.varFileName = null
 
+                    if (exportPath)
+                        obj.varFileName = exportPath
                     // First, tries to find in the import/require
                     var idx = importedFiles.findIndex(e => e.varFileName && obj.varFileName && (e.varFileName == obj.varFileName))
-                    if (idx == -1) {
+                    if (idx == -1 && !exportPath) {
                         // Second, tries to find in the 'exports' of import/require, such as 'foo' in the: import { foo } from './fooFile'
                         importedFiles.forEach((imp, importIdx) => {
                             if (exportPath)
@@ -968,8 +987,6 @@ function getImportedFiles(aDataRaw, relativePath) {
 
                 if (varFileName.includes('{')) {
 
-                    // TODO: handle alias 'as'
-
                     if (varFileName.split(new RegExp(",\\s*\\t*\\s*\\t*{")).length > 1) {     // such as: import foo, { Foo } from './foo'
                         obj.varFileName = varFileName.split('{')[0].replaceAll(',', '').trim()
                     }
@@ -1017,8 +1034,30 @@ function getImportedFiles(aDataRaw, relativePath) {
                                 let dataFile = await getFileContent(pathFile + '/index' + indexExtension)
                                 dataFile = await handleData.removeComments(dataFile)
                                 const isRequireDirLib = dataFile && dataFile.split(new RegExp("\\s*\\n*\\t*\\s*\\n*\\t*module\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*exports\\s*\\n*\\t*\\s*\\n*\\t*\\=\\s*\\n*\\t*\\s*\\n*\\t*require\\s*\\n*\\t*\\s*\\n*\\t*\\(\\s*\\n*\\t*\\s*\\n*\\t*.require\\-dir.\\s*\\n*\\t*\\s*\\n*\\t*\\)")).length > 1 ? true : false
-                                if (isRequireDirLib)        // lib require-dir
+                                if (isRequireDirLib) {        // lib require-dir
                                     obj.isRequireDirLib = isRequireDirLib
+                                } else {
+                                    // TODO: Verify other cases
+
+                                    let relativePath = obj.fileName
+                                    obj.exports.map(oExp => {
+                                        if (dataFile.split(new RegExp(`${oExp}\\s*\\n*\\t*\\s*\\n*\\t*\\=\\s*\\n*\\t*\\s*\\n*\\t*require\\s*\\n*\\t*\\s*\\n*\\t*\\(`)).length > 1) {
+                                            let addPath = dataFile.split(new RegExp(`${oExp}\\s*\\n*\\t*\\s*\\n*\\t*\\=\\s*\\n*\\t*\\s*\\n*\\t*require\\s*\\n*\\t*\\s*\\n*\\t*\\(\\s*\\n*\\t*\\s*\\n*\\t*`))
+                                            addPath = addPath[1].split(')')[0].replaceAll('\'', '').replaceAll('\"', '').replaceAll('\`', '')
+
+                                            if (addPath.includes("../")) {  // REFACTOR: pass to funcion
+                                                var foldersToBack = addPath.split("../").length - 1
+                                                var RelativePathBacked = relativePath.split('/')
+                                                RelativePathBacked = RelativePathBacked.slice(0, (-1) * foldersToBack)
+                                                RelativePathBacked = RelativePathBacked.join('/')
+
+                                                oExp.path = RelativePathBacked + '/' + addPath.replaceAll('../', '')
+                                            } else {
+                                                oExp.path = relativePath + addPath.replaceAll('./', '/')
+                                            }
+                                        }
+                                    })
+                                }
                             }
                         }
                         importedFiles.push(obj)

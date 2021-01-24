@@ -59,9 +59,15 @@ module.exports = function (args) {
                     }
                     objDoc.paths = { ...objDoc.paths, ...obj }
                 }
+                let constainXML = false
+                if (JSON.stringify(objDoc).includes('application/xml'))     // TODO: improve this
+                    constainXML = true
                 swaggerTags.setDefinitions(objDoc.definitions)
                 Object.keys(objDoc.definitions).forEach(definition => {
-                    objDoc.definitions[definition] = { ...swaggerTags.formatDefinitions(objDoc.definitions[definition]), xml: { name: definition } }
+                    if (constainXML)
+                        objDoc.definitions[definition] = { ...swaggerTags.formatDefinitions(objDoc.definitions[definition], {}, constainXML), xml: { name: definition } }
+                    else
+                        objDoc.definitions[definition] = { ...swaggerTags.formatDefinitions(objDoc.definitions[definition], {}, constainXML) }
                 })
                 let dataJSON = JSON.stringify(objDoc, null, 2)
                 fs.writeFileSync(outputFile, dataJSON)

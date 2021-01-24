@@ -29,13 +29,16 @@ function setDefinitions(def) {
  * @param {*} def 
  * @param {*} resp 
  */
-function formatDefinitions(def, resp = {}) {
+function formatDefinitions(def, resp = {}, constainXML) {
     if (def.$ref) {
         if (def.$ref.split('#/definitions/').length === 1) {
             throw console.error("[Swagger-autogen] Syntax error: ", def.$ref)
         }
         let param = def.$ref.split('#/definitions/')[1].replaceAll(' ', '')
-        return { xml: { name: param.toLowerCase() }, $ref: def.$ref }
+        if (constainXML)
+            return { xml: { name: param.toLowerCase() }, $ref: def.$ref }
+        else
+            return { $ref: def.$ref }
     }
     let arrayOf = null
     if (typeof def === 'string') {
@@ -56,9 +59,9 @@ function formatDefinitions(def, resp = {}) {
         Object.entries(def).forEach(elem => {
             if (typeof elem[1] === 'object') {  // Array or object
                 if (resp.type == 'array') {
-                    resp.items = { ...formatDefinitions(elem[1], resp) }
+                    resp.items = { ...formatDefinitions(elem[1], resp, constainXML) }
                 } else {
-                    resp.properties[elem[0]] = formatDefinitions(elem[1], resp)
+                    resp.properties[elem[0]] = formatDefinitions(elem[1], resp, constainXML)
                 }
             } else {
                 if (resp.type == 'array') {

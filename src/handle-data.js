@@ -33,11 +33,15 @@ function clearData(data) {
 
         let aData = data.replaceAll('\n', statics.STRING_BREAKER)
         aData = aData.replaceAll('\t', ' ')
-        aData = aData.replaceAll("Content-Type", "content-type")
-        aData = aData.replaceAll("CONTENT-TYPE", "content-type")
-        aData = aData.replaceAll("\"content-type\"", "__¬¬¬__content-type__¬¬¬__").replaceAll("\"application/json\"", "__¬¬¬__application/json__¬¬¬__").replaceAll("\"application/xml\"", "__¬¬¬__application/xml__¬¬¬__")
-        aData = aData.replaceAll("\'content-type\'", "__¬¬¬__content-type__¬¬¬__").replaceAll("\'application/json\'", "__¬¬¬__application/json__¬¬¬__").replaceAll("\'application/xml\'", "__¬¬¬__application/xml__¬¬¬__")
-        aData = aData.replaceAll("\`content-type\`", "__¬¬¬__content-type__¬¬¬__").replaceAll("\`application/json\`", "__¬¬¬__application/json__¬¬¬__").replaceAll("\`application/xml\`", "__¬¬¬__application/xml__¬¬¬__")
+
+        // Avoiding bug when there is case sensitive and handling symbols ", ' and ` in the header
+        aData = aData.split(new RegExp(".\\s*\\t*application/xml\\s*\\t*.", "i"))
+        aData = aData.join("__¬¬¬__application/xml__¬¬¬__")
+        aData = aData.split(new RegExp(".\\s*\\t*content-type\\s*\\t*.", "i"))
+        aData = aData.join("__¬¬¬__content-type__¬¬¬__")
+        aData = aData.split(new RegExp(".\\s*\\t*application/json\\s*\\t*.", "i"))
+        aData = aData.join("__¬¬¬__application/json__¬¬¬__")
+
         aData = aData.replaceAll(statics.STRING_BREAKER, '\n')
         aData = aData.replaceAll(" async ", '')
         aData = aData.split(new RegExp("\\s*async\\s*\\("))
@@ -569,7 +573,7 @@ function getHeader(elem, path, method, response, objEndpoint) {
             elem = elem.replaceAll(' ', '')
             let aContentType = new Set()    // To avoid repetition
             elem.split(res + '.setHeader(').splice(1).forEach(s => {
-                if (s.includes(',') && s.split(',')[0].includes('content-type'))
+                if (s.includes(',') && s.split(',')[0].includes('content-type') && s.split(',\"')[1])
                     aContentType.add(s.split(',\"')[1].split('\")')[0])
             })
             objEndpoint[path][method].produces = [...aContentType]
