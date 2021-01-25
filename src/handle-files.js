@@ -18,15 +18,15 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                 return resolve(false)
 
             // TODO: refactor this. Loop to build string?
-            let regex = "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*route\\s*\\n*\\t*\\s*\\n*\\t*\\(|" +
-                "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*use\\s*\\n*\\t*\\s*\\n*\\t*\\(|" +
-                "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*get\\s*\\n*\\t*\\s*\\n*\\t*\\(|" +
-                "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*head\\s*\\n*\\t*\\s*\\n*\\t*\\(|" +
-                "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*post\\s*\\n*\\t*\\s*\\n*\\t*\\(|" +
-                "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*put\\s*\\n*\\t*\\s*\\n*\\t*\\(|" +
-                "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*delete\\s*\\n*\\t*\\s*\\n*\\t*\\(|" +
-                "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*patch\\s*\\n*\\t*\\s*\\n*\\t*\\(|" +
-                "\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*options\\s*\\n*\\t*\\s*\\n*\\t*\\("
+            let regex = "\\s*\\n*\\t*\\.\\s*\\n*\\t*route\\s*\\n*\\t*\\(|" +
+                "\\s*\\n*\\t*\\.\\s*\\n*\\t*use\\s*\\n*\\t*\\(|" +
+                "\\s*\\n*\\t*\\.\\s*\\n*\\t*get\\s*\\n*\\t*\\(|" +
+                "\\s*\\n*\\t*\\.\\s*\\n*\\t*head\\s*\\n*\\t*\\(|" +
+                "\\s*\\n*\\t*\\.\\s*\\n*\\t*post\\s*\\n*\\t*\\(|" +
+                "\\s*\\n*\\t*\\.\\s*\\n*\\t*put\\s*\\n*\\t*\\(|" +
+                "\\s*\\n*\\t*\\.\\s*\\n*\\t*delete\\s*\\n*\\t*\\(|" +
+                "\\s*\\n*\\t*\\.\\s*\\n*\\t*patch\\s*\\n*\\t*\\(|" +
+                "\\s*\\n*\\t*\\.\\s*\\n*\\t*options\\s*\\n*\\t*\\("
 
             let dataToGetPatterns = data    // Remove string, comments and inside parentheses
             dataToGetPatterns = await handleData.removeComments(dataToGetPatterns, false)
@@ -61,7 +61,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
             let regexFindMethods = ''
             for (let idxMethod = 0; idxMethod < statics.METHODS.length; ++idxMethod) {
-                regexFindMethods += `\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*${statics.METHODS[idxMethod]}\\s*\\n*\\t*\\s*\\n*\\t*\\(|`
+                regexFindMethods += `\\s*\\n*\\t*\\.\\s*\\n*\\t*${statics.METHODS[idxMethod]}\\s*\\n*\\t*\\(|`
             }
             regexFindMethods = regexFindMethods.replace(/\|$/, '')
 
@@ -128,15 +128,15 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     if (!firstPattern)
                         firstPattern = pattern
                     // TODO: refactor this. Loop to build string?
-                    regex += `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*get\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
-                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*head\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
-                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*post\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
-                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*put\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
-                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*delete\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
-                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*patch\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
-                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*options\\s*\\n*\\t*\\s*\\n*\\t*\\(|`
+                    regex += `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\.\\s*\\n*\\t*get\\s*\\n*\\t*\\(|` +
+                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\.\\s*\\n*\\t*head\\s*\\n*\\t*\\(|` +
+                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\.\\s*\\n*\\t*post\\s*\\n*\\t*\\(|` +
+                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\.\\s*\\n*\\t*put\\s*\\n*\\t*\\(|` +
+                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\.\\s*\\n*\\t*delete\\s*\\n*\\t*\\(|` +
+                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\.\\s*\\n*\\t*patch\\s*\\n*\\t*\\(|` +
+                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\.\\s*\\n*\\t*options\\s*\\n*\\t*\\(|`
 
-                    regexRouteMiddlewares += `\\/?\\s*\\n*\\t*\\s*\\n*\\t*${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*use\\s*\\n*\\t*\\s*\\n*\\t*\\(|`
+                    regexRouteMiddlewares += `\\/?\\s*\\n*\\t*${pattern}\\s*\\n*\\t*\\.\\s*\\n*\\t*use\\s*\\n*\\t*\\(|`
                 })
                 regex = regex.slice(0, -1)
                 regexRouteMiddlewares = regexRouteMiddlewares.slice(0, -1)
@@ -167,16 +167,16 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     if (!firstPattern)
                         firstPattern = pattern
                     // TODO: refactor this. Loop to build string?
-                    regex += `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*get\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
-                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*head\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
-                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*post\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
-                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*put\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
-                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*delete\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
-                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*patch\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
-                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*options\\s*\\n*\\t*\\s*\\n*\\t*\\(|` +
-                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*route\\s*\\n*\\t*\\s*\\n*\\t*\\(|`
+                    regex += `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\.\\s*\\n*\\t*get\\s*\\n*\\t*\\(|` +
+                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\.\\s*\\n*\\t*head\\s*\\n*\\t*\\(|` +
+                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\.\\s*\\n*\\t*post\\s*\\n*\\t*\\(|` +
+                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\.\\s*\\n*\\t*put\\s*\\n*\\t*\\(|` +
+                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\.\\s*\\n*\\t*delete\\s*\\n*\\t*\\(|` +
+                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\.\\s*\\n*\\t*patch\\s*\\n*\\t*\\(|` +
+                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\.\\s*\\n*\\t*options\\s*\\n*\\t*\\(|` +
+                        `(\\s|\\n|\\t|;|\\*\\/)${pattern}\\s*\\n*\\t*\\.\\s*\\n*\\t*route\\s*\\n*\\t*\\(|`
 
-                    regexRouteMiddlewares += `(\\/?\\s*\\n*\\t*\\s*\\n*\\t*${pattern}\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*use\\s*\\n*\\t*\\s*\\n*\\t*\\(\\s*\\n*\\t*\\s*\\n*\\t*)|`
+                    regexRouteMiddlewares += `(\\/?\\s*\\n*\\t*${pattern}\\s*\\n*\\t*\\.\\s*\\n*\\t*use\\s*\\n*\\t*\\(\\s*\\n*\\t*)|`
                 })
                 regex = regex.slice(0, -1)
 
@@ -221,7 +221,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                 var aDataRawCleaned = await handleData.removeComments(aDataRaw, true)
 
                 aDataRawCleaned = aDataRawCleaned.replaceAll('\n', ' ')
-                var aRoutes = aDataRawCleaned.split(new RegExp(`\\s*\\t*\\s*\\t*\\w\\s*\\t*\\s*\\t*\\.\\s*\\t*\\s*\\t*use\\s*\\t*\\s*\\t*\\(`))
+                var aRoutes = aDataRawCleaned.split(new RegExp(`\\s*\\t*\\w\\s*\\t*\\.\\s*\\t*use\\s*\\t*\\(`))
                 if (aRoutes.length > 1)
                     aRoutes.shift()
 
@@ -319,7 +319,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                      * Adding middleware to be processed together with the other endpoint functions 
                      */
                     if (isChained) {
-                        const endpointRegex = `\\(\\[\\_\\[${predefMethod}\\]\\_\\]\\)\\(\\[\\_\\[____CHAINED____\\]\\_\\]\\)\\(\\s*\\n*\\t*\\s*\\n*\\t*.${rawPath}.\\s*\\n*\\t*\\s*\\n*\\t*\\,`
+                        const endpointRegex = `\\(\\[\\_\\[${predefMethod}\\]\\_\\]\\)\\(\\[\\_\\[____CHAINED____\\]\\_\\]\\)\\(\\s*\\n*\\t*.${rawPath}.\\s*\\n*\\t*\\,`
                         const found = localRouteMiddlewares.find(midd => midd.rawRoute && midd.rawRoute.split(new RegExp(endpointRegex)).length > 1)
                         if (found)
                             elem += ',' + found.middleware
@@ -364,13 +364,13 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             for (let idxFunc = 0; idxFunc < 15; ++idxFunc) {
 
                                 // Adding '(' and ')' to arrow functions that not contains '(' and ')', such as: async req => {
-                                if (functionArray && functionArray.split(new RegExp("\\s*\\t*\\s*\\t*=>\\s*\\n*\\t*\\s*\\n*\\t*").length > 1)) {
-                                    let params = functionArray.trim().split(new RegExp("\\s*\\t*\\s*\\t*=>\\s*\\n*\\t*\\s*\\n*\\t*"))
+                                if (functionArray && functionArray.split(new RegExp("\\s*\\t*=>\\s*\\n*\\t*").length > 1)) {
+                                    let params = functionArray.trim().split(new RegExp("\\s*\\t*=>\\s*\\n*\\t*"))
                                     if (params && params.length > 1 && params[0].trim().slice(-1)[0] !== ')') {
                                         let paramsAux = params[0].split(new RegExp("\\s+|\\n+|\\t+|\\,|\\.|\\;|\\:"))
                                         paramsAux = paramsAux.slice(-1)[0]
                                         if (paramsAux.split(/\*|\\|\/|\(|\)|\{|\}|\[|\]/).length === 1)
-                                            functionArray = functionArray.replace(new RegExp(`${paramsAux}\\s*\\t*\\s*\\t*=>\\s*\\n*\\t*\\s*\\n*\\t*`), `(${paramsAux}) => `)
+                                            functionArray = functionArray.replace(new RegExp(`${paramsAux}\\s*\\t*=>\\s*\\n*\\t*`), `(${paramsAux}) => `)
                                     }
                                 }
 
@@ -683,8 +683,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                 }
             }
 
+            var allPaths = {}
             if (aRoutes && aRoutes.length >= 1) {
-                var allPaths = {}
                 for (let file = 0; file < aRoutes.length; file++) {
                     var rt = aRoutes[file]
                     if (rt.split(']_])').length < 3)
@@ -822,7 +822,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         return resolve(allPaths)
                 }
             }
-            return resolve(paths)
+            return resolve({ ...paths, ...allPaths })
         })
     })
 }
@@ -837,7 +837,7 @@ function getImportedFiles(aDataRaw, relativePath) {
         var importedFiles = []
         var importeds = aDataRaw.split(new RegExp(`import`, "i"))
         var requireds = aDataRaw.replaceAll('\n', ' ').split(new RegExp(`\\s*\\t*const\\s*\\t*|\\s*\\t*var\\s*\\t*|\\s*\\t*let\\s*\\t*`, "i"))
-        requireds = requireds.filter(e => e.split(new RegExp(`=\\s*\\t*\\s*\\t*require\\s*\\t*\\s*\\t*\\(`, "i")).length > 1)
+        requireds = requireds.filter(e => e.split(new RegExp(`=\\s*\\t*require\\s*\\t*\\(`, "i")).length > 1)
 
         // Such as: import foo, { Foo } from './foo'
         if (importeds && importeds.length > 1) {
@@ -859,7 +859,7 @@ function getImportedFiles(aDataRaw, relativePath) {
 
                     // TODO: handle alias 'as'
 
-                    if (varFileName.split(new RegExp(",\\s*\\n*\\t*\\s*\\n*\\t*{")).length > 1) {     // such as: import foo, { Foo } from './foo'
+                    if (varFileName.split(new RegExp(",\\s*\\n*\\t*{")).length > 1) {     // such as: import foo, { Foo } from './foo'
                         obj.varFileName = varFileName.split('{')[0].replaceAll(',', '').trim()
                     }
                     varFileName = varFileName.replaceAll('\n', '')
@@ -983,11 +983,11 @@ function getImportedFiles(aDataRaw, relativePath) {
             for (let index = 0; index < requireds.length; ++index) {
                 let req = requireds[index]
                 var obj = { varFileName: null, fileName: null, exports: [] }
-                var varFileName = req.split(new RegExp(`=\\s*\\t*\\s*\\t*require\\s*\\t*\\s*\\t*\\(`, "i"))[0].trim()
+                var varFileName = req.split(new RegExp(`=\\s*\\t*require\\s*\\t*\\(`, "i"))[0].trim()
 
                 if (varFileName.includes('{')) {
 
-                    if (varFileName.split(new RegExp(",\\s*\\t*\\s*\\t*{")).length > 1) {     // such as: import foo, { Foo } from './foo'
+                    if (varFileName.split(new RegExp(",\\s*\\t*{")).length > 1) {     // such as: import foo, { Foo } from './foo'
                         obj.varFileName = varFileName.split('{')[0].replaceAll(',', '').trim()
                     }
                     varFileName = varFileName.replaceAll('\n', '')
@@ -1001,7 +1001,7 @@ function getImportedFiles(aDataRaw, relativePath) {
                     obj.varFileName = varFileName
                 }
 
-                var fileName = req.split(new RegExp(`=\\s*\\t*\\s*\\t*require\\s*\\t*\\s*\\t*\\(`, "i"))[1].trim()
+                var fileName = req.split(new RegExp(`=\\s*\\t*require\\s*\\t*\\(`, "i"))[1].trim()
                 fileName = fileName.split(")")[0]
                 fileName = fileName.replaceAll('\'', '').replaceAll('\"', '').replaceAll('\`', '').replaceAll(' ', '')
 
@@ -1033,7 +1033,7 @@ function getImportedFiles(aDataRaw, relativePath) {
                             if (indexExtension != '') {     // index exist
                                 let dataFile = await getFileContent(pathFile + '/index' + indexExtension)
                                 dataFile = await handleData.removeComments(dataFile)
-                                const isRequireDirLib = dataFile && dataFile.split(new RegExp("\\s*\\n*\\t*\\s*\\n*\\t*module\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*exports\\s*\\n*\\t*\\s*\\n*\\t*\\=\\s*\\n*\\t*\\s*\\n*\\t*require\\s*\\n*\\t*\\s*\\n*\\t*\\(\\s*\\n*\\t*\\s*\\n*\\t*.require\\-dir.\\s*\\n*\\t*\\s*\\n*\\t*\\)")).length > 1 ? true : false
+                                const isRequireDirLib = dataFile && dataFile.split(new RegExp("\\s*\\n*\\t*module\\s*\\n*\\t*\\.\\s*\\n*\\t*exports\\s*\\n*\\t*\\=\\s*\\n*\\t*require\\s*\\n*\\t*\\(\\s*\\n*\\t*.require\\-dir.\\s*\\n*\\t*\\)")).length > 1 ? true : false
                                 if (isRequireDirLib) {        // lib require-dir
                                     obj.isRequireDirLib = isRequireDirLib
                                 } else {
@@ -1041,8 +1041,8 @@ function getImportedFiles(aDataRaw, relativePath) {
 
                                     let relativePath = obj.fileName
                                     obj.exports.map(oExp => {
-                                        if (dataFile.split(new RegExp(`${oExp}\\s*\\n*\\t*\\s*\\n*\\t*\\=\\s*\\n*\\t*\\s*\\n*\\t*require\\s*\\n*\\t*\\s*\\n*\\t*\\(`)).length > 1) {
-                                            let addPath = dataFile.split(new RegExp(`${oExp}\\s*\\n*\\t*\\s*\\n*\\t*\\=\\s*\\n*\\t*\\s*\\n*\\t*require\\s*\\n*\\t*\\s*\\n*\\t*\\(\\s*\\n*\\t*\\s*\\n*\\t*`))
+                                        if (dataFile.split(new RegExp(`${oExp}\\s*\\n*\\t*\\=\\s*\\n*\\t*require\\s*\\n*\\t*\\(`)).length > 1) {
+                                            let addPath = dataFile.split(new RegExp(`${oExp}\\s*\\n*\\t*\\=\\s*\\n*\\t*require\\s*\\n*\\t*\\(\\s*\\n*\\t*`))
                                             addPath = addPath[1].split(')')[0].replaceAll('\'', '').replaceAll('\"', '').replaceAll('\`', '')
 
                                             if (addPath.includes("../")) {  // REFACTOR: pass to funcion
@@ -1093,8 +1093,8 @@ function functionRecognizerInFile(fileName, refFuncao) {
 
             // TODO: passa to function
             // adding '(' and ')' to arrow functions without '(' and ')', such as: ... async req => {
-            if (cleanedData.split(new RegExp("\\s*\\n*\\t*\\s*\\n*\\t*=>\\s*\\n*\\t*\\s*\\n*\\t*").length > 1)) {
-                let params = cleanedData.trim().split(new RegExp("\\s*\\n*\\t*\\s*\\n*\\t*=>\\s*\\n*\\t*\\s*\\n*\\t*"))
+            if (cleanedData.split(new RegExp("\\s*\\n*\\t*=>\\s*\\n*\\t*").length > 1)) {
+                let params = cleanedData.trim().split(new RegExp("\\s*\\n*\\t*=>\\s*\\n*\\t*"))
                 for (let idx = 0; idx < params.length - 1; idx += 2) {
                     let param = params[idx]
                     if (param && param.slice(-1)[0] !== ')') {
@@ -1110,7 +1110,7 @@ function functionRecognizerInFile(fileName, refFuncao) {
                 cleanedData = params.join(" => ")
             }
 
-            cleanedData = cleanedData.split(new RegExp("=>\\s*\\n*\\t*\\s*\\n*\\t*=>"))
+            cleanedData = cleanedData.split(new RegExp("=>\\s*\\n*\\t*=>"))
             cleanedData = cleanedData.join("=>")
 
             if (refFuncao) { // When file has more than one exported function
@@ -1118,8 +1118,8 @@ function functionRecognizerInFile(fileName, refFuncao) {
                 return resolve(funcStr)
             } else { // When file has only one exported function
                 cleanedData = cleanedData.replaceAll('\n', ' ').replaceAll('  ', ' ').replaceAll('  ', ' ')
-                if (cleanedData.split(new RegExp("export\\s*\\t*\\s*\\t*default\\s*\\t*\\s*\\t*\\=*\\s*\\t*\\s*\\t*\\(.+\\).+\\{")).length > 1) {
-                    let directPattern = cleanedData.split(new RegExp("export\\s*\\t*\\s*\\t*default\\s*\\t*\\s*\\t*\\=*\\s*\\t*\\s*\\t*\\(.+\\).+\\{"))
+                if (cleanedData.split(new RegExp("export\\s*\\t*default\\s*\\t*\\=*\\s*\\t*\\(.+\\).+\\{")).length > 1) {
+                    let directPattern = cleanedData.split(new RegExp("export\\s*\\t*default\\s*\\t*\\=*\\s*\\t*\\(.+\\).+\\{"))
                     if (directPattern.length > 1)
                         directPattern = true
                     else
@@ -1129,7 +1129,7 @@ function functionRecognizerInFile(fileName, refFuncao) {
                         var funcStr = await handleData.functionRecognizerInData(cleanedData, `export\\s*default`)
                         return resolve(funcStr)
                     } else { // Indirect declaration in module.exports
-                        var funcName = cleanedData.split(new RegExp("export\\s*\\n*\\t*\\s*\\n*\\t*default\\s*\\n*\\t*\\s*\\n*\\t*"))
+                        var funcName = cleanedData.split(new RegExp("export\\s*\\n*\\t*default\\s*\\n*\\t*"))
                         if (funcName[1])
                             funcName = funcName[1].split(/\n|\s|\t|\;|\{|\}|\(|\)|\[|\]/)
                         else
@@ -1138,7 +1138,7 @@ function functionRecognizerInFile(fileName, refFuncao) {
                         return resolve(funcStr)
                     }
                 } else {
-                    let directPattern = cleanedData.split(new RegExp(`module\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*exports\\s*\\n*\\t*\\s*\\n*\\t*\\=*\\s*\\n*\\t*\\s*\\n*\\t*\\(.+\\).+\\{`))
+                    let directPattern = cleanedData.split(new RegExp(`module\\s*\\n*\\t*\\.\\s*\\n*\\t*exports\\s*\\n*\\t*\\=*\\s*\\n*\\t*\\(.+\\).+\\{`))
                     if (directPattern.length > 1)
                         directPattern = true
                     else
@@ -1148,7 +1148,7 @@ function functionRecognizerInFile(fileName, refFuncao) {
                         var funcStr = await handleData.functionRecognizerInData(cleanedData, `module\\.exports`)
                         return resolve(funcStr)
                     } else { // Indirect declaration in module.exports
-                        var funcName = cleanedData.split(new RegExp("module\\s*\\n*\\t*\\s*\\n*\\t*\\.\\s*\\n*\\t*\\s*\\n*\\t*exports\\s*\\n*\\t*\\s*\\n*\\t*\\=\\s*\\n*\\t*\\s*\\n*\\t*"))
+                        var funcName = cleanedData.split(new RegExp("module\\s*\\n*\\t*\\.\\s*\\n*\\t*exports\\s*\\n*\\t*\\=\\s*\\n*\\t*"))
                         if (funcName[1])
                             funcName = funcName[1].split(/\n|\s|\t|\;|\{|\}|\(|\)|\[|\]/)
                         else
