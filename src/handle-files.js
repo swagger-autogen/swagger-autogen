@@ -847,6 +847,7 @@ function getImportedFiles(aDataRaw, relativePath) {
             var tsPaths = []
             var tsconfig = await getFileContent(process.cwd() + '/tsconfig.json')
             if (tsconfig) {
+                tsconfig = await handleData.removeComments(tsconfig)
                 tsconfig = JSON.parse(tsconfig)
                 tsPaths = tsconfig.compilerOptions && tsconfig.compilerOptions.paths && typeof tsconfig.compilerOptions.paths === 'object' ? Object.entries(tsconfig.compilerOptions.paths) : null
             }
