@@ -10,7 +10,7 @@ const TEMPLATE = {
     basePath: "/",
     tags: [],
     schemes: ['http'],
-    securityDefinitions: {},
+    securityDefinitions: undefined,
     consumes: [],
     produces: [],
     paths: {},
