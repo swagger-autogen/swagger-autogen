@@ -580,6 +580,10 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     } else {
                         for (var _idxEF in endpointFunctions) {
                             let endpoint = endpointFunctions[_idxEF].func
+
+                            if (swaggerTags.getIgnoreTag(endpoint)) 
+                                continue
+                            
                             endpoint = endpoint.replaceAll('\n', '').replaceAll('/*', '\n').replaceAll('*/', '\n').replaceAll(statics.SWAGGER_TAG, '\n' + statics.SWAGGER_TAG)
 
                             req = null
