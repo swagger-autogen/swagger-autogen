@@ -43,16 +43,19 @@ function formatDefinitions(def, resp = {}, constainXML) {
     let arrayOf = null
     if (typeof def === 'string') {
         resp.type = "string"
-        resp[def] = { example: def }
+        resp.example = def
     } else if (typeof def === 'number') {
         resp.type = "number"
-        resp[def] = { example: def }
+        resp.example = def
     } else if (typeof def === 'boolean') {
         resp.type = "boolean"
-        resp[def] = { example: def }
+        resp.example = def
     } else {
         if (Array.isArray(def)) {
-            resp = { type: "array", items: {} }
+            if (def && typeof def[0] !== 'object')
+                resp = { type: "array", example: def, items: {} }
+            else
+                resp = { type: "array", items: {} }
             arrayOf = typeof def[0]
         } else
             resp = { type: "object", properties: {} }

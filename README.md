@@ -33,6 +33,8 @@ Swagger-autogen now recognizes Express Router and TypeScript features.
   - [Manual capture](#manual-capture)
   - [Forced endpoint creation](#forced-endpoint-creation)
 - [Security](#security)
+  - [API Keys (Token) example](#api-keys-token-example)
+  - [OAuth2 example](#oauth2-example)
 - [Response Language](#response-language)
 - [Examples](#examples)
 - [Compatibility](#compatibility)
@@ -60,7 +62,7 @@ const swaggerAutogen = require('swagger-autogen')()
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save swagger-autogen@2.5.10
+$ npm install --save swagger-autogen@2.5.11
 ```
 
 ## Usage
@@ -658,31 +660,25 @@ function myFunction(param) {
 ```
 
 See an [example here!](#examples)
+
 ## Security
-It is possible to add security to endpoints. The security example below was taken from the original Swagger documentation.
+It is possible to add security to endpoints. The following are some examples, but a complete approach can be seen on the website [swagger.io](#https://swagger.io/docs/specification/authentication)
+
+### API Keys (Token) example
+The security example below was taken from the original Swagger documentation.
 
 ```js
 const doc = {
     // { ... },
-    securityDefinitions: {
-        api_key: {
+    securityDefinitions:{
+        apiKeyAuth:{
             type: "apiKey",
-            name: "api_key",
-            in: "header"
-        },
-        petstore_auth: {
-            type: "oauth2",
-            authorizationUrl: "https://petstore.swagger.io/oauth/authorize",
-            flow: "implicit",
-            scopes: {
-                read_pets: "read your pets",
-                write_pets: "modify pets in your account"
-            }
+            in: "header",       // can be "header", "query" or "cookie"
+            name: "X-API-KEY",  // name of the header, query parameter or cookie
+            description: "any description..."
         }
-    },
+    }
 }
-
-swaggerAutogen(outputFile, endpointsFiles, doc)
 ```
 
 At the endpoint, add the `#swagger.security` tag, for example:
@@ -691,7 +687,39 @@ At the endpoint, add the `#swagger.security` tag, for example:
     app.get('/users/:id', (req, res) => {
         ...
         /* #swagger.security = [{
-            "petstore_auth": [
+               "apiKeyAuth": []
+        }] */
+        ...
+    })
+```
+
+### OAuth2 example
+The security example below was taken from the original Swagger documentation.
+
+```js
+const doc = {
+    // { ... },
+    securityDefinitions: {
+        oAuthSample: {
+            type: "oauth2",
+            authorizationUrl: "https://petstore.swagger.io/oauth/authorize",
+            flow: "implicit",
+            scopes: {
+                read_pets: "read your pets",
+                write_pets: "modify pets in your account"
+            }
+        }
+    }
+}
+```
+
+At the endpoint, add the `#swagger.security` tag, for example:
+```js
+    ...
+    app.get('/users/:id', (req, res) => {
+        ...
+        /* #swagger.security = [{
+            "oAuthSample": [
                 "write_pets",
                 "read_pets"
             ]

@@ -581,9 +581,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         for (var _idxEF in endpointFunctions) {
                             let endpoint = endpointFunctions[_idxEF].func
 
-                            if (swaggerTags.getIgnoreTag(endpoint)) 
+                            if (swaggerTags.getIgnoreTag(endpoint))
                                 continue
-                            
+
                             endpoint = endpoint.replaceAll('\n', '').replaceAll('/*', '\n').replaceAll('*/', '\n').replaceAll(statics.SWAGGER_TAG, '\n' + statics.SWAGGER_TAG)
 
                             req = null
@@ -627,6 +627,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             }
                             if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.parameters') && endpoint.includes('[') && endpoint.includes(']')) {
                                 objParameters = await swaggerTags.getParametersTag(endpoint, objParameters)
+                                if (objParameters === false) {
+                                    console.error("[swagger-autogen]: Error when trying to recognize '#swagger.parameters'")
+                                }
                             }
                             if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.produces')) {
                                 objEndpoint[path][method].produces = await swaggerTags.getProducesTag(endpoint)
