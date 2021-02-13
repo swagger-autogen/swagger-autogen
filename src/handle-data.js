@@ -795,6 +795,13 @@ async function functionRecognizerInData(data, refFuncao) {
         } else if (traditionalFunction.length > 1) {
             func = traditionalFunction
             isTraditionalFunction = true
+        } else {
+            // CASE: exports.validateUser = [
+            let array = data.split(new RegExp(`${refFuncao}\\s*\\n*\\t*=\\s*\\n*\\t*\\[`))
+            if (array.length > 1) {
+                let resp = await stackSymbolRecognizer(array[1], '(', ')')
+                return resolve('[' + resp)
+            }
         }
 
         if (func && func.length > 1) {

@@ -741,7 +741,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     }
 
                     if (data.split(',').length == 1) { // route with 1 parameter, such as: route.use(middleware)
-                        if (rt.split(new RegExp(regex)).length > 1)
+                        if (data && rt && rt.split(data)[0] && rt.split(data)[0].split(new RegExp(regex)).length > 1)
                             continue
 
                         obj.path = ''
