@@ -539,17 +539,13 @@ const expectedDefinitions = {
     },
     "Definit_00": {
         "type": "boolean",
-        "true": {
-            "example": true
-        },
+        "example": true,
         "xml": {
             "name": "Definit_00"
         }
     },
     "Definit_01": {
-        "123": {
-            "example": 123
-        },
+        "example": 123,
         "type": "number",
         "xml": {
             "name": "Definit_01"
@@ -557,18 +553,14 @@ const expectedDefinitions = {
     },
     "Definit_02": {
         "type": "string",
-        "test": {
-            "example": "test"
-        },
+        "example": "test",
         "xml": {
             "name": "Definit_02"
         }
     },
     "Definit_03": {
         "type": "string",
-        "test": {
-            "example": "test"
-        },
+        "example": "test",
         "xml": {
             "name": "Definit_03"
         }
@@ -591,6 +583,7 @@ const expectedDefinitions = {
     },
     "Definit_05": {
         "type": "array",
+        "example": [ true ],
         "items": {
             "type": "boolean"
         },
@@ -600,6 +593,7 @@ const expectedDefinitions = {
     },
     "Definit_06": {
         "type": "array",
+        "example": [ 123 ],
         "items": {
             "type": "number"
         },
@@ -609,6 +603,7 @@ const expectedDefinitions = {
     },
     "Definit_07": {
         "type": "array",
+        "example": [ 'test' ],
         "items": {
             "type": "string"
         },
@@ -639,6 +634,7 @@ const expectedDefinitions = {
         "type": "array",
         "items": {
             "type": "array",
+            "example": [ true ],
             "items": {
                 "type": "boolean"
             }
@@ -651,6 +647,7 @@ const expectedDefinitions = {
         "type": "array",
         "items": {
             "type": "array",
+            "example": [ 123 ],
             "items": {
                 "type": "number"
             }
@@ -663,6 +660,7 @@ const expectedDefinitions = {
         "type": "array",
         "items": {
             "type": "array",
+            "example": [ 'test' ],
             "items": {
                 "type": "string"
             }
@@ -767,6 +765,7 @@ const expectedDefinitions = {
                         },
                         "d": {
                             "type": "array",
+                            "example": [ 'teste' ],
                             "items": {
                                 "type": "string"
                             }
@@ -813,6 +812,7 @@ const expectedDefinitions = {
                         },
                         "d": {
                             "type": "array",
+                            "example": [123],
                             "items": {
                                 "type": "number"
                             }
@@ -851,6 +851,7 @@ const expectedDefinitions = {
             },
             "photoUrls": {
                 "type": "array",
+                "example": ["teste"],
                 "items": {
                     "type": "string"
                 }
