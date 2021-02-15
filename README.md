@@ -62,7 +62,7 @@ const swaggerAutogen = require('swagger-autogen')()
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save swagger-autogen@2.5.12
+$ npm install --save swagger-autogen@2.6.0
 ```
 
 ## Usage
@@ -107,8 +107,9 @@ const doc = {
 const outputFile = './path/swagger-output.json'
 const endpointsFiles = ['./path/endpointsUser.js', './path/endpointsBook.js']
 
-// NOTE: if you use the express Router, you must pass in the 
-// 'endpointsFiles' only the root file where the route starts.
+/* NOTE: if you use the express Router, you must pass in the 
+   'endpointsFiles' only the root file where the route starts,
+   such as: index.js, app.js, routes.js, ... */
 
 swaggerAutogen(outputFile, endpointsFiles, doc)
 ```
@@ -145,8 +146,9 @@ const doc = {
 const outputFile = './path/swagger-output.json'
 const endpointsFiles = ['./path/endpointsUser.js', './path/endpointsBook.js']
 
-// NOTE: if you use the express Router, you must pass in the 
-// 'endpointsFiles' only the root file where the route starts.
+/* NOTE: if you use the express Router, you must pass in the 
+   'endpointsFiles' only the root file where the route starts,
+   such as: index.js, app.js, routes.js, ... */
 
 swaggerAutogen(outputFile, endpointsFiles, doc)
 ```
@@ -821,6 +823,9 @@ Some tutorials with examples:
   - Bug fix
 - Version 2.5.x:
   - New features: #swagger.summary and #swagger.operationId
+  - Bug fix
+- Version 2.6.x:
+  - Recognition of more patterns
   - Bug fix
 
 

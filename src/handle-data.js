@@ -14,6 +14,38 @@ function isNumeric(n) {
  * TODO: fill
  * @param {*} data 
  */
+function dataConverter(data) {
+    return new Promise(async (resolve, reject) => {
+        let patterns = new Set()
+        // CASE: Converting require("./foo")(app) to app.use(require("./foo"))
+        let founds = data.split(new RegExp("(require\\s*\\n*\\t*\\(.*\\)\\s*\\n*\\t*\\(\\s*\\n*\\t*.*\\s*\\n*\\t*\\))"))
+        for (let idx = 0; idx < founds.length; ++idx) {
+            let req = founds[idx]
+            if (req.split(new RegExp("^require")).length == 1)
+                continue
+
+            if (founds[idx - 1] && founds[idx - 1].trim().slice(-1)[0] == '=')  // avoiding cases, such as: const foo = require(...)()
+                continue
+
+            req = req.split(new RegExp("require\\s*\\n*\\t*\\(|\\)\\s*\\n*\\t*\\("))
+            if (req && (req.length < 2 || !req[1].includes('./') || !req[2]))
+                continue
+
+            req[2] = req[2].split(')')[0].trim()
+            req[2] = req[2].split(',')[0]   // TODO: verify which possition in req[2][0] is a route
+            patterns.add(req[2])
+
+            let converted = `${req[2]}.use(require(${req[1]}))`
+            data = data.replace(founds[idx], converted)   // TODO: use replaceAll() ?
+        }
+        return resolve({ data, patterns: [...patterns] })
+    })
+}
+
+/**
+ * TODO: fill
+ * @param {*} data 
+ */
 function clearData(data) {
     return new Promise(async (resolve, reject) => {
 
@@ -51,40 +83,6 @@ function clearData(data) {
         aData = aData.split(new RegExp("axios\\s*\\n*\\t*\\.\\w*", "i"))
         aData = aData.join('axios.method')
 
-        // TODO: refactor this
-        const regex = "\\,\\s*\\n*\\t*\\(\\s*\\n*\\t*.+\\s*\\n*\\t*\\:\\s*\\n*\\t*Request\\s*\\n*\\t*\\,\\s*\\n*\\t*.+\\s*\\n*\\t*\\:\\s*\\n*\\t*Response\\s*\\n*\\t*\\)\\s*\\n*\\t*=>|" +
-            "\\,\\s*\\n*\\t*\\(\\s*\\n*\\t*.+\\s*\\n*\\t*\\:\\s*\\n*\\t*Response\\s*\\n*\\t*\\,\\s*\\n*\\t*.+\\s*\\n*\\t*\\:\\s*\\n*\\t*Request\\s*\\n*\\t*\\)\\s*\\n*\\t*=>|" +
-            "\\,\\s*\\n*\\t*\\(\\s*\\n*\\t*.+\\s*\\n*\\t*\\:\\s*\\n*\\t*Request\\s*\\n*\\t*\\,\\s*\\n*\\t*.+\\s*\\n*\\t*\\:\\s*\\n*\\t*Response\\s*\\n*\\t*\\,\\s*\\n*\\t*.+\\s*\\n*\\t*\\:\\s*\\n*\\t*Next\\s*\\n*\\t*\\)\\s*\\n*\\t*=>|" +
-            "\\,\\s*\\n*\\t*\\(\\s*\\n*\\t*.+\\s*\\n*\\t*\\:\\s*\\n*\\t*Request\\s*\\n*\\t*\\,\\s*\\n*\\t*.+\\s*\\n*\\t*\\:\\s*\\n*\\t*Next\\s*\\n*\\t*\\,\\s*\\n*\\t*.+\\s*\\n*\\t*\\:\\s*\\n*\\t*Response\\s*\\n*\\t*\\)\\s*\\n*\\t*=>|" +
-            "\\,\\s*\\n*\\t*\\(\\s*\\n*\\t*.+\\s*\\n*\\t*\\:\\s*\\n*\\t*Response\\s*\\n*\\t*\\,\\s*\\n*\\t*.+\\s*\\n*\\t*\\:\\s*\\n*\\t*Request\\s*\\n*\\t*\\,\\s*\\n*\\t*.+\\s*\\n*\\t*\\:\\s*\\n*\\t*Next\\s*\\n*\\t*\\)\\s*\\n*\\t*=>|" +
-            "\\,\\s*\\n*\\t*\\(\\s*\\n*\\t*.+\\s*\\n*\\t*\\:\\s*\\n*\\t*Response\\s*\\n*\\t*\\,\\s*\\n*\\t*.+\\s*\\n*\\t*\\:\\s*\\n*\\t*Next\\s*\\n*\\t*\\,\\s*\\n*\\t*.+\\s*\\n*\\t*\\:\\s*\\n*\\t*Request\\s*\\n*\\t*\\)\\s*\\n*\\t*=>|" +
-            "\\,\\s*\\n*\\t*\\(\\s*\\n*\\t*.+\\s*\\n*\\t*\\:\\s*\\n*\\t*Next\\s*\\n*\\t*\\,\\s*\\n*\\t*.+\\s*\\n*\\t*\\:\\s*\\n*\\t*Request\\s*\\n*\\t*\\,\\s*\\n*\\t*.+\\s*\\n*\\t*\\:\\s*\\n*\\t*Response\\s*\\n*\\t*\\)\\s*\\n*\\t*=>|" +
-            "\\,\\s*\\n*\\t*\\(\\s*\\n*\\t*.+\\s*\\n*\\t*\\:\\s*\\n*\\t*Next\\s*\\n*\\t*\\,\\s*\\n*\\t*.+\\s*\\n*\\t*\\:\\s*\\n*\\t*Response\\s*\\n*\\t*\\,\\s*\\n*\\t*.+\\s*\\n*\\t*\\:\\s*\\n*\\t*Request\\s*\\n*\\t*\\)\\s*\\n*\\t*=>"
-
-        if (aData.split(new RegExp(regex)).length > 1) {
-            aData = aData.split(new RegExp(regex))
-            for (let idx = 1; idx < aData.length; ++idx) {
-                let data = aData[idx]
-                // remove "(...)" of fooFoo.foo(...)
-                if (data.includes('(') && data.includes(')')) {
-
-                    // handling case: (req: Request, res: Response) => { return fooFoo.foo(req, res) }
-                    if (data.split('(')[0].includes('{')) {
-                        data = data.replace('{', ' ')
-                        data = data.replace(' return ', ' ')
-                        data = data.replace('}', ' ')
-                    }
-
-                    data = data.split(')')
-                    const cleanedMethod = data[0].split('(')[0]
-                    data[1] = cleanedMethod + ' ' + data[1]
-                    data.shift()
-                    data = data.join(')')
-                    aData[idx] = data
-                }
-            }
-            aData = aData.join(',')
-        }
         return resolve(aData)
     })
 }
@@ -775,11 +773,20 @@ async function functionRecognizerInData(data, refFuncao) {
         var arrowFunction = data.split(new RegExp(`(${refFuncao}\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\=\\s*\\n*\\t*\\([\\s\\S]*\\)\\s*\\t*=>\\s*\\n*\\t*\\{)`))
         var arrowFunctionWithoutCurlyBracket = ['']
         var traditionalFunction = ['']
+        let arrowFunctionType = 1
 
         if (arrowFunction.length == 1) {
             arrowFunctionWithoutCurlyBracket = data.split(new RegExp(`(${refFuncao}\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\=\\s*\\n*\\t*\\([\\s\\S]*\\)\\s*\\t*=>)`))
-            if (arrowFunctionWithoutCurlyBracket.length == 1)
-                traditionalFunction = data.split(new RegExp(`(${refFuncao}\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\=?\\s*\\n*\\t*\\([\\s\\S]*\\)\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\<?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\>?\\s*\\n*\\t*\\{)`))
+            if (arrowFunctionWithoutCurlyBracket.length == 1) {
+                // CASE:  foo: (req, res) => {
+                arrowFunction = data.split(new RegExp(`(${refFuncao}\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\s*\\n*\\t*\\s*\\n*\\t*\\([\\s\\S]*\\)\\s*\\t*=>\\s*\\n*\\t*\\{)`))
+                if (arrowFunction.length > 1) {
+                    arrowFunctionType = 2
+                } else {
+                    // Default: Traditional function
+                    traditionalFunction = data.split(new RegExp(`(${refFuncao}\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\=?\\s*\\n*\\t*\\([\\s\\S]*\\)\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\<?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\>?\\s*\\n*\\t*\\{)`))
+                }
+            }
         }
 
         var isArrowFunction = false
@@ -830,8 +837,10 @@ async function functionRecognizerInData(data, refFuncao) {
                 func.shift()
                 func = func.join('{')
                 var funcStr = null
-                if (isArrowFunction)
+                if (isArrowFunction && arrowFunctionType == 1)
                     funcStr = data.split(new RegExp(`${refFuncao}\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\=\\s*\\n*\\t*\\(`))[1]
+                if (isArrowFunction && arrowFunctionType == 2)
+                    funcStr = data.split(new RegExp(`${refFuncao}\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\s*\\n*\\t*\\s*\\n*\\t*\\(`))[1]
                 else if (isTraditionalFunction)
                     funcStr = data.split(new RegExp(`${refFuncao}\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\=?\\s*\\n*\\t*\\(`))[1]
 
@@ -892,8 +901,10 @@ function popFunction(functionArray) {
             return resolve(func.trim())
         } else if (isArrowFunctionWithoutCurlyBracket) {
             let func = functionArray.split('=>')[1].trimLeft()
-            func = func.split(new RegExp("\\n|\\s|\\t|\\;"))[0]
-            func = functionArray.split(func)[0] + func
+            let params = await stack0SymbolRecognizer(functionArray, '(', ')')
+            paramsSubFunc = await stack0SymbolRecognizer(func, '(', ')')
+            func = func.split(paramsSubFunc)[0]
+            func = '(' + params + ') => { ' + func + paramsSubFunc + ') }'
             return resolve(func)
         } else
             return resolve(null)
@@ -942,5 +953,6 @@ module.exports = {
     popFunction,
     getSwaggerComments,
     popString,
-    removeInsideParentheses
+    removeInsideParentheses,
+    dataConverter
 }

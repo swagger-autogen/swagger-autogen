@@ -33,10 +33,15 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
             dataToGetPatterns = await handleData.removeStrings(dataToGetPatterns)
             dataToGetPatterns = await handleData.removeInsideParentheses(dataToGetPatterns, true)
 
+            let firstPattern = null
+            var patternsServer = []         // Stores patterns, such as: route, app, etc...
             let propRoutes = []             // Used to store the new Router() properties, such as 'prefix'
             let regexRouteMiddlewares = ''
             let aData = await handleData.removeComments(data, true)
             aData = await handleData.clearData(aData)
+            let converted = await handleData.dataConverter(aData)
+            aData = converted.data
+            patternsServer = converted.patterns
 
             /**
              * Eliminating unwanted patterns within endpoints
@@ -59,19 +64,19 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                 aDataAux = aDataAux.replace(data, ' ')
             }
 
-            let regexFindMethods = ''
-            for (let idxMethod = 0; idxMethod < statics.METHODS.length; ++idxMethod) {
-                regexFindMethods += `\\s*\\n*\\t*\\.\\s*\\n*\\t*${statics.METHODS[idxMethod]}\\s*\\n*\\t*\\(|`
-            }
-            regexFindMethods = regexFindMethods.replace(/\|$/, '')
 
             aDataToClean = [...aDataToClean]    // converting to array
             for (let idxData = 0; idxData < aDataToClean.length; ++idxData) {
                 let data = aDataToClean[idxData]
                 let swaggerComments = await handleData.getSwaggerComments(data)
                 data = await handleData.removeComments(data)
-                data = data.split(new RegExp(regexFindMethods))
-                data = data.join(' (')
+
+                // Avoiding ploblems when functions has the same name of a .methods 
+                for (let idxMet = 0; idxMet < statics.METHODS.length; ++idxMet) {
+                    let method = statics.METHODS[idxMet]
+                    data = data.split(new RegExp('\\.\\s*\\n*\\t*' + method))
+                    data = data.join('.{_{__function__}_}' + method)
+                }
                 data = '(' + data + (swaggerComments !== '' ? '\n' + swaggerComments : '') + ')'
                 aData = aData.replaceAll('(' + aDataToClean[idxData] + ')', data)
             }
@@ -100,15 +105,14 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                 }
             }
 
-            let firstPattern = null
-            var patternsServer = []     // Stores patterns, such as: route, app, etc...
-
             if (aData.includes(statics.SWAGGER_TAG + '.patterns')) {
                 /**
                  * Manual pattern recognition
                  */
 
                 let patterns = new Set()
+                patternsServer.forEach(p => patterns.add(p))
+
                 try {
                     patterns = eval(aData.replaceAll(' ', '').split(statics.SWAGGER_TAG + '.patterns=')[1].split('*/')[0])
                 } catch (err) {
@@ -148,6 +152,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                 let serverVars = []
                 let patterns = new Set()
+                patternsServer.forEach(p => patterns.add(p))
 
                 serverVars = dataToGetPatterns.split(new RegExp(regex))
                 if (serverVars && serverVars.length > 1)
@@ -257,7 +262,6 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     let objResponses = {}
                     let forced = false
                     let predefPattern = false
-                    let swaggerDescriptionOut = null
                     let isChained = false
 
                     if (elem.includes('[_[') && elem.includes(']_]')) {
@@ -361,6 +365,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 functionArray.shift()
                             functionArray = functionArray.join(',')
 
+                            functionArray = functionArray.replaceAll('{_{__function__}_}', '')
                             for (let idxFunc = 0; idxFunc < 15; ++idxFunc) {
 
                                 // Adding '(' and ')' to arrow functions that not contains '(' and ')', such as: async req => {
@@ -369,7 +374,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                     if (params && params.length > 1 && params[0].trim().slice(-1)[0] !== ')') {
                                         let paramsAux = params[0].split(new RegExp("\\s+|\\n+|\\t+|\\,|\\.|\\;|\\:"))
                                         paramsAux = paramsAux.slice(-1)[0]
-                                        if (paramsAux.split(/\*|\\|\/|\(|\)|\{|\}|\[|\]/).length === 1)
+                                        if (paramsAux.split(/\*|\\|\/|\(|\)|\{|\}|\[|\]/).length === 1 && paramsAux !== '')
                                             functionArray = functionArray.replace(new RegExp(`${paramsAux}\\s*\\t*=>\\s*\\n*\\t*`), `(${paramsAux}) => `)
                                     }
                                 }
@@ -383,7 +388,62 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                         routeMiddlewares.push({ metadata: func, callbackParameters: null, func: funcNotReferenced, middleware: true, path: rawPath, isLocalRouteMiddleware })
                                     }
                                 } else if (funcNotReferenced) {
-                                    functionArray = functionArray.replace(funcNotReferenced, ' ')
+
+                                    /**
+                                     * INIT CASE. Handling:
+                                     * app.method("/foo", (req, res) => {
+                                     *    foo(req, res);
+                                     * });
+                                     */
+                                    if (funcNotReferenced.trim()[0] == '(') { // there are parameters
+                                        let funcNotRefFormated = funcNotReferenced.replaceAll('(', '( ').replaceAll(')', ' )')
+                                        let funcParams = await handleData.stack0SymbolRecognizer(funcNotRefFormated, '(', ')')
+                                        let regexParams = ''
+
+                                        if (funcParams) {
+                                            funcParams = funcParams.split(new RegExp("\\:\\s*\\n*\\t*Request\\s*\\n*\\t*|\\:\\s*\\n*\\t*Response\\s*\\n*\\t*|\\:\\s*\\n*\\t*Next\\s*\\n*\\t*|\\:\\s*\\n*\\t*any\\s*\\n*\\t*", "i"))
+                                            let tsFunction = false
+                                            if (funcParams.length > 1)
+                                                tsFunction = true
+
+                                            funcParams = funcParams.join('').replaceAll('\n', '').replaceAll(' ', '').split(',')
+                                            let numParams = funcParams.length
+
+                                            for (let idx = 0; idx < numParams; ++idx) {
+                                                regexParams += `\\([\\w|\\s]*\\,?[\\w|\\s]*\\,?[\\w|\\s]*[\\s|\\,]+${funcParams[idx]}[\\s|\\,]+[\\w|\\s]*\\,?[\\w|\\s]*\\,?[\\w|\\s]*\\)|`
+                                            }
+                                            regexParams = regexParams.slice(0, -1)
+                                            var refFunc = funcNotRefFormated.split(new RegExp(regexParams))
+
+                                            if (refFunc.length > 1) {
+                                                if (tsFunction)
+                                                    refFunc = refFunc.slice(0, -1)
+                                                else
+                                                    refFunc = refFunc.slice(1, -1)
+                                                refFunc.map(f => {
+                                                    let func = f.replaceAll('\n', ' ').split(new RegExp("\\s*\\t*\\.\\s*\\t*"))
+                                                    func = func.join('.')
+                                                    func = func.trim().split(new RegExp("\\s|\\n|\\t|\\;|\\/|\\,"))
+                                                    func = func.slice(-1)[0].trim()
+                                                    if (!statics.RESERVED_FUNCTIONS.includes(func)) // TODO: improve this?
+                                                        functions.push(func)
+                                                })
+                                            }
+                                        }
+                                    }
+                                    /* END CASE */
+
+                                    if (functionArray && functionArray.split(funcNotReferenced).length > 1) {
+                                        functionArray = functionArray.replace(funcNotReferenced, ' ')
+                                    } else {
+                                        let params = await handleData.stack0SymbolRecognizer(funcNotReferenced, '(', ')')
+                                        if (params && functionArray.split('(' + params + ')').length > 1) {
+                                            functionArray = functionArray.replace('(' + params + ')', ' ')
+                                        } else {
+                                            // TODO: verify this case
+                                        }
+                                    }
+
                                     if (funcNotReferenced.includes("(") && funcNotReferenced.includes(")")) {
                                         endpointFunctions.push({ metadata: null, callbackParameters: null, func: funcNotReferenced })
                                     }
@@ -489,6 +549,39 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                                 let extension = await getExtension(pathFile)
                                 let refFunction = await functionRecognizerInFile(pathFile + extension, refFuncao)
+
+                                // Trying to find the reference in the index file
+                                // TODO: implements to 'import' and 'exports.default'
+                                if (!refFunction && refFuncao && pathFile.split('/').slice(-1)[0] == 'index') {
+                                    let dataIndexFile = await getFileContent(pathFile + extension)
+                                    if (dataIndexFile) {
+                                        pathFile = pathFile.split('/').slice(0, -1).join('/')   // removing '/index'
+                                        let importsIndexFile = await getImportedFiles(dataIndexFile, pathFile)
+                                        let idx = importsIndexFile.findIndex(e => e.varFileName && refFuncao && (e.varFileName == refFuncao))
+                                        pathFile = null
+                                        if (idx == -1) {
+                                            importsIndexFile.forEach(imp => {
+                                                if (pathFile)
+                                                    return
+                                                let found = imp && imp.exports ? imp.exports.find(e => e.varName && refFuncao && (e.varName == refFuncao)) : null
+                                                if (found) {
+                                                    if (!refFuncao)
+                                                        refFuncao = found.varName
+                                                    if (imp.isDirectory)
+                                                        pathFile = found.path
+                                                    else
+                                                        pathFile = imp.fileName      // TODO: change variable name
+                                                }
+                                            })
+                                        } else {
+                                            pathFile = importsIndexFile[idx].fileName
+                                        }
+                                        if (pathFile) {
+                                            extension = await getExtension(pathFile)
+                                            refFunction = await functionRecognizerInFile(pathFile + extension, refFuncao)
+                                        }
+                                    }
+                                }
 
                                 if (predefMethod == 'use' && refFunction) {
                                     if (refFunction.split(')')[0].split(',').length > 2) {
