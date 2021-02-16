@@ -774,11 +774,7 @@ Links to projects that covers the simplest use of this module as well as the mos
 
 See the result after construction in the image below:
 
-![](https://raw.githubusercontent.com/davibaltar/public-store/master/screen-swagger-autogen-small.png)
-
----
-
-![](https://raw.githubusercontent.com/davibaltar/public-store/master/screen-swagger-autogen-cut.png)
+![](https://raw.githubusercontent.com/davibaltar/public-store/master/screen-swagger-autogen.png)
 
 
 ## Compatibility
