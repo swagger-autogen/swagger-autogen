@@ -2,7 +2,9 @@
 
 This module performs the automatic construction of the Swagger documentation. The module is able to identify the endpoints and automatically capture methods such as get, post, put, and so on. The module can also identify the paths, routes, middlewares, response status code, parameters in the path, query and body. It is possible to add information such as: endpoint description, parameter description, defininitions, security, among others. It is also possible to ignore or disable the automatic capture of an endpoint (in the latter case, having to manually add each information). The module generates the *.json* file with the documentation in the swagger format.
 
-[![NPM Version](http://img.shields.io/npm/v/swagger-autogen.svg?style=flat)](https://www.npmjs.org/package/commander) [![NPM Downloads](https://img.shields.io/npm/dm/swagger-autogen.svg?style=flat)](https://npmcharts.com/compare/swagger-autogen?minimal=true)[![Known Vulnerabilities](https://snyk.io/test/npm/swagger-autogen/badge.svg)](https://snyk.io/test/npm/swagger-autogen)
+[![NPM Version](http://img.shields.io/npm/v/swagger-autogen.svg?style=flat)](https://www.npmjs.org/package/commander)
+[![NPM Downloads](https://img.shields.io/npm/dm/swagger-autogen.svg?style=flat)](https://npmcharts.com/compare/swagger-autogen?minimal=true)
+[![Known Vulnerabilities](https://snyk.io/test/npm/swagger-autogen/badge.svg)](https://snyk.io/test/npm/swagger-autogen)
 
 #### NEWS! (version 2)
 Swagger-autogen now recognizes Express Router and TypeScript features.
