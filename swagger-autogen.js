@@ -34,6 +34,13 @@ module.exports = function (args) {
                 }
 
                 const objDoc = { ...statics.TEMPLATE, ...data, paths: {} }
+                if (!objDoc.info.version)
+                    objDoc.info.version = statics.TEMPLATE.info.version
+                if (!objDoc.info.title)
+                    objDoc.info.title = statics.TEMPLATE.info.title
+                if (!objDoc.info.description)
+                    objDoc.info.description = statics.TEMPLATE.info.description
+
                 for (let file = 0; file < endpointsFiles.length; file++) {
                     const filePath = endpointsFiles[file]
                     const resp = await fs.existsSync(filePath)

@@ -598,6 +598,8 @@ function getQuery(elem, request, objParameters) {
                     objParameters[name] = { name, in: 'query' }
                 if (!objParameters[name].in)
                     objParameters[name].in = 'query'
+                if (!objParameters[name].type && !objParameters[name].schema)   // by default: 'type' is 'string' when 'schema' is missing
+                    objParameters[name].type = 'string'
             })
         }
     }

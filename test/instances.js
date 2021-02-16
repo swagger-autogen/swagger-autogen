@@ -193,7 +193,8 @@ const expectedPaths = {
                 },
                 {
                     "name": "obj",
-                    "in": "query"
+                    "in": "query",
+                    "type": "string"
                 }
             ],
             "responses": {
@@ -216,7 +217,8 @@ const expectedPaths = {
             "parameters": [
                 {
                     "name": "obj",
-                    "in": "query"
+                    "in": "query",
+                    "type": "string"
                 }
             ],
             "responses": {
@@ -362,7 +364,8 @@ const expectedPaths = {
             "parameters": [
                 {
                     "name": "obj",
-                    "in": "query"
+                    "in": "query",
+                    "type": "string"
                 }
             ],
             "responses": {

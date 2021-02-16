@@ -62,7 +62,7 @@ const swaggerAutogen = require('swagger-autogen')()
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save swagger-autogen@2.6.0
+$ npm install --save swagger-autogen@2.6.1
 ```
 
 ## Usage
@@ -602,7 +602,8 @@ Use the `#swagger.auto = false` tag to disable automatic recognition. With that,
             #swagger.parameters['id'] = {
                 in: 'path',
                 description: 'User ID.',
-                required: true
+                required: true,
+                type: 'integer'
             }
 
             #swagger.parameters['obj'] = {
@@ -641,13 +642,13 @@ function myFunction(param) {
     ...
     /*  #swagger.parameters['id'] = {
             in: 'path',
+            type: 'integer',
             description: 'User ID.' } */
     const dataId = users.getUser(req.params.id)
     ...
     /*  #swagger.parameters['obj'] = {
             in: 'query',
             description: 'User data.',
-            type: 'object',
             schema: { $ref: "#/definitions/AddUser" }
     } */
     const dataObj = users.getUser(req.query.obj)
