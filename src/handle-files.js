@@ -936,7 +936,7 @@ function getImportedFiles(aDataRaw, relativePath) {
     return new Promise(async (resolve, reject) => {
         var importedFiles = []
         var importeds = aDataRaw.split(new RegExp(`import`, "i"))
-        var requireds = aDataRaw.replaceAll('\n', ' ').split(new RegExp(`\\s*\\t*const\\s*\\t*|\\s*\\t*var\\s*\\t*|\\s*\\t*let\\s*\\t*`, "i"))
+        var requireds = aDataRaw.replaceAll('\n', ' ').split(new RegExp(`\\s*\\t*const\\s+|\\s*\\t*var\\s+|\\s*\\t*let\\s+`, "i"))
         requireds = requireds.filter(e => e.split(new RegExp(`=\\s*\\t*require\\s*\\t*\\(`, "i")).length > 1)
 
         // Such as: import foo, { Foo } from './foo'

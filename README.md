@@ -64,7 +64,7 @@ const swaggerAutogen = require('swagger-autogen')()
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save swagger-autogen@2.6.2
+$ npm install --save swagger-autogen@2.6.3
 ```
 
 ## Usage
@@ -238,8 +238,6 @@ To inform which tags the endpoinst belongs to, use the `#swagger.tags` tag, for 
     })
 ```
 
-See an [example here!](#examples)
-
 ### Summary
 This is the summary of the Endpoint. To add it, use the `#swagger.summary` tag, for example:
 
@@ -251,8 +249,6 @@ This is the summary of the Endpoint. To add it, use the `#swagger.summary` tag, 
         ...
     })
 ```
-
-See an [example here!](#examples)
 
 ### Description
 This is the description of the Endpoint. To add it, use the `#swagger.description` tag, for example:
@@ -266,8 +262,6 @@ This is the description of the Endpoint. To add it, use the `#swagger.descriptio
     })
 ```
 
-See an [example here!](#examples)
-
 ### Operation ID
 This is the operationId of the Endpoint. To add it, use the `#swagger.operationId` tag, for example:
 
@@ -279,8 +273,6 @@ This is the operationId of the Endpoint. To add it, use the `#swagger.operationI
         ...
     })
 ```
-
-See an [example here!](#examples)
 
 ### Consumes and Produces
 Use the `#swagger.produces = ['contentType']` or `#swagger.consumes = ['contentType']` tag to add a new produce or a new consume, respectively. In the **Example (Consumes)** below, the two endpoints will have the same result in the documentation.
@@ -314,8 +306,6 @@ OR
     })
 ```
 
-See an [example here!](#examples)
-
 ### Parameters
 It is possible to create or complement automatically detected parameters. Use the `#swagger.parameters['parameterName']` tag to create a new parameter or to complete an existing parameter (automatically detected).
 
@@ -347,19 +337,28 @@ For example:
         ...
     })
 
-    app.post('/users', (req, res) => {
+    app.post('/book', (req, res) => {
         ...
         /*  #swagger.parameters['obj'] = {
                 in: 'body',
                 type: "object",
-                description: "User data"
+                description: "Book data"
         } */
         users.addUser(req.body)
         ...
     })
-```
 
-See an [example here!](#examples)
+    app.post('/users', (req, res) => {
+        ...
+        /*    #swagger.parameters['obj'] = { 
+                in: 'body',
+                description: "Add a user",
+                schema: { $ref: "#/definitions/AddUser" }
+        } */
+        ...
+    })
+```
+Click here to see: ["#/definitions/AddUser"](#schema-and-definitions)
 
 ### Responses
 It is possible to create or complement automatically detected responses. Use the `#swagger.reponses[statusCode]` tag to create a new answer or to complete an existing answer (automatically detected), for example:
@@ -392,8 +391,6 @@ It is possible to create or complement automatically detected responses. Use the
 **NOTE:** For more information about **schema** and **definitions**, see the section: [Schema and Definitions](#schema-and-definitions)  
 
 **NOTE:** As the 404 status description was not entered, "Not Found" will automatically be added. It is possible to change the language of the automatic response, see the [Response Language](#response-language) section.  
-
-See an [example here!](#examples)
 
 ### Schema and Definitions
 Unlike how Swagger writes, the answers in this module are added in a simpler way, that is, in the way you want to see the result. These responses can be added to the *definitions* parameter of the *doc* object seen in the [Usage](#usage) section, or directly to the response via the *schema* parameter.
@@ -557,8 +554,6 @@ The result will be:
 
 ![](https://raw.githubusercontent.com/davibaltar/public-store/master/example-of-definitions.png)
 
-See an [example here!](#examples)
-
 ### Endpoint as deprecated
 Use the `#swagger.deprecated = true` tag to inform that a given endpoint is depreciated, for example:
 
@@ -571,8 +566,6 @@ Use the `#swagger.deprecated = true` tag to inform that a given endpoint is depr
     })
 ```
 
-See an [example here!](#examples)
-
 ### Ignoring endpoint
 Use the `#swagger.ignore = true` tag to ignore a given endpoint. Thus, it will not appear in the documentation, for example:
 
@@ -584,8 +577,6 @@ Use the `#swagger.ignore = true` tag to ignore a given endpoint. Thus, it will n
         ...
     })
 ```
-
-See an [example here!](#examples)
 
 ### Manual capture
 Use the `#swagger.auto = false` tag to disable automatic recognition. With that, all parameters of the endpoint must be informed manually, for example:
@@ -626,8 +617,6 @@ Use the `#swagger.auto = false` tag to disable automatic recognition. With that,
     })
 ```
 
-See an [example here!](#examples)
-
 ### Forced Endpoint Creation
 If you want to forcibly create an endpoint, use the  `#swagger.start` and` #swagger.end` tags, for example:
 
@@ -663,8 +652,6 @@ function myFunction(param) {
     // #swagger.end
 }
 ```
-
-See an [example here!](#examples)
 
 ## Security
 It is possible to add security to endpoints. The following are some examples, but a complete approach can be seen on the website [swagger.io](#https://swagger.io/docs/specification/authentication)
