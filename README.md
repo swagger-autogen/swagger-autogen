@@ -64,7 +64,7 @@ const swaggerAutogen = require('swagger-autogen')()
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save swagger-autogen@2.6.3
+$ npm install --save swagger-autogen@2.6.4
 ```
 
 ## Usage
@@ -183,7 +183,7 @@ swaggerAutogen(outputFile, endpointsFiles, doc).then( () => {
 })
 ```
 
-Where *index.js* is your project's root file. Change the *start* script in your project's *package.json* to point to the file containing the `swaggerAutogen(...)` function. If you use Visual Studio Code, change the reference in your *launch.json* in the same way. Now, just run your project as usual. With that the documentation will be generated and soon after the project will start, making the documentation always updated when the project is started.
+Where *index.js* is your project's root file. Change the *start* script in your project's *package.json* to point to the file containing the `swaggerAutogen(...)` function. If you use Visual Studio Code, change the reference in your *launch.json* in the same way. Now, just run your project as usual. With that the documentation will be generated and soon after the project will start, automatically updating the documentation as soon as the project start.
 
 See: [Complete example](https://github.com/davibaltar/example-swagger-autogen)
 
@@ -203,7 +203,7 @@ const swaggerAutogen = require('swagger-autogen')(options)
 To see the available languages, go to the section [Response Language](#response-language)
 
 ## Endpoints
-The way to configure the module is done within comments, and can be in the format `// ...` or `/* ... */`. The used pattern will be `#swagger.something` tag. Each comment can contain one or more `#swagger.something` tags. **NOTE:** ALL COMMENTS CONTAINING `#swagger.something` MUST BE WITHIN OF FUNCTIONS.
+The way to configure the module is done within comments, and can be in the format `// ...` or `/* ... */`. The used pattern will be `#swagger.something` tag. Each comment can contain one or more `#swagger.something` tags. **NOTE:** ALL COMMENTS CONTAINING `#swagger.something` MUST BE WITHIN THE FUNCTIONS.
 
 ### Automatic capture
 In this case it is not necessary to do anything. Considering, for example, if the pattern of your API is as follows:
@@ -309,7 +309,7 @@ OR
 ### Parameters
 It is possible to create or complement automatically detected parameters. Use the `#swagger.parameters['parameterName']` tag to create a new parameter or to complete an existing parameter (automatically detected).
 
-All optional parameters for the tag parameter:
+All optional parameters:
 ```js
 /* #swagger.parameters['parameterName'] = {
         in: <string>,
@@ -317,14 +317,14 @@ All optional parameters for the tag parameter:
         required: <boolean>,
         type: <string>,
         format: <string>,
-        schema: <object>
+        schema: <object> or <Array>
 } */
 ```
 
 **in:** 'path', 'query' or 'body'               // by default is 'query'  
 **description:** The parameter description  
 **required:** true or false  
-**type:** 'string', 'integer', 'object', etc.   // by default is 'string'  
+**type:** 'string', 'integer', 'object', etc.   // by default is 'string'  when 'schema' is missing
 **format:** 'int64', etc.  
 **schema:** See section [Schema and Definitions](#schema-and-definitions)  
 
@@ -361,30 +361,41 @@ For example:
 Click here to see: ["#/definitions/AddUser"](#schema-and-definitions)
 
 ### Responses
-It is possible to create or complement automatically detected responses. Use the `#swagger.reponses[statusCode]` tag to create a new answer or to complete an existing answer (automatically detected), for example:
+It is possible to create or complement automatically detected responses. Use the `#swagger.reponses[statusCode]` tag to create a new answer or to complete an existing answer (automatically detected).
+
+All optional parameters:
+```js
+/* #swagger.responses[<number>] = {
+        description: <string>,
+        schema: <object> or <Array>
+} */
+```
+
+**description:** The parameter description.  
+**schema:** See section [Schema and Definitions](#schema-and-definitions)  
+
+For example:
 
 ```js
     ...
     app.get('/users/:id', (req, res) => {
-        ...
-        if(...) {
+
+        if(...)
+            return res.status(404)
+
+        try {
+            
             /* #swagger.responses[200] = { 
                     description: 'User successfully obtained.',
                     schema: { $ref: "#/definitions/User" } 
             } */
             return res.status(200).send(data)
-        }
-        ...
-        return res.status(404).send(false)
-    })
 
-    app.post('/v2/users', (req, res) => {
-        ...
-        if(...){
+        } catch (err) {
             // #swagger.responses[500] = { description: 'Problem with the server.' }
             return res.status(500)
-        }     
-        ...
+        }
+
     })
 ```
 
@@ -398,6 +409,8 @@ Unlike how Swagger writes, the answers in this module are added in a simpler way
 **About Examples and Types in schema:** The example comes right in front of the parameter declaration, and the type is abstracted according to the *typeof* of the example. In the code below, the parameter "name" will have as an example "Jhon Doe" and type string, while "age" will have as an example 29 and type number.
 
 **NOTE:** To configure a parameter as **required**, just add the symbol **$** before the parameter, for example: `$name = "Jhon Doe"`.
+
+For example:
 
 ```js
 const doc = {
@@ -441,7 +454,7 @@ const doc = {
         ...
         /*    #swagger.parameters['obj'] = { 
                 in: 'body',
-                description: "User data.",
+                description: "Adding new user.",
                 schema: { $ref: "#/definitions/AddUser" }
         } */
         ...

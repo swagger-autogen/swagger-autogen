@@ -10,7 +10,7 @@ const statics = require('./statics')
  * @param {*} relativePath 
  * @param {*} receivedRouteMiddlewares 
  */
-function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteMiddlewares = []) {
+function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteMiddlewares = [], restrictedContent) {
     return new Promise((resolve, reject) => {
         let paths = {}
         fs.readFile(filePath, 'utf8', async function (err, data) {
@@ -37,7 +37,20 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
             var patternsServer = []         // Stores patterns, such as: route, app, etc...
             let propRoutes = []             // Used to store the new Router() properties, such as 'prefix'
             let regexRouteMiddlewares = ''
-            let aData = await handleData.removeComments(data, true)
+            let dataSrc = null
+
+            /**
+             * CASE: 
+             * import UserRouters from "./user";
+             * ...
+             * router.use("/", new UserRouters().routes);
+             */
+            if (restrictedContent)
+                dataSrc = restrictedContent
+            else
+                dataSrc = data
+
+            let aData = await handleData.removeComments(dataSrc, true)
             aData = await handleData.clearData(aData)
             let converted = await handleData.dataConverter(aData)
             aData = converted.data
@@ -53,15 +66,15 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
             let count = 0
             while (!finished && count < 300) {
                 count += 1  //To avoid infinite loop
-                let data = await handleData.stack0SymbolRecognizer(aDataAux, '(', ')')
-                if (data == null) {
+                let dat = await handleData.stack0SymbolRecognizer(aDataAux, '(', ')')
+                if (dat == null) {
                     finished = true
                     continue
                 }
 
-                aDataToClean.add(data)
-                data = '(' + data + ')'
-                aDataAux = aDataAux.replace(data, ' ')
+                aDataToClean.add(dat)
+                dat = '(' + dat + ')'
+                aDataAux = aDataAux.replace(dat, ' ')
             }
 
 
@@ -211,7 +224,13 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
             /**
              * Getting the reference of all files brought with 'import' and 'require'
              */
-            var importedFiles = await getImportedFiles(aDataRaw, relativePath)
+            var importedFiles = null
+            if (restrictedContent) {
+                restrictedContent = await handleData.removeComments(restrictedContent)
+                importedFiles = await getImportedFiles(data, relativePath)
+            } else {
+                importedFiles = await getImportedFiles(aDataRaw, relativePath)
+            }
 
             if (regex != '') {          // Some method was found like: .get, .post, etc.
                 aData = [...aData.split(new RegExp(regex)), ...aForcedsEndpoints]
@@ -312,7 +331,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         }
 
                         if (elem.includes("#swagger.path")) {
-                            rawPath = pathRoute + routePrefix + swaggerTags.getPath(elem, autoMode)
+                            rawPath = swaggerTags.getPath(elem, autoMode)
                         }
                     }
 
@@ -635,7 +654,11 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                     // Getting Path
                     if (!path) {
-                        path = pathRoute + routePrefix + swaggerTags.getPath(elemOrig, autoMode)
+                        if (!autoMode || elemOrig.includes("#swagger.path"))
+                            path = swaggerTags.getPath(elemOrig, autoMode)
+                        else
+                            path = pathRoute + routePrefix + swaggerTags.getPath(elemOrig, autoMode)
+
                         path = path.replaceAll('//', '/').replaceAll('//', '/').replaceAll('//', '/').replaceAll('//', '/')
                         objEndpoint[path] = {}
                     }
@@ -790,6 +813,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     if (rt.split(']_])').length < 3)
                         continue
 
+                    let refFunc = null
                     var obj = { path: null, varFileName: null, middleware: null, fileName: null, isDirectory: null }
                     var data = rt.split(']_])(')
                     var routeName = data[1].split('[_[')[1].trim()
@@ -858,16 +882,45 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                         obj.path = obj.path.replaceAll('////', '/').replaceAll('///', '/').replaceAll('//', '/')
                         obj.varFileName = data.split(',').slice(-1)[0]
+
+                        /**
+                         * CASE: 
+                         * import UserRouters from "./user";
+                         * ...
+                         * router.use("/", new UserRouters().routes);
+                         */
+                        if (obj.varFileName.split(new RegExp("new\\s+")).length > 1) {
+                            if (obj.varFileName.slice(-1)[0] == ')')
+                                obj.varFileName = obj.varFileName.slice(0, -1)
+                            obj.varFileName = obj.varFileName.split(new RegExp("\\s*new\\s+"))[1]
+                            if (obj.varFileName.split(new RegExp("\\([\\s|\\S]*\\)")).length > 1) {
+                                obj.varFileName = obj.varFileName.split(new RegExp("\\([\\s|\\S]*\\)"))
+                                obj.varFileName = obj.varFileName.join('')
+                            }
+                            if (obj.varFileName.includes('.')) {
+                                refFunc = obj.varFileName.split('.')[1]
+                                obj.varFileName = obj.varFileName.split('.')[0]
+                            }
+                        }
+                        /* END CASE */
+
                         obj.varFileName = obj.varFileName.replaceAll('(', '').replaceAll(')', '').replaceAll(' ', '')
+                        if (refFunc)
+                            refFunc = refFunc.replaceAll('(', '').replaceAll(')', '').replaceAll(' ', '')
                     }
 
                     if (obj.varFileName && obj.varFileName.split(new RegExp("\\:|\\;|\\=|\\>|\\<|\\{|\\}|\\(|\\)|\\[|\\]|\\,")).length > 1)
                         obj.varFileName = null
 
+                    if (refFunc && refFunc.split(new RegExp("\\:|\\;|\\=|\\>|\\<|\\{|\\}|\\(|\\)|\\[|\\]|\\,")).length > 1)
+                        refFunc = null
+
                     if (exportPath)
                         obj.varFileName = exportPath
+
                     // First, tries to find in the import/require
                     var idx = importedFiles.findIndex(e => e.varFileName && obj.varFileName && (e.varFileName == obj.varFileName))
+
                     if (idx == -1 && !exportPath) {
                         // Second, tries to find in the 'exports' of import/require, such as 'foo' in the: import { foo } from './fooFile'
                         importedFiles.forEach((imp, importIdx) => {
@@ -902,14 +955,20 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                         if (idx > -1 && importedFiles[idx] && importedFiles[idx].isDirectory) {
                             var extension = await getExtension(obj.fileName + '/index')
-                            var auxPaths = await readEndpointFile(obj.fileName + '/index' + extension, (obj.path || ''), obj.fileName, obj.routeMiddlewares)
+                            var auxPaths = await readEndpointFile(obj.fileName + '/index' + extension, (obj.path || ''), obj.fileName, obj.routeMiddlewares, null)
                             if (auxPaths)
                                 allPaths = { ...paths, ...allPaths, ...auxPaths }
                             else
                                 allPaths = { ...paths, ...allPaths }
                         } else {
                             var extension = await getExtension(obj.fileName)
-                            var auxPaths = await readEndpointFile(obj.fileName + extension, routePrefix + (obj.path || ''), auxRelativePath, obj.routeMiddlewares)
+                            let refFunction = null
+
+                            if (refFunc) {
+                                refFunction = await functionRecognizerInFile(obj.fileName + extension, refFunc)
+                            }
+
+                            var auxPaths = await readEndpointFile(obj.fileName + extension, routePrefix + (obj.path || ''), auxRelativePath, obj.routeMiddlewares, refFunction)
                             if (auxPaths)
                                 allPaths = { ...paths, ...allPaths, ...auxPaths }
                             else
