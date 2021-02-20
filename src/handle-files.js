@@ -404,7 +404,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                         let isLocalRouteMiddleware = false
                                         if (aData[idxElem].split(new RegExp(regex)).length > 1)  // Verify if is not a local route middleware, such as: route.use(middleware).get(...).post(...)...
                                             isLocalRouteMiddleware = true
-                                        routeMiddlewares.push({ metadata: func, callbackParameters: null, func: funcNotReferenced, middleware: true, path: rawPath, isLocalRouteMiddleware })
+                                        routeMiddlewares.push({ metadata: null, callbackParameters: null, func: funcNotReferenced, middleware: true, path: rawPath, isLocalRouteMiddleware })
                                     }
                                 } else if (funcNotReferenced) {
 
@@ -510,13 +510,30 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                     }
                                 }
                             } else {
+
+                                var refFuncao = null
+                                var varFileName = null
+                                var refFuncInParam = null
                                 func = func.replaceAll('\n', '').replaceAll('\t', '').replaceAll(' ', '').replaceAll('[', '').replaceAll(']', '')
+
+                                /**
+                                 * CASE: awilix-express
+                                 * const fooFoo = require('./pathToFoo')
+                                 * ...
+                                 * router.method('/path', fooFoo('foo') )
+                                 */
+                                if (func.includes('(') && func.includes(')')) {
+                                    let params = await handleData.stack0SymbolRecognizer(func, '(', ')')    // TODO: get array with all strings and try to find with each one
+                                    if (params && (params[0] == '\"' || params[0] == '\'' || params[0] == '\`')) {
+                                        refFuncInParam = params.replaceAll('\"', '').replaceAll('\'', '').replaceAll('\`', '')
+                                    }
+                                }
+                                /* END CASE */
+
                                 func = func.split(new RegExp("\\(|\\)"))[0]
                                 if (func.split(new RegExp("\\(|\\)|\\[|\\]|\\{|\\}|\\!|\\=|\\>|\\<")).length > 1 || func.trim() == '')
                                     continue
 
-                                var refFuncao = null
-                                var varFileName = null
                                 if (func.split(".").length > 1) {
                                     // Identifying subfunction reference, such as: 'controller.store' in the foo.get('/path', controller.store)
                                     refFuncao = func.split(".")[1].trim()
@@ -600,6 +617,12 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                             refFunction = await functionRecognizerInFile(pathFile + extension, refFuncao)
                                         }
                                     }
+                                }
+
+                                if (!refFunction && refFuncInParam) {
+                                    let fileContent = await getFileContent(pathFile + extension)
+                                    if (fileContent.includes('awilix-express'))
+                                        refFunction = await functionRecognizerInFile(pathFile + extension, refFuncInParam)
                                 }
 
                                 if (predefMethod == 'use' && refFunction) {
@@ -885,9 +908,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                         /**
                          * CASE: 
-                         * import UserRouters from "./user";
+                         * import fooFoo from "./pathToFoo";
                          * ...
-                         * router.use("/", new UserRouters().routes);
+                         * router.use("/", new fooFoo().foo);
                          */
                         if (obj.varFileName.split(new RegExp("new\\s+")).length > 1) {
                             if (obj.varFileName.slice(-1)[0] == ')')

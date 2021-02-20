@@ -64,7 +64,7 @@ const swaggerAutogen = require('swagger-autogen')()
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save swagger-autogen@2.6.4
+$ npm install --save swagger-autogen@2.6.5
 ```
 
 ## Usage
@@ -842,7 +842,7 @@ Some tutorials with examples:
 ## Help us!
 Help us improve this module. If you have any information that the module does not provide or provides incompletely or incorrectly, please use our [Github](https://github.com/davibaltar/swagger-autogen) repository.
 
-**pt-Br:**
+**pt-BR:**
 Ajude-nos a melhorar este módulo. Se você tiver alguma informação que o módulo não forneça ou forneça de maneira incompleta ou incorreta, use o nosso repositório do [Github](https://github.com/davibaltar/swagger-autogen). Pode enviar em português Brasil também! :)
 
 Repository: https://github.com/davibaltar/swagger-autogen
