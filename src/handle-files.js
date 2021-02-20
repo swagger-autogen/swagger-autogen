@@ -409,7 +409,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 } else if (funcNotReferenced) {
 
                                     /**
-                                     * INIT CASE. Handling:
+                                     * CASE:
                                      * app.method("/foo", (req, res) => {
                                      *    foo(req, res);
                                      * });
@@ -621,7 +621,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                                 if (!refFunction && refFuncInParam) {
                                     let fileContent = await getFileContent(pathFile + extension)
-                                    if (fileContent.includes('awilix-express'))
+                                    if (fileContent && fileContent.includes('awilix-express'))
                                         refFunction = await functionRecognizerInFile(pathFile + extension, refFuncInParam)
                                 }
 
