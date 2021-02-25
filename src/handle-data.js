@@ -778,6 +778,11 @@ async function functionRecognizerInData(data, refFuncao) {
         if (refFuncao == '')
             return resolve(null)
 
+        if (data.split(new RegExp(`\\w+${refFuncao}|${refFuncao}\\w+|\\w+${refFuncao}\\w+`)).length > 1) {
+            data = data.split(new RegExp(`\\w+${refFuncao}|${refFuncao}\\w+|\\w+${refFuncao}\\w+`))
+            data = data.join("____FUNC____")
+        }
+
         data = data.replaceAll(' function ', ' ')
         var arrowFunction = data.split(new RegExp(`(${refFuncao}\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\=\\s*\\n*\\t*\\([\\s\\S]*\\)\\s*\\t*=>\\s*\\n*\\t*\\{)`))
         var arrowFunctionWithoutCurlyBracket = ['']

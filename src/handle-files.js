@@ -509,6 +509,13 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             var exportPath = null
                             const rexRequire = /\s*require\s*\n*\t*\(/
                             if (rexRequire.test(func)) {
+
+                                if (func && func.split(new RegExp("\\(\\s*__dirname\\s*\\+\\s*\\\"?\\\'?\\\`?")).length > 1) {
+                                    func = func.replaceAll('\'', '\"').replaceAll('\`', '\"')
+                                    func = func.split(new RegExp("\\(\\s*__dirname\\s*\\+\\s*\\\""))
+                                    func = func.join('(\".')
+                                }
+
                                 /**
                                  * CASE: foo.method('/path', require('./pathToFile.js'))
                                  */
@@ -881,6 +888,13 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     var exportPath = null
                     const rexRequire = /\s*require\s*\n*\t*\(/
                     if (rexRequire.test(data)) {
+
+                        if (data && data.split(new RegExp("\\(\\s*__dirname\\s*\\+\\s*\\\"?\\\'?\\\`?")).length > 1) {
+                            data = data.replaceAll('\'', '\"').replaceAll('\`', '\"')
+                            data = data.split(new RegExp("\\(\\s*__dirname\\s*\\+\\s*\\\""))
+                            data = data.join('(\".')
+                        }
+
                         /**
                          * CASE: foo.use(require('./routes.js'))
                          */
