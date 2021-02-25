@@ -686,7 +686,7 @@ const doc = {
 }
 ```
 
-To see more about the properties of the **doc**, see the [Usage](#usage) section.
+To see more about the properties of the **doc**, see the [Usage (With Optionals)](#usage-with-optionals) section.
 
 At the endpoint, add the `#swagger.security` tag, for example:
 ```js
@@ -720,7 +720,7 @@ const doc = {
 }
 ```
 
-To see more about the properties of the **doc**, see the [Usage](#usage) section.
+To see more about the properties of the **doc**, see the [Usage (With Optionals)](#usage-with-optionals) section.
 
 At the endpoint, add the `#swagger.security` tag, for example:
 ```js
