@@ -207,8 +207,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                 return forced += "\n" + statics.STRING_BREAKER + "FORCED" + statics.STRING_BREAKER + "\n"
             })
 
-            // routeMiddlewares: Middlewares to pass to the next route
-            var routeMiddlewares = [...receivedRouteMiddlewares.map(r => { r.path = false; r.fixedRoute = true; return r })]
+            // routeMiddlewares: Middlewares to aply in the endpoint and pass to the next route
+            var routeMiddlewares = [...receivedRouteMiddlewares.map(r => { r.path = false; r.fixedRoute = true; r.position = -1; return r })]     // This will cause the middleware to be passed on to all sub-routes
 
             /**
              * CASE: router.use(middleware).get(...).post(...).put(...)...
@@ -219,6 +219,15 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
             var localRouteMiddlewares = []  // localRouteMiddlewares: Used to store and to apply middleware's route in the local endpoints
 
             aData = await handleData.addReferenceToMethods(aData, patternsServer)
+
+            /**
+             * CASE: 
+             * router.all('/...', ...)
+             */
+            aData = aData.split(new RegExp("\\.\\s*all\\s*\\(\\[\\_\\[all\\]\\_\\]\\)\\(\\[\\_\\[",))
+            aData = aData.join('.use([_[use]_])([_[')
+            /* END CASE */
+
             const aDataRaw = aData
 
             /**
@@ -282,11 +291,13 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     let forced = false
                     let predefPattern = false
                     let isChained = false
+                    let position = null
 
                     if (elem.includes('[_[') && elem.includes(']_]')) {
                         elem = elem.split(new RegExp("\\[_\\[|\\]_\\]\\)\\("))
                         predefMethod = elem[1]
                         predefPattern = elem[3]
+                        position = parseInt(elem[5])
 
                         if (predefPattern === "____CHAINED____") {// TO CASE: router.get(...).post(...).put(...)...
                             predefPattern = lastValidPattern
@@ -295,8 +306,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             lastValidPattern = predefPattern
 
                         // CASE: router.use(middleware).get(...).post(...).put(...)...
-                        if (elem[4] && elem[4].includes("____CHAINED____")) {
-                            let midd = elem[4].split("____CHAINED____")[0]
+                        if (elem[6] && elem[6].includes("____CHAINED____")) {
+                            let midd = elem[6].split("____CHAINED____")[0]
                             localRouteMiddlewares.push({ middleware: midd, rawRoute: aData[idxElem].split(midd)[1] })
                             continue
                         }
@@ -316,7 +327,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             } else
                                 continue
                         } else
-                            elem = elem[4]
+                            elem = elem[6]
 
                         predefPath = swaggerTags.getPath(elem, autoMode)
                         elem = elem.trim()
@@ -342,7 +353,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                      * Adding middleware to be processed together with the other endpoint functions 
                      */
                     if (isChained) {
-                        const endpointRegex = `\\(\\[\\_\\[${predefMethod}\\]\\_\\]\\)\\(\\[\\_\\[____CHAINED____\\]\\_\\]\\)\\(\\s*\\n*\\t*.${rawPath}.\\s*\\n*\\t*\\,`
+                        const endpointRegex = `\\(\\[\\_\\[${predefMethod}\\]\\_\\]\\)\\(\\[\\_\\[____CHAINED____\\]\\_\\]\\)\\(\\[\\_\\[${position}\\]\\_\\]\\)\\(\\s*\\n*\\t*.${rawPath}.\\s*\\n*\\t*\\,`
                         const found = localRouteMiddlewares.find(midd => midd.rawRoute && midd.rawRoute.split(new RegExp(endpointRegex)).length > 1)
                         if (found)
                             elem += ',' + found.middleware
@@ -379,10 +390,16 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                              */
 
                             let functionArray = elemOrig.replace(rawPath, "").split(',')
+
                             elem = rawPath
-                            if (functionArray.length > 1)
+                            if (functionArray.length > 1 && rawPath)
                                 functionArray.shift()
                             functionArray = functionArray.join(',')
+
+                            functionArray = functionArray.split(new RegExp("^\\s*function\\s*\\("))
+                            functionArray = functionArray.join('(')
+                            functionArray = functionArray.split(new RegExp("\\,\\s*function\\s*\\("))
+                            functionArray = functionArray.join('( (')
 
                             functionArray = functionArray.replaceAll('{_{__function__}_}', '')
                             for (let idxFunc = 0; idxFunc < 15; ++idxFunc) {
@@ -404,7 +421,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                         let isLocalRouteMiddleware = false
                                         if (aData[idxElem].split(new RegExp(regex)).length > 1)  // Verify if is not a local route middleware, such as: route.use(middleware).get(...).post(...)...
                                             isLocalRouteMiddleware = true
-                                        routeMiddlewares.push({ metadata: null, callbackParameters: null, func: funcNotReferenced, middleware: true, path: rawPath, isLocalRouteMiddleware })
+                                        routeMiddlewares.push({ metadata: null, callbackParameters: null, func: funcNotReferenced, middleware: true, path: rawPath, isLocalRouteMiddleware, position })
+                                        functionArray = functionArray.replace(funcNotReferenced, ' ')
                                     }
                                 } else if (funcNotReferenced) {
 
@@ -630,7 +648,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                         let isLocalRouteMiddleware = false
                                         if (aData[idxElem].split(new RegExp(regex)).length > 1)  // Verify if is not a local route middleware, such as: route.use(middleware).get(...).post(...)...
                                             isLocalRouteMiddleware = true
-                                        routeMiddlewares.push({ metadata: func, callbackParameters: null, func: refFunction, middleware: true, path: rawPath, isLocalRouteMiddleware })
+                                        routeMiddlewares.push({ metadata: func, callbackParameters: null, func: refFunction, middleware: true, path: rawPath, isLocalRouteMiddleware, position })
                                     }
                                 } else if (refFunction) {
                                     refFunction = await handleData.clearData(refFunction)
@@ -646,7 +664,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                         let isLocalRouteMiddleware = false
                                         if (aData[idxElem].split(new RegExp(regex)).length > 1)  // Verify if is not a local route middleware, such as: route.use(middleware).get(...).post(...)...
                                             isLocalRouteMiddleware = true
-                                        routeMiddlewares.push({ metadata: func, callbackParameters: null, func: refFunction, middleware: true, path: rawPath, isLocalRouteMiddleware })
+                                        routeMiddlewares.push({ metadata: func, callbackParameters: null, func: refFunction, middleware: true, path: rawPath, isLocalRouteMiddleware, position })
                                     }
                                 } else if (refFunction) {
                                     refFunction = await handleData.clearData(refFunction)
@@ -660,9 +678,19 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         continue
 
                     /**
-                     * endpointFunctions: receives the endpoint functions and local middleware
+                     * endpointFunctions: receives the endpoint functions, local middleware and received middlewares 
                      */
-                    endpointFunctions = [...routeMiddlewares.filter(r => r.path === false), ...endpointFunctions]
+                    let localPath = swaggerTags.getPath(elemOrig, autoMode)
+
+                    endpointFunctions = [
+                        ...routeMiddlewares.filter(r => {
+                            if ((r.path === "/*" || r.path === "/"))
+                                return true
+                            if ((r.path === false && r.position < position) || (localPath && r.path && localPath.split(r.path)[0] === '')) // TODO: verify: r.position < position
+                                return true
+                            return false
+                        }),
+                        ...endpointFunctions]
 
                     // Getting  'request', 'response' and 'next' parameters in the endpointFunctions
                     for (let efIdx = 0; efIdx < endpointFunctions.length; ++efIdx) {
@@ -840,8 +868,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     var obj = { path: null, varFileName: null, middleware: null, fileName: null, isDirectory: null }
                     var data = rt.split(']_])(')
                     var routeName = data[1].split('[_[')[1].trim()
+                    let postion = parseInt(data[2].split('[_[')[1])
 
-                    data = await handleData.stackSymbolRecognizer(data[2], '(', ')')
+                    data = await handleData.stackSymbolRecognizer(data[3], '(', ')')
 
                     let routeFound = propRoutes.find(r => r.routeName === routeName)
                     if (routeFound)
@@ -887,7 +916,6 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         obj.path = ''
                         obj.varFileName = data
                         obj.varFileName = obj.varFileName.replaceAll('(', '').replaceAll(')', '').replaceAll(' ', '')
-                        obj.routeMiddlewares = routeMiddlewares.filter(r => (r.path !== false) && (r.path === obj.path) || (r.fixedRoute === true))
                         if (obj.hasRequire && routePrefix)  // TODO: Verify other cases
                             obj.path = ''
                         else
@@ -896,7 +924,6 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     } else {
                         obj.path = data.split(',')[0]
                         obj.path = obj.path.getBetweenStrs("\`", "\`") || obj.path.getBetweenStrs("\'", "\'") || obj.path.getBetweenStrs("\"", "\"")
-                        obj.routeMiddlewares = routeMiddlewares.filter(r => (r.path !== false) && (r.path === obj.path) || (r.fixedRoute === true))
 
                         if (obj.hasRequire && routePrefix)  // TODO: Verify other cases
                             obj.path = ''
@@ -971,6 +998,21 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         else
                             pathFile = importedFiles[idx].fileName
 
+                        obj.routeMiddlewares = routeMiddlewares.filter(r => {
+                            if (r.position == postion)
+                                return true
+
+                            if (r.path === false && r.position < postion) {
+                                return true
+                            }
+
+                            // if ((r.path !== false) && (r.path === obj.path) || (r.fixedRoute === true))  // TODO: verify 'fixedRoute'
+                            if ((r.path !== false) && (r.path && obj.path && r.path.split(obj.path)[0] === '') && r.position < postion)
+                                return true
+
+                            return false
+                        })
+
                         obj.fileName = pathFile
                         var auxRelativePath = obj.fileName.split('/')
                         auxRelativePath.pop()
@@ -984,8 +1026,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             else
                                 allPaths = { ...paths, ...allPaths }
                         } else {
-                            var extension = await getExtension(obj.fileName)
                             let refFunction = null
+                            var extension = await getExtension(obj.fileName)
 
                             if (refFunc) {
                                 refFunction = await functionRecognizerInFile(obj.fileName + extension, refFunc)
@@ -1056,13 +1098,14 @@ function getImportedFiles(aDataRaw, relativePath) {
                     obj.varFileName = varFileName
                 }
 
+                // REFACTOR
                 var fileName = imp.split(new RegExp(";|\n"))[0].trim()
-                if (fileName && fileName.split(new RegExp(` from `, "i")).length > 1) {     // TODO: verify case: " ... }from ... "
-                    fileName = fileName.split(new RegExp(` from `, "i"))[1].trim()
-                } else if (imp.split(new RegExp(` from `, "i")).length > 1) {
-                    fileName = imp.split(new RegExp(` from `, "i"))[1].trim()
+                if (fileName && fileName.split(new RegExp(" from |\\}\\s*from\\s*\\\"?\\\'?\\\`?", "i")).length > 1) {
+                    fileName = fileName.split(new RegExp(" from |\\}\\s*from\\s*\\\"?\\\'?\\\`?", "i"))[1].trim()
+                } else if (imp.split(new RegExp(" from |\\}\\s*from\\s*\\\"?\\\'?\\\`?", "i")).length > 1) {
+                    fileName = imp.split(new RegExp(" from |\\}\\s*from\\s*\\\"?\\\'?\\\`?", "i"))[1].trim()
                 }
-
+                fileName = fileName.split(new RegExp("\\n|\\;"))[0].trim()
                 fileName = fileName.replaceAll('\'', '').replaceAll('\"', '').replaceAll('\`', '').replaceAll(' ', '').replaceAll(';', '').replaceAll('\n', '')
 
                 if (fileName[0] === '@') {    // reference to tsconfig.json

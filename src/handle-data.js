@@ -428,7 +428,7 @@ function addReferenceToMethods(data, patterns) {
         auxData = auxData.join('')
         // END CASE
 
-        let methods = [...statics.METHODS, 'use']
+        let methods = [...statics.METHODS, 'use', 'all']
         for (var idx = 0; idx < methods.length; ++idx) {
             for (var idxPtn = 0; idxPtn < patterns.length; ++idxPtn) {
                 let method = methods[idx]
@@ -439,6 +439,13 @@ function addReferenceToMethods(data, patterns) {
             }
 
             if (idx == methods.length - 1) {
+                /* Adding position */
+                auxData = auxData.split(']_])([_[')
+                for (var idxPtn = 1; idxPtn < auxData.length; ++idxPtn) {
+                    auxData[idxPtn] = auxData[idxPtn].replace(']_])(', `]_])([_[${idxPtn - 1}]_])(`)
+                }
+                auxData = auxData.join(']_])([_[')
+
                 return resolve(auxData)
             }
         }
