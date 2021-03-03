@@ -18,6 +18,9 @@ function dataConverter(data) {
     return new Promise(async (resolve, reject) => {
         let patterns = new Set()
         // CASE: Converting require("./foo")(app) to app.use(require("./foo"))
+        if (!data)
+            return resolve({ data, patterns: [] })
+
         let founds = data.split(new RegExp("(require\\s*\\n*\\t*\\(.*\\)\\s*\\n*\\t*\\(\\s*\\n*\\t*.*\\s*\\n*\\t*\\))"))
         for (let idx = 0; idx < founds.length; ++idx) {
             let req = founds[idx]
@@ -48,6 +51,8 @@ function dataConverter(data) {
  */
 function clearData(data) {
     return new Promise(async (resolve, reject) => {
+        if (!data)
+            return resolve(data)
 
         // Change "// ..." comment to "/* ... */" 
         data = data.replaceAll('*//*', '*/\n/*')
@@ -95,7 +100,7 @@ function clearData(data) {
 function removeComments(data, keepSwaggerTags = false) {
     return new Promise(async (resolve, reject) => {
 
-        if (data.length == 0)
+        if (!data || data.length == 0)
             return resolve(data)
 
         var strToReturn = ''
@@ -382,6 +387,9 @@ function removeInsideParentheses(data, keepParentheses = false) {
  */
 function addReferenceToMethods(data, patterns) {
     return new Promise((resolve, reject) => {
+        if (!data)
+            return resolve(data)
+
         let auxData = data
         let routeEndpoints = []
         // CASE: router.route('/user').get(authorize, (req, res) => {
@@ -460,6 +468,9 @@ function addReferenceToMethods(data, patterns) {
  */
 function stackSymbolRecognizer(data, startSymbol, endSymbol) {
     return new Promise((resolve) => {
+        if (!data)
+            return resolve(data)
+
         var stack = 1
         data = data.split('').filter(c => {
             if (stack <= 0) return false
@@ -514,7 +525,7 @@ function stack0SymbolRecognizer(data, startSymbol, endSymbol) {
 function getQueryIndirecty(elem, request, objParameters) {
     for (let idx = 0; idx < request.length; ++idx) {
         let req = request[idx]
-        if (req && req.split(new RegExp("\\;|\\{|\\(|\\[|\\\"|\\\'|\\\`|\\}|\\)|\\]|\\:|\\,")).length == 1 && elem.split(new RegExp(" .*?\\s*\\t*=\\s*\\t*" + req + "\\.\\s*\\t*query(\\s|\\n|;|\\t)", "gmi").length > 1)) {
+        if (req && req.split(new RegExp("\\;|\\{|\\(|\\[|\\\"|\\\'|\\\`|\\}|\\)|\\]|\\:|\\,|\\*|\\!|\\\|")).length == 1 && elem && elem.split(new RegExp(" .*?\\s*\\t*=\\s*\\t*" + req + "\\.\\s*\\t*query(\\s|\\n|;|\\t)", "gmi").length > 1)) {
             let queryVars = []
             var aQuerys = elem.split(new RegExp("\\s*\\t*=\\s*\\t*" + req + "\\.\\s*\\t*query(\\s|\\n|;|\\t)", "i"))
             aQuerys = aQuerys.slice(0, -1)
@@ -522,16 +533,18 @@ function getQueryIndirecty(elem, request, objParameters) {
             if (aQuerys.length > 0) {
                 // get variables name
                 for (let idx = 0; idx < aQuerys.length; idx++) {  // aQuerys.length -1
-                    if (aQuerys[idx].replaceAll(' ', '') != '')
+                    if (aQuerys[idx] && aQuerys[idx].replaceAll(' ', '') != '')
                         queryVars.push(aQuerys[idx].split(new RegExp("\\s*|\\t*")).slice(-1)[0])
                 }
                 if (queryVars.length > 0) {
                     queryVars.forEach(query => {
-                        let varNames = elem.split(new RegExp(" " + query + "\\.")).splice(1)
-                        varNames = varNames.map(v => v = v.split(new RegExp("\\s|;|\\n|\\t"))[0])
-                        varNames.forEach(name => {
-                            objParameters[name] = { name, in: 'query' }
-                        })
+                        if (query && query.split(new RegExp("\\;|\\{|\\(|\\[|\\\"|\\\'|\\\`|\\}|\\)|\\]|\\:|\\,|\\*|\\!|\\\|")).length == 1) {
+                            let varNames = elem.split(new RegExp(" " + query + "\\.")).splice(1)
+                            varNames = varNames.map(v => v = v.split(new RegExp("\\s|;|\\n|\\t"))[0])
+                            varNames.forEach(name => {
+                                objParameters[name] = { name, in: 'query' }
+                            })
+                        }
                     })
                 }
             }
@@ -549,7 +562,7 @@ function getQueryIndirecty(elem, request, objParameters) {
 function getStatus(elem, response, objResponses) {
     for (let idx = 0; idx < response.length; ++idx) {
         let res = response[idx]
-        if (res && (elem.replaceAll(' ', '').includes(res + '.status('))) {
+        if (res && elem && (elem.replaceAll(' ', '').includes(res + '.status('))) {
             elem.replaceAll(' ', '').split(res + '.status(').splice(1).forEach(s => {
                 let status = s.split(')')[0]
                 if (isNumeric(status) && !!objResponses[status] === false) {
@@ -574,11 +587,11 @@ function getStatus(elem, response, objResponses) {
 function getHeader(elem, path, method, response, objEndpoint) {
     for (let idx = 0; idx < response.length; ++idx) {
         let res = response[idx]
-        if (res && (elem.replaceAll(' ', '').includes(res + '.setHeader('))) {
+        if (res && elem && (elem.replaceAll(' ', '').includes(res + '.setHeader('))) {
             elem = elem.replaceAll(' ', '')
             let aContentType = new Set()    // To avoid repetition
             elem.split(res + '.setHeader(').splice(1).forEach(s => {
-                if (s.includes(',') && s.split(',')[0].includes('content-type') && s.split(',\"')[1])
+                if (s && s.includes(',') && s.split(',')[0].includes('content-type') && s.split(',\"')[1])
                     aContentType.add(s.split(',\"')[1].split('\")')[0])
             })
             objEndpoint[path][method].produces = [...aContentType]
@@ -596,7 +609,7 @@ function getHeader(elem, path, method, response, objEndpoint) {
 function getQuery(elem, request, objParameters) {
     for (let idx = 0; idx < request.length; ++idx) {
         let req = request[idx]
-        if (req && (elem.split(req + '.query.').length > 1)) {
+        if (req && elem && (elem.split(req + '.query.').length > 1)) {
             elem.split(req + '.query.').splice(1).forEach(p => {
                 let name = p.split(/\(|\)|\{|\}|\[|\]|\/|\\|\;|\:|\!|\@|\$|\#|\=|\?|\+|,|\||\&|\t|\n| /)[0].replaceAll(' ', '')
                 if (name.includes('.'))
@@ -619,6 +632,8 @@ function getQuery(elem, request, objParameters) {
  */
 function getCallbackParameters(line) {
     return new Promise(async (resolve) => {
+        if (!line)
+            return resolve({ req: [], res: [], next: [] })
 
         let req = new Set()
         let res = new Set()
@@ -630,6 +645,9 @@ function getCallbackParameters(line) {
         for (let idx = 0; idx < splitedParams.length; ++idx) {
 
             let pos = splitedParams[idx + 2] || ''
+
+            if (!pos)
+                continue
 
             if (pos !== '') {
                 pos = await removeComments(pos)
@@ -740,6 +758,9 @@ function getCallbackParameters(line) {
  */
 function getPathParameters(path, objParameters) {
     return new Promise(async (resolve) => {
+        if (!path)
+            return resolve(objParameters)
+
         if (path.split('{').length > 1) {
             var name = ' '
             var cnt = 0
@@ -768,6 +789,9 @@ function getPathParameters(path, objParameters) {
  */
 async function functionRecognizerInData(data, refFuncao) {
     return new Promise(async (resolve, reject) => {
+        if (!data || !refFuncao)
+            return resolve(null)
+
         var func = null
         refFuncao = refFuncao.split(new RegExp("\\;|\\{|\\(|\\[|\\\"|\\\'|\\\`|\\}|\\)|\\]|\\:|\\,|\\*"))
         if (refFuncao.length > 1)
@@ -877,6 +901,9 @@ async function functionRecognizerInData(data, refFuncao) {
  */
 function popFunction(functionArray) {
     return new Promise(async (resolve) => {
+        if (!functionArray)
+            return resolve(null)
+
         var arrowFunction = functionArray.split(new RegExp(`(\\s*\\n*\\t*\\([\\s\\S]*\\)\\s*\\t*=>\\s*\\n*\\t*\\{)`))  // arrow function with '{' and '}'
         var arrowFunctionWithoutCurlyBracket = ['']
         var traditionalFunction = ['']
@@ -931,6 +958,9 @@ function popFunction(functionArray) {
  */
 function popString(data) {
     return new Promise(async (resolve) => {
+        if (!data)
+            return resolve(null)
+
         data = data.replaceAll("\\\"", statics.STRING_BREAKER + "_quote1_" + statics.STRING_BREAKER)
         data = data.replaceAll("\\\'", statics.STRING_BREAKER + "_quote2_" + statics.STRING_BREAKER)
         data = data.replaceAll("\\\`", statics.STRING_BREAKER + "_quote3_" + statics.STRING_BREAKER)

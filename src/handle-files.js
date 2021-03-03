@@ -1,4 +1,5 @@
 const fs = require('fs')
+const JSON5 = require('json5')
 const swaggerTags = require('./swagger-tags')
 const handleData = require('./handle-data')
 const statics = require('./statics')
@@ -107,7 +108,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         routerObj.routeName = route.split(new RegExp("\\=|\\s|\\n|\\t"))[0].replaceAll(' ', '')
                         let prefix = prop
                         prefix = prefix.split(/\}\s*\n*\t*\)/)[0]
-                        if (prefix.split(new RegExp("\\s*prefix\\s*\\n*\\t*\\:").length > 1)) {
+                        if (prefix && prefix.split(new RegExp("\\s*prefix\\s*\\n*\\t*\\:").length > 1)) {
                             prefix = prefix.split(new RegExp("\\s*prefix\\s*\\n*\\t*\\:\\s*\\n*\\t*"))[1].trimLeft()
                             prefix = prefix.split(new RegExp("\\s|\\n|\\t|\\,"))[0].trim()
                             prefix = prefix.replaceAll('\'', '').replaceAll('\"', '').replaceAll('\`', '')
@@ -139,7 +140,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                 regex = ''
                 patterns.forEach(pattern => {
-                    if (pattern.split(new RegExp("\\!|\\=|\\<|\\>|\\,|\\;|\\:|\\{|\\}|\\(|\\)|\\[|\\]|axios|superagent|request|fetch|supertest", "i")).length > 1)
+                    if (pattern && pattern.split(new RegExp("\\!|\\=|\\<|\\>|\\,|\\;|\\:|\\{|\\}|\\(|\\)|\\[|\\]|axios|superagent|request|fetch|supertest", "i")).length > 1)
                         return
 
                     if (!firstPattern)
@@ -293,7 +294,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     let isChained = false
                     let position = null
 
-                    if (elem.includes('[_[') && elem.includes(']_]')) {
+                    if (elem && elem.includes('[_[') && elem.includes(']_]')) {
                         elem = elem.split(new RegExp("\\[_\\[|\\]_\\]\\)\\("))
                         predefMethod = elem[1]
                         predefPattern = elem[3]
@@ -373,7 +374,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                      */
                     var elemParam = await handleData.removeStrings(elem)
                     elemParam = await handleData.removeComments(elemParam)
-                    if ((elemParam.split(",").length > 1 && !forced) || predefMethod === 'use') {
+                    if ((elemParam && elemParam.split(",").length > 1 && !forced) || predefMethod === 'use') {
                         var functions = []      // Array that contains possible functions in other files
                         var auxElem = await handleData.removeComments(elem)
                         auxElem = auxElem.replace(rawPath, "")
@@ -1086,7 +1087,7 @@ function getImportedFiles(aDataRaw, relativePath) {
             var tsconfig = await getFileContent(process.cwd() + '/tsconfig.json')
             if (tsconfig) {
                 tsconfig = await handleData.removeComments(tsconfig)
-                tsconfig = JSON.parse(tsconfig)
+                tsconfig = JSON5.parse(tsconfig)    // Allow trailing commas
                 tsPaths = tsconfig.compilerOptions && tsconfig.compilerOptions.paths && typeof tsconfig.compilerOptions.paths === 'object' ? Object.entries(tsconfig.compilerOptions.paths) : null
             }
 
