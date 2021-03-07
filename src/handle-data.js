@@ -522,7 +522,7 @@ function stack0SymbolRecognizer(data, startSymbol, endSymbol) {
  * @param {*} request 
  * @param {*} objParameters 
  */
-function getQueryIndirecty(elem, request, objParameters) {
+function getQueryIndirectly(elem, request, objParameters) {
     for (let idx = 0; idx < request.length; ++idx) {
         let req = request[idx]
         if (req && req.split(new RegExp("\\;|\\{|\\(|\\[|\\\"|\\\'|\\\`|\\}|\\)|\\]|\\:|\\,|\\*|\\!|\\\|")).length == 1 && elem && elem.split(new RegExp(" .*?\\s*\\t*=\\s*\\t*" + req + "\\.\\s*\\t*query(\\s|\\n|;|\\t)", "gmi").length > 1)) {
@@ -606,12 +606,17 @@ function getHeader(elem, path, method, response, objEndpoint) {
  * @param {*} request 
  * @param {*} objParameters 
  */
-function getQuery(elem, request, objParameters) {
+function getQueryAndBody(elem, request, objParameters) {
     for (let idx = 0; idx < request.length; ++idx) {
         let req = request[idx]
+
+        if (req && req.split(/\(|\)|\{|\}|\[|\]|\/|\\|\;|\:|\!|\@|\$|\#|\=|\?|\+|\,|\||\&|\t|\n|\"|\'|\`|\*/).length > 1)
+            continue
+
         if (req && elem && (elem.split(req + '.query.').length > 1)) {
             elem.split(req + '.query.').splice(1).forEach(p => {
-                let name = p.split(/\(|\)|\{|\}|\[|\]|\/|\\|\;|\:|\!|\@|\$|\#|\=|\?|\+|,|\||\&|\t|\n| /)[0].replaceAll(' ', '')
+                p = p.trim()
+                let name = p.split(/\(|\)|\{|\}|\[|\]|\/|\\|\;|\:|\!|\@|\$|\#|\=|\?|\+|\,|\||\&|\t|\n| /)[0].replaceAll(' ', '')
                 if (name.includes('.'))
                     name = name.split('.')[0]
                 if (!!objParameters[name] === false)    // Checks if the parameter name already exists
@@ -623,63 +628,138 @@ function getQuery(elem, request, objParameters) {
             })
         }
 
-        // create by WHL, add ```{a, b} = req.query``` condition ---- start
-        if (req && (elem.split(req + '.query').length > 1)) {
-            elem.replace(/\s/g, '').split(req + '.query').slice(0, -1).map(m => {
-                if (m.split('{').pop().match(/(\S*)}/)) {
-                    m.split('{').pop().split('}')[0].split(',').map(name => {
-                        if (!!objParameters[name] === false)    // Checks if the parameter name already exists
-                            objParameters[name] = { name, in: 'query' }
-                        if (!objParameters[name].in)
-                            objParameters[name].in = 'query'
-                        if (!objParameters[name].type && !objParameters[name].schema)   // by default: 'type' is 'string' when 'schema' is missing
-                            objParameters[name].type = 'string'
-                    })
+        /**
+         * Pull Request (#30)
+         * CASE: Destructuring in body, such as: {a, b} = req.query
+         * Created by: WHL
+         * Modified by: Davi Baltar
+         */
+        elem = elem.split(new RegExp("\\s*\\.\\s*query\\s*[\\;|\\,|\\}|\\]|\\)]"))
+        elem = elem.join(".query ")
+        if (req && elem && (elem.split(new RegExp('\\}\\s*\\=\\s*' + req + '.query\\s+')).length > 1)) {
+            let elems = elem.split(new RegExp('\\}\\s*\\=\\s*' + req + '.query\\s+'))
+            for (let idxQuery = 0; idxQuery < elems.length - 1; ++idxQuery) {
+                let query = elems[idxQuery]   //objBody
+
+                /**
+                 * CASE: const { item1, item2: { subItem1, subItem2 } } = req.query; 
+                 * Solution: Eliminate sub-items for now
+                 * TODO: In the furute, handle sub-items
+                 */
+                if (query.split(new RegExp("\\:\\s*\\{")).length > 1) {
+                    let subObjs = query.split(new RegExp("\\:\\s*\\{"))
+                    for (let idxObj = 1; idxObj < subObjs.length; ++idxObj) {
+                        subObjs[idxObj] = subObjs[idxObj].split('}')[1]
+                    }
+                    query = subObjs.join('')
                 }
-            })
+                /* END CASE */
+
+                query = query.split('{').slice(-1)[0]
+                query = query.split(',')
+                query.map(name => {
+                    name = name.trim()
+                    name = name.split(/\(|\)|\{|\}|\[|\]|\/|\\|\;|\:|\!|\@|\$|\#|\=|\?|\+|\,|\||\&|\t|\n| /)[0].replaceAll(' ', '')
+                    if (name == '')
+                        return
+
+                    if (!!objParameters[name] === false)    // Checks if the parameter name already exists
+                        objParameters[name] = { name, in: 'query' }
+                    if (!objParameters[name].in)
+                        objParameters[name].in = 'query'
+                    if (!objParameters[name].type && !objParameters[name].schema)   // by default: 'type' is 'string' when 'schema' is missing
+                        objParameters[name].type = 'string'
+                })
+            }
         }
 
-        // add condition in req.body
-        if (req && (elem.split(req + '.body.').length > 1)) {
+        /**
+         * Pull Request (#30)
+         * CASE: Recognize body parameters
+         * Created by: WHL
+         * Modified by: Davi Baltar
+         */
+        if (req && elem && (elem.split(req + '.body.').length > 1)) {
             elem.split(req + '.body.').splice(1).forEach(p => {
-                let name = p.split(/\(|\)|\{|\}|\[|\]|\/|\\|\;|\:|\!|\@|\$|\#|\=|\?|\+|,|\||\&|\t|\n| /)[0].replaceAll(' ', '')
+                p = p.trim()
+                let name = p.split(/\(|\)|\{|\}|\[|\]|\/|\\|\;|\:|\!|\@|\$|\#|\=|\?|\+|\,|\||\&|\t|\n| /)[0].replaceAll(' ', '')
                 if (name.includes('.'))
                     name = name.split('.')[0]
-                if (!!objParameters['obj'] === false) {
-                    objParameters['obj'] = { name: 'obj', in: 'body', schema: { type: "object", properties: {} } }
+                if (!!objParameters['__obj__in__body__'] === false) {
+                    objParameters['__obj__in__body__'] = { name: '__obj__in__body__', in: 'body', schema: { type: "object", properties: {} } }
                 }
-                if (!!objParameters['obj'] === true) {  // Checks if the parameter name already exists
-                    if (!objParameters['obj'].schema.properties[name]) {
-                        objParameters['obj'].schema.properties[name] = {}
-                        if (!objParameters['obj'].schema.properties[name].type && (!!objParameters[name] ? !!objParameters[name].schema ? 0 : 1 : 1)) {
-                            objParameters['obj'].schema.properties[name].type = "string"
-                        }
-                    }
+                if (!!objParameters['__obj__in__body__'] === true) {  // Checks if the parameter name already exists
+                    objParameters['__obj__in__body__'].schema.properties[name] = { type: "string", example: "any" }
                 }
             })
         }
 
-        // add ```{a, b} = req.body``` condition
-        if (req && (elem.split(req + '.body').length > 1)) {
-            elem.replace(/\s/g, '').split(req + '.body').slice(0, -1).map(m => {
-                if (m.split('{').pop().match(/(\S*)}/)) {
-                    m.split('{').pop().split('}')[0].split(',').map(name => {
-                        if (!!objParameters['obj'] === false) {
-                            objParameters['obj'] = { name: 'obj', in: 'body', schema: { type: "object", properties: {} } }
-                        }
-                        if (!!objParameters['obj'] === true) {  // Checks if the parameter name already exists
-                            if (!objParameters['obj'].schema.properties[name]) {
-                                objParameters['obj'].schema.properties[name] = {}
-                                if (!objParameters['obj'].schema.properties[name].type && (!!objParameters[name] ? !!objParameters[name].schema ? 0 : 1 : 1)) {
-                                    objParameters['obj'].schema.properties[name].type = "string"
-                                }
-                            }
-                        }
-                    })
+        // Replace ".body..." to ".body ..."
+        elem = elem.split(new RegExp("\\s*\\.\\s*body\\s*[\\;|\\,|\\}|\\]|\\)]"))
+        elem = elem.join(".body ")
+
+        /**
+         * Pull Request (#30)
+         * CASE: Destructuring in body, such as: {a, b} = req.body
+         * Created by: WHL
+         * Modified by: Davi Baltar
+         */
+        if (req && elem && (elem.split(new RegExp('\\}\\s*\\=\\s*' + req + '.body\\s+')).length > 1)) {
+            let elems = elem.split(new RegExp('\\}\\s*\\=\\s*' + req + '.body\\s+'))
+            for (let idxBody = 0; idxBody < elems.length - 1; ++idxBody) {
+                let objBody = elems[idxBody]
+
+                /**
+                 * CASE: const { item1, item2: { subItem1, subItem2 } } = req.body; 
+                 * Solution: Eliminate sub-items for now
+                 * TODO: In the furute, handle sub-items
+                 */
+                if (objBody.split(new RegExp("\\:\\s*\\{")).length > 1) {
+                    let subObjs = objBody.split(new RegExp("\\:\\s*\\{"))
+                    for (let idxObj = 1; idxObj < subObjs.length; ++idxObj) {
+                        subObjs[idxObj] = subObjs[idxObj].split('}')[1]
+                    }
+                    objBody = subObjs.join('')
                 }
-            })
+                /* END CASE */
+
+                objBody = objBody.split('{').slice(-1)[0]
+                objBody = objBody.split(',')
+                objBody.map(name => {
+                    name = name.trim()
+                    name = name.split(/\(|\)|\{|\}|\[|\]|\/|\\|\;|\:|\!|\@|\$|\#|\=|\?|\+|\,|\||\&|\t|\n| /)[0].replaceAll(' ', '')
+                    if (name == '')
+                        return
+
+                    if (!!objParameters['__obj__in__body__'] === false) {
+                        objParameters['__obj__in__body__'] = { name: '__obj__in__body__', in: 'body', schema: { type: "object", properties: {} } }
+                    }
+                    if (!!objParameters['__obj__in__body__'] === true) {  // Checks if the parameter name already exists
+                        objParameters['__obj__in__body__'].schema.properties[name] = { type: "string", example: "any" }
+                    }
+                })
+            }
         }
-        // ---------------------------- end
+        /**
+         * TODO: Recognize sub-objects and sub-arrays in body, such as:
+         * ************************************************************
+         * 
+         *   Input code:
+         *      req.body.myItem
+         *      req.body.myArray[0]
+         *      req.body.myObject.item
+         *
+         *   Output doc:
+         *   {
+         *       myItem: "string",
+         *       myArray: [
+         *           "string"
+         *       ],
+         *       myObject: {
+         *           item: "string"
+         *       }
+         *   }
+         */
     }
     return objParameters
 }
@@ -1045,10 +1125,10 @@ module.exports = {
     addReferenceToMethods,
     stack0SymbolRecognizer,
     stackSymbolRecognizer,
-    getQueryIndirecty,
+    getQueryIndirectly,
     getStatus,
     getHeader,
-    getQuery,
+    getQueryAndBody,
     getCallbackParameters,
     getPathParameters,
     functionRecognizerInData,

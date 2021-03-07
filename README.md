@@ -64,7 +64,7 @@ const swaggerAutogen = require('swagger-autogen')()
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save swagger-autogen@2.6.9
+$ npm install --save swagger-autogen@2.7.0
 ```
 
 ## Usage
@@ -328,7 +328,7 @@ All optional parameters:
 **format:** 'int64', etc.  
 **schema:** See section [Schema and Definitions](#schema-and-definitions)  
 
-For example:
+Some examples:
 ```js
     ...
     app.get('/users/:id', (req, res) => {
@@ -337,7 +337,7 @@ For example:
         ...
     })
 
-    app.post('/book', (req, res) => {
+    app.post('/books', (req, res) => {
         ...
         /*  #swagger.parameters['obj'] = {
                 in: 'body',
@@ -350,15 +350,81 @@ For example:
 
     app.post('/users', (req, res) => {
         ...
-        /*    #swagger.parameters['obj'] = { 
+        /*  #swagger.parameters['obj'] = { 
                 in: 'body',
                 description: "Add a user",
                 schema: { $ref: "#/definitions/AddUser" }
         } */
         ...
     })
+
+    app.get('/users', async (req, res) => {
+        /*  #swagger.parameters['item'] = { 
+                in: 'query',
+                description: "Any item..."
+        } */
+        let test = req.query.item
+    });
+
 ```
+
 Click here to see: ["#/definitions/AddUser"](#schema-and-definitions)
+
+#### Body  
+
+The **body** is automatically recognized, for example:
+
+```js
+    app.post('/users', (req, res) => {
+
+        const myItem1 = req.body.item1
+
+        const { item2, item3 } = req.body
+
+        ...
+    })
+```
+
+**NOTE:** But, if there is any `#swagger.parameters[...] = { in: 'body', ... }` with **schema** declared, the recognition of **body** will be ignored, for example:
+
+```js
+    app.post('/users', (req, res) => {
+        /*  #swagger.parameters['parameter_name'] = {
+                in: 'body',
+                description: "Any description...",
+                schema: {
+                    $name: "Jhon Doe",
+                    $age: 29,
+                    about: ""
+                }
+        } */
+
+        const myItem1 = req.body.item1  // Will be ignored
+
+        const { item2, item3 } = req.body  // Will be ignored
+
+        ...
+    })
+```
+
+However, if you wish to add more information to the automatically recognized **body**, declared the `#swagger.parameters` adding **in: 'body'**, BUT without the **schema**, such as:
+
+```js
+    app.post('/users', (req, res) => {
+        /*  #swagger.parameters['any_name'] = {
+               in: 'body',
+               description: "Any description..."
+        } */
+
+        const myItem1 = req.body.item1
+
+        const { item2, item3 } = req.body
+
+        ...
+    })
+```
+
+Automatically the body will be recognized and concatenated with the `#swagger.parameters['parameter_name'] ... `. 
 
 ### Responses
 It is possible to create or complement automatically detected responses. Use the `#swagger.reponses[statusCode]` tag to create a new answer or to complete an existing answer (automatically detected).
@@ -830,6 +896,9 @@ Some tutorials with examples:
 - Version 2.6.x:
   - Recognition of more patterns
   - Bug fix
+- Version 2.7.x:
+  - Automatic body recognition
+  - Automatic 'destructuring' recognition (query and body)
 
 
 **TODO:**  

@@ -243,7 +243,7 @@ function getParametersTag(data, objParameters) {
             if (!objParameters[name].in)   // by default: 'in' is 'query'
                 objParameters[name].in = 'query'
 
-            if (!objParameters[name].type && !objParameters[name].schema)   // by default: 'type' is 'string' when 'schema' is missing
+            if (!objParameters[name].type && !objParameters[name].schema && objParameters[name].in != 'body')   // by default: 'type' is 'string' when 'schema' is missing
                 objParameters[name].type = 'string'
 
             if (objParameters[name].schema && !objParameters[name].schema.$ref)

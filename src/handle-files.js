@@ -753,20 +753,18 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     if (endpointFunctions && endpointFunctions.length == 0) {
                         paths = { ...paths, ...objEndpoint }
                     } else {
-                        for (var _idxEF in endpointFunctions) {
+                        var objInBody = null
+                        for (let _idxEF = 0; _idxEF < endpointFunctions.length; ++_idxEF) {
                             let endpoint = endpointFunctions[_idxEF].func
 
                             if (swaggerTags.getIgnoreTag(endpoint))
                                 continue
 
-                            endpoint = endpoint.replaceAll('\n', '').replaceAll('/*', '\n').replaceAll('*/', '\n').replaceAll(statics.SWAGGER_TAG, '\n' + statics.SWAGGER_TAG)
+                            endpoint = endpoint.replaceAll('\n', ' ').replaceAll('/*', '\n').replaceAll('*/', '\n').replaceAll(statics.SWAGGER_TAG, '\n' + statics.SWAGGER_TAG)
 
                             req = null
                             res = null
                             next = null
-
-                            if (endpoint.replaceAll('\n', '').replaceAll(' ', '') === '')
-                                continue
 
                             // Geting callback parameters: 'request', 'response' and 'next'
                             if (autoMode && !req && !res) {
@@ -832,8 +830,15 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 endpoint = await handleData.removeStrings(endpoint) // Avoiding .status(...) in string
                                 endpoint = endpoint.replaceAll('__¬¬¬__', '"')
                                 if (req) {
-                                    objParameters = handleData.getQuery(endpoint, req, objParameters)              // Search for parameters in the query (directy)
-                                    objParameters = handleData.getQueryIndirecty(endpoint, req, objParameters)     // Search for parameters in the query (indirecty)
+                                    objParameters = handleData.getQueryAndBody(endpoint, req, objParameters)        // Search for parameters in the query and body 
+                                    objParameters = handleData.getQueryIndirectly(endpoint, req, objParameters)     // Search for parameters in the query (indirectly)
+                                    if (objParameters['__obj__in__body__']) {
+                                        if (!objInBody)
+                                            objInBody = objParameters['__obj__in__body__']
+                                        else if (objInBody.schema && objInBody.schema.properties && objParameters['__obj__in__body__'].schema && objParameters['__obj__in__body__'].schema.properties)
+                                            objInBody.schema.properties = { ...objInBody.schema.properties, ...objParameters['__obj__in__body__'].schema.properties }
+                                        delete objParameters['__obj__in__body__']
+                                    }
                                 }
                                 if (res) {
                                     objResponses = handleData.getStatus(endpoint, res, objResponses)               // Search for response status
@@ -851,6 +856,19 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 }
                             })
                             objEndpoint[path][method].responses = objResponses
+
+                            if (objInBody && _idxEF == endpointFunctions.length - 1) {
+                                objInBody.name = 'obj'  // By default, the name of object recognized automatically in the body will be 'obj' if no parameter are found to be concatenate with it.
+                                if (objEndpoint[path][method].parameters && objEndpoint[path][method].parameters.length > 0 && objEndpoint[path][method].parameters.find(e => e.in === 'body')) {
+                                    let body = objEndpoint[path][method].parameters.find(e => e.in === 'body')
+                                    if (body && !body.schema && (!body.type || (body.type && body.type.toLowerCase() == "object"))) {
+                                        body.type = 'object'
+                                        objEndpoint[path][method].parameters[0] = { ...objInBody, ...body }
+                                    }
+                                } else {
+                                    objEndpoint[path][method].parameters.push(objInBody)
+                                }
+                            }
 
                             delete objEndpoint[path][method].path
                             delete objEndpoint[path][method].method
