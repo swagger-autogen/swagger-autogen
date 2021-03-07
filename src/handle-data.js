@@ -622,6 +622,64 @@ function getQuery(elem, request, objParameters) {
                     objParameters[name].type = 'string'
             })
         }
+
+        // create by WHL, add ```{a, b} = req.query``` condition ---- start
+        if (req && (elem.split(req + '.query').length > 1)) {
+            elem.replace(/\s/g, '').split(req + '.query').slice(0, -1).map(m => {
+                if (m.split('{').pop().match(/(\S*)}/)) {
+                    m.split('{').pop().split('}')[0].split(',').map(name => {
+                        if (!!objParameters[name] === false)    // Checks if the parameter name already exists
+                            objParameters[name] = { name, in: 'query' }
+                        if (!objParameters[name].in)
+                            objParameters[name].in = 'query'
+                        if (!objParameters[name].type && !objParameters[name].schema)   // by default: 'type' is 'string' when 'schema' is missing
+                            objParameters[name].type = 'string'
+                    })
+                }
+            })
+        }
+
+        // add condition in req.body
+        if (req && (elem.split(req + '.body.').length > 1)) {
+            elem.split(req + '.body.').splice(1).forEach(p => {
+                let name = p.split(/\(|\)|\{|\}|\[|\]|\/|\\|\;|\:|\!|\@|\$|\#|\=|\?|\+|,|\||\&|\t|\n| /)[0].replaceAll(' ', '')
+                if (name.includes('.'))
+                    name = name.split('.')[0]
+                if (!!objParameters['obj'] === false) {
+                    objParameters['obj'] = { name: 'obj', in: 'body', schema: { type: "object", properties: {} } }
+                }
+                if (!!objParameters['obj'] === true) {  // Checks if the parameter name already exists
+                    if (!objParameters['obj'].schema.properties[name]) {
+                        objParameters['obj'].schema.properties[name] = {}
+                        if (!objParameters['obj'].schema.properties[name].type && (!!objParameters[name] ? !!objParameters[name].schema ? 0 : 1 : 1)) {
+                            objParameters['obj'].schema.properties[name].type = "string"
+                        }
+                    }
+                }
+            })
+        }
+
+        // add ```{a, b} = req.body``` condition
+        if (req && (elem.split(req + '.body').length > 1)) {
+            elem.replace(/\s/g, '').split(req + '.body').slice(0, -1).map(m => {
+                if (m.split('{').pop().match(/(\S*)}/)) {
+                    m.split('{').pop().split('}')[0].split(',').map(name => {
+                        if (!!objParameters['obj'] === false) {
+                            objParameters['obj'] = { name: 'obj', in: 'body', schema: { type: "object", properties: {} } }
+                        }
+                        if (!!objParameters['obj'] === true) {  // Checks if the parameter name already exists
+                            if (!objParameters['obj'].schema.properties[name]) {
+                                objParameters['obj'].schema.properties[name] = {}
+                                if (!objParameters['obj'].schema.properties[name].type && (!!objParameters[name] ? !!objParameters[name].schema ? 0 : 1 : 1)) {
+                                    objParameters['obj'].schema.properties[name].type = "string"
+                                }
+                            }
+                        }
+                    })
+                }
+            })
+        }
+        // ---------------------------- end
     }
     return objParameters
 }
