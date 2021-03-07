@@ -424,7 +424,7 @@ However, if you wish to add more information to the automatically recognized **b
     })
 ```
 
-Automatically the body will be recognized and concatenated with the `#swagger.parameters['parameter_name'] ... `. 
+Automatically the **body** will be recognized and the parameters 'any_name' and 'description' will be assigned to the **body**.
 
 ### Responses
 It is possible to create or complement automatically detected responses. Use the `#swagger.reponses[statusCode]` tag to create a new answer or to complete an existing answer (automatically detected).
