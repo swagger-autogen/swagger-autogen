@@ -64,7 +64,7 @@ const swaggerAutogen = require('swagger-autogen')()
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save swagger-autogen@2.7.0
+$ npm install --save swagger-autogen@2.7.1
 ```
 
 ## Usage
@@ -899,6 +899,7 @@ Some tutorials with examples:
 - Version 2.7.x:
   - Automatic body recognition
   - Automatic 'destructuring' recognition (query and body)
+  - Bug fix
 
 
 **TODO:**  

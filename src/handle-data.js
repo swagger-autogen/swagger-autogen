@@ -961,6 +961,8 @@ async function functionRecognizerInData(data, refFuncao) {
                 } else {
                     // Default: Traditional function
                     traditionalFunction = data.split(new RegExp(`(${refFuncao}\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\=?\\s*\\n*\\t*\\([\\s\\S]*\\)\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\<?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\>?\\s*\\n*\\t*\\{)`))
+                    if (traditionalFunction.length == 1 && data.split(new RegExp(`${refFuncao}\\s*\\n*\\t*=\\s*\\n*\\t*\\[`)).length == 1)  // CASE: exports.validateUser = [ ]
+                        return resolve(null)
                 }
             }
         }
@@ -979,7 +981,7 @@ async function functionRecognizerInData(data, refFuncao) {
             func = traditionalFunction
             isTraditionalFunction = true
         } else {
-            // CASE: exports.validateUser = [
+            // CASE: exports.validateUser = [ ]
             let array = data.split(new RegExp(`${refFuncao}\\s*\\n*\\t*=\\s*\\n*\\t*\\[`))
             if (array.length > 1) {
                 let resp = await stackSymbolRecognizer(array[1], '(', ')')

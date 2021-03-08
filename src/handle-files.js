@@ -614,7 +614,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                                 // Trying to find the reference in the index file
                                 // TODO: implements to 'import' and 'exports.default'
-                                if (!refFunction && refFuncao && pathFile.split('/').slice(-1)[0] == 'index') {
+                                if (!refFunction && refFuncao && pathFile && pathFile.split('/').length > 1 && pathFile.split('/').slice(-1)[0] == 'index') {
                                     let dataIndexFile = await getFileContent(pathFile + extension)
                                     if (dataIndexFile) {
                                         pathFile = pathFile.split('/').slice(0, -1).join('/')   // removing '/index'
@@ -1332,8 +1332,9 @@ function getImportedFiles(aDataRaw, relativePath) {
  * TODO: fill
  * @param {*} fileName 
  * @param {*} refFuncao 
+ * @param {*} isRecursive To avoid infinite loop in case of recursion
  */
-function functionRecognizerInFile(fileName, refFuncao) {
+function functionRecognizerInFile(fileName, refFuncao, isRecursive = true) {
     return new Promise((resolve, reject) => {
         fs.readFile(fileName, 'utf8', async function (err, data) {
             if (err)
@@ -1350,7 +1351,7 @@ function functionRecognizerInFile(fileName, refFuncao) {
             cleanedData = cleanedData.join(': (')
             cleanedData = cleanedData.replaceAll(" function ", ' ')
 
-            // TODO: passa to function
+            // TODO: pass to function
             // adding '(' and ')' to arrow functions without '(' and ')', such as: ... async req => {
             if (cleanedData.split(new RegExp("\\s*\\n*\\t*=>\\s*\\n*\\t*").length > 1)) {
                 let params = cleanedData.trim().split(new RegExp("\\s*\\n*\\t*=>\\s*\\n*\\t*"))
@@ -1374,6 +1375,47 @@ function functionRecognizerInFile(fileName, refFuncao) {
 
             if (refFuncao) { // When file has more than one exported function
                 var funcStr = await handleData.functionRecognizerInData(cleanedData, refFuncao)
+
+                /**
+                 * CASE: Referenced function, such as: module.exports = { foo: require('./fooFile').foo } in index file
+                 * Issue: #29
+                 */
+                if (!funcStr && cleanedData && isRecursive === true && fileName && fileName.split('/').length > 1 && fileName.split('/').slice(-1)[0].includes('index.')) {
+                    let path = null
+                    let exports = cleanedData.split(new RegExp(`[\\s+|\\{|\\,]${refFuncao}\\s*\\:\\s*require\\s*\\(`))
+                    if (exports.length > 1) {
+                        let exp = exports[1].split(new RegExp("\\,|\\}"))[0]
+                        exp = exp.split(new RegExp("\\s*\\)\\s*\\.\\s*"))
+                        path = exp[0].replaceAll('\"', '').replaceAll('\'', '').replaceAll('\`', '').replaceAll(' ', '')
+                        if (exp.length > 1) {
+                            refFuncao = exp[1].trim().split(/\(|\)|\{|\}|\[|\]|\/|\\|\;|\:|\!|\@|\$|\#|\=|\?|\+|\,|\||\&|\*|\t|\n| /)[0].replaceAll(' ', '')
+                        } else {
+                            refFuncao = null
+                        }
+
+                        let relativePath = fileName.split('/').slice(0, -1).join('/')
+                        // TODO: Pass to function
+                        if (path && path.includes('./')) {
+                            if (path.includes("../")) {
+                                let foldersToBack = path.split("../").length - 1
+                                let RelativePathBacked = relativePath.split('/')
+                                RelativePathBacked = RelativePathBacked.slice(0, (-1) * foldersToBack)
+                                RelativePathBacked = RelativePathBacked.join('/')
+
+                                path = RelativePathBacked + '/' + path.replaceAll('\'', '').replaceAll('\"', '').replaceAll('\`', '').replaceAll(' ', '').replaceAll('\n', '').replaceAll('../', '')
+                            } else {
+                                path = relativePath + path.replaceAll('\'', '').replaceAll('\"', '').replaceAll('\`', '').replaceAll(' ', '').replaceAll('\n', '').replaceAll('./', '/')
+                            }
+                        }
+
+                        if (path) {
+                            let extension = await getExtension(path)
+                            funcStr = await functionRecognizerInFile(path + extension, refFuncao, false)
+                        }
+                    }
+                }
+                /* END CASE */
+
                 return resolve(funcStr)
             } else { // When file has only one exported function
                 cleanedData = cleanedData.replaceAll('\n', ' ').replaceAll('  ', ' ').replaceAll('  ', ' ')
