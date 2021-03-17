@@ -1106,7 +1106,7 @@ function getImportedFiles(aDataRaw, relativePath) {
             if (tsconfig) {
                 tsconfig = await handleData.removeComments(tsconfig)
                 tsconfig = JSON5.parse(tsconfig)    // Allow trailing commas
-                tsPaths = tsconfig.compilerOptions && tsconfig.compilerOptions.paths && typeof tsconfig.compilerOptions.paths === 'object' ? Object.entries(tsconfig.compilerOptions.paths) : null
+                tsPaths = tsconfig.compilerOptions && tsconfig.compilerOptions.paths && typeof tsconfig.compilerOptions.paths === 'object' ? Object.entries(tsconfig.compilerOptions.paths) : []
             }
 
             for (let index = 0; index < importeds.length; ++index) {
