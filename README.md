@@ -6,8 +6,6 @@ This module performs the automatic construction of the Swagger documentation. Th
 [![NPM Downloads](https://img.shields.io/npm/dm/swagger-autogen.svg?style=flat)](https://npmcharts.com/compare/swagger-autogen?minimal=true)
 [![Known Vulnerabilities](https://snyk.io/test/npm/swagger-autogen/badge.svg)](https://snyk.io/test/npm/swagger-autogen)
 
-#### NEWS! (version 2)
-Swagger-autogen now recognizes Express Router and TypeScript features.
 
 ## Contents
 
@@ -64,7 +62,7 @@ const swaggerAutogen = require('swagger-autogen')()
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save swagger-autogen@2.7.2
+$ npm install --save swagger-autogen@2.7.3
 ```
 
 ## Usage
@@ -903,6 +901,7 @@ Some tutorials with examples:
 
 
 **TODO:**  
+  - Recognize more TypeScript's features 
   - Recognize middlewares of routes (completely)
   - Recognize regex in middlewares
   - Recognize multiples "express.Router()" in the same file"

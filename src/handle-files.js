@@ -651,6 +651,55 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                         refFunction = await functionRecognizerInFile(pathFile + extension, refFuncInParam)
                                 }
 
+                                /**
+                                 * CASE: Reference to files in the index.ts
+                                 * Ref.: issue #32
+                                 */
+                                if (!refFunction) {
+                                    if (!refFuncao) {
+                                        let dataIndexFile = await getFileContent(pathFile + extension)
+                                        if (dataIndexFile) {
+                                            pathFile = pathFile.split('/').slice(0, -1).join('/')   // removing '/index'
+
+                                            /**
+                                             * 'hidding' imports and catching only exports and
+                                             * change exports to imports to catched by the getImportedFiles()
+                                             */
+                                            dataIndexFile = dataIndexFile.split('import').join('__ignored__')
+                                            dataIndexFile = dataIndexFile.split('export').join('import')
+
+                                            let exportsIndexFile = await getImportedFiles(dataIndexFile, pathFile)
+                                            let idx = -1
+
+                                            /**
+                                             * TODO: searching in the varFileName
+                                             * let idx = exportsIndexFile.findIndex(e => e.varFileName && (e.varFileName == refFuncao))
+                                             */
+
+                                            pathFile = null
+                                            if (idx == -1) {
+                                                exportsIndexFile.forEach(imp => {
+                                                    if (pathFile)
+                                                        return
+                                                    let found = imp && imp.exports ? imp.exports.find(e => e.varAlias && (e.varAlias == 'default')) : null
+                                                    if (found) {
+                                                        pathFile = imp.fileName
+                                                        if (!refFuncao)
+                                                            refFuncao = found.varName
+                                                    }
+                                                })
+                                            }
+                                            if (pathFile) {
+                                                extension = await getExtension(pathFile)
+                                                refFunction = await functionRecognizerInFile(pathFile + extension, refFuncao)
+                                            }
+                                        }
+                                    } else {
+                                        // TODO: When refFuncao is != null
+                                    }
+                                }
+                                /* END CASE */
+
                                 if (predefMethod == 'use' && refFunction) {
                                     if (refFunction.split(')')[0].split(',').length > 2) {
                                         let isLocalRouteMiddleware = false
@@ -1125,7 +1174,12 @@ function getImportedFiles(aDataRaw, relativePath) {
                         exp = exp.replaceAll('{', '').replaceAll('}', '').replaceAll(',', '').trim()
                         if (exp == '')
                             return
-                        obj.exports.push({ varName: exp, path: null })
+
+                        if (exp.includes(' as ')) {    // alias
+                            obj.exports.push({ varName: exp.split(' as ')[0], varAlias: exp.split(' as ')[1], path: null })
+                        } else {
+                            obj.exports.push({ varName: exp, varAlias: null, path: null })
+                        }
                     })
                 } else {
                     obj.varFileName = varFileName
@@ -1254,7 +1308,12 @@ function getImportedFiles(aDataRaw, relativePath) {
                         exp = exp.replaceAll('{', '').replaceAll('}', '').replaceAll(',', '').trim()
                         if (exp == '')
                             return
-                        obj.exports.push({ varName: exp, path: null })
+
+                        if (exp && exp.includes(' as ')) {    // alias
+                            obj.exports.push({ varName: exp.split(' as ')[0], varAlias: exp.split(' as ')[1], path: null })
+                        } else {
+                            obj.exports.push({ varName: exp, varAlias: null, path: null })
+                        }
                     })
                 } else {
                     obj.varFileName = varFileName
