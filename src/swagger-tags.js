@@ -61,6 +61,12 @@ function formatDefinitions(def, resp = {}, constainXML) {
             resp = { type: "object", properties: {} }
         Object.entries(def).forEach(elem => {
             if (typeof elem[1] === 'object') {  // Array or object
+                if (elem[0] && elem[0][0] && elem[0][0] == '$') {  // Required parameter
+                    elem[0] = elem[0].slice(1)
+                    if (!resp.required)
+                        resp.required = []
+                    resp.required.push(elem[0])
+                }
                 if (resp.type == 'array') {
                     resp.items = { ...formatDefinitions(elem[1], resp, constainXML) }
                 } else {
