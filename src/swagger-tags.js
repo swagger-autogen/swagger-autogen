@@ -189,6 +189,20 @@ function getAutoTag(data) {
     return true
 }
 
+/**
+ * Search for #swagger.deprecated = true   (by default is false)
+ * @param {*} data 
+ */
+function getDeprecatedTag(data) {
+    if (data.includes(statics.SWAGGER_TAG + ".deprecated")) {
+        let deprecated = data.split(new RegExp(statics.SWAGGER_TAG + ".deprecated" + "\\s*\\=\\s*"))[1]
+        deprecated = deprecated.split(new RegExp("\\s|\\n|\\t|\\;"))[0]
+        if (deprecated && deprecated.toLowerCase() === 'true')
+            return true
+    }
+    return false
+}
+
 // pass to separated file
 /**
  * TODO: fill
@@ -527,5 +541,6 @@ module.exports = {
     getTags,
     getSecurityTag,
     getSummary,
-    getOperationId
+    getOperationId,
+    getDeprecatedTag
 }

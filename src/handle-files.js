@@ -871,6 +871,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.security')) {
                                 objEndpoint[path][method]['security'] = await swaggerTags.getSecurityTag(endpoint)
                             }
+                            if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.deprecated')) {
+                                objEndpoint[path][method]['deprecated'] = swaggerTags.getDeprecatedTag(endpoint)
+                            }
 
                             if (objResponses === false || objParameters === false || objEndpoint === false)
                                 return resolve(false)
