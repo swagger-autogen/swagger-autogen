@@ -35,6 +35,12 @@ module.exports = function (args) {
                 }
 
                 const objDoc = { ...statics.TEMPLATE, ...data, paths: {} }
+                // Removing all null attributes
+                for (let key in objDoc) {
+                    if (objDoc[key] === null)
+                        delete objDoc[key]
+                }
+         
                 if (!objDoc.info.version)
                     objDoc.info.version = statics.TEMPLATE.info.version
                 if (!objDoc.info.title)

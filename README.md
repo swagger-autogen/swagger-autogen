@@ -62,7 +62,7 @@ const swaggerAutogen = require('swagger-autogen')()
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save swagger-autogen@2.7.5
+$ npm install --save swagger-autogen@2.7.6
 ```
 
 ## Usage
@@ -152,6 +152,8 @@ const endpointsFiles = ['./path/endpointsUser.js', './path/endpointsBook.js']
 
 swaggerAutogen(outputFile, endpointsFiles, doc)
 ```
+
+**NOTE:** To omit any of the attributes in the *.json* file, just assign the value **null** to the specified attribute in the **doc**.  
 
 ## Building documentation without starting the project
 To build the documentation without starting your project, add the following script to your project's *package.json* file:

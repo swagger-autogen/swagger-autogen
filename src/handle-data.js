@@ -1072,10 +1072,14 @@ function popFunction(functionArray) {
             let params = func[0]
             params = params.split('').reverse().join('')
             params = await stack0SymbolRecognizer(params, ')', '(')
-            if (params)
+
+            if (params) {
                 params = '(' + params.split('').reverse().join('') + ')'
-            // TODO: verify case without '(' and ')'
-            signatureFunc = params + func[0].split(params)[1] + '{'
+                signatureFunc = params + func[0].split(params)[1] + '{'
+            } else {    // TODO: verify case without '(' and ')'
+                signatureFunc = '{'
+            }
+
             func.shift()
             func = func.join('{')
             func = signatureFunc + await stackSymbolRecognizer(func, '{', '}')
