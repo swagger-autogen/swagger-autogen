@@ -48,7 +48,7 @@ This module performs the automatic construction of the Swagger documentation. Th
 This is a [Node.js](https://nodejs.org/en/) module available through the [npm](https://www.npmjs.com/).
 
 ```bash
-$ npm install --save swagger-autogen
+$ npm install --save-dev swagger-autogen
 ```
 
 It is loaded using the require() function:
