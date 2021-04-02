@@ -931,10 +931,14 @@ async function functionRecognizerInData(data, refFuncao) {
             return resolve(null)
 
         var func = null
-        refFuncao = refFuncao.split(new RegExp("\\;|\\{|\\(|\\[|\\\"|\\\'|\\\`|\\}|\\)|\\]|\\:|\\,|\\*"))
-        if (refFuncao.length > 1)
-            refFuncao = refFuncao[1]
-        else
+        refFuncao = refFuncao.split(new RegExp("\\;|\\{|\\(|\\[|\\\"|\\\'|\\\`|\\}|\\)|\\]|\\:|\\,|\\*|\\+"))
+        if (refFuncao.length > 1) {
+            refFuncao = refFuncao.filter(r => r != '')
+            if (isNumeric(refFuncao[1]))    /* issue: (#45) */
+                refFuncao = refFuncao[0]
+            else
+                refFuncao = refFuncao[1]
+        } else
             refFuncao = refFuncao[0]
 
         if (refFuncao == '')

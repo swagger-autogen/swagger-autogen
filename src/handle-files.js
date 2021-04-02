@@ -700,6 +700,10 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 }
                                 /* END CASE */
 
+                                if (!refFunction && !refFuncao) {
+                                    refFunction = await functionRecognizerInFile(pathFile + extension, varFileName)
+                                }
+
                                 if (predefMethod == 'use' && refFunction) {
                                     if (refFunction.split(')')[0].split(',').length > 2) {
                                         let isLocalRouteMiddleware = false
@@ -969,7 +973,6 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         /**
                          * CASE: foo.use(require('./routes.js'))
                          */
-
                         exportPath = data.split(rexRequire)
                         exportPath = exportPath.slice(-1)[0]
                         exportPath = exportPath.split(')')[0]
@@ -1103,7 +1106,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         auxRelativePath.pop()
                         auxRelativePath = auxRelativePath.join('/')
 
-                        if (idx > -1 && importedFiles[idx] && importedFiles[idx].isDirectory) {
+                        if (idx > -1 && importedFiles[idx] && importedFiles[idx].isDirectory && !exportPath) {
                             var extension = await getExtension(obj.fileName + '/index')
                             var auxPaths = await readEndpointFile(obj.fileName + '/index' + extension, (obj.path || ''), obj.fileName, obj.routeMiddlewares, null)
                             if (auxPaths)
