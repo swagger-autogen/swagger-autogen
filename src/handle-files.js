@@ -1,8 +1,11 @@
 const fs = require('fs')
 const JSON5 = require('json5')
+const merge = require('deepmerge')
 const swaggerTags = require('./swagger-tags')
 const handleData = require('./handle-data')
 const statics = require('./statics')
+
+const overwriteMerge = (destinationArray, sourceArray, options) => sourceArray
 
 /**
  * TODO: fill
@@ -804,7 +807,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                      * Handling all endpoint functions
                      */
                     if (endpointFunctions && endpointFunctions.length == 0) {
-                        paths = { ...paths, ...objEndpoint }
+                        paths = merge(paths, objEndpoint, { arrayMerge: overwriteMerge })
                     } else {
                         var objInBody = null
                         for (let _idxEF = 0; _idxEF < endpointFunctions.length; ++_idxEF) {
@@ -840,11 +843,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.auto')) {
                                 autoMode = swaggerTags.getAutoTag(endpoint)
                             }
-
                             if (autoMode && Object.entries(objParameters).length == 0) {  // Checking parameters in the path
                                 objParameters = await handleData.getPathParameters(path, objParameters)
                             }
-
                             if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.operationId')) {
                                 objEndpoint[path][method]['operationId'] = swaggerTags.getOperationId(endpoint)
                             }
@@ -1122,19 +1123,20 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             }
 
                             var auxPaths = await readEndpointFile(obj.fileName + extension, routePrefix + (obj.path || ''), auxRelativePath, obj.routeMiddlewares, refFunction)
-                            if (auxPaths)
-                                allPaths = { ...paths, ...allPaths, ...auxPaths }
-                            else
-                                allPaths = { ...paths, ...allPaths }
+                            if (auxPaths) {
+                                allPaths = merge(paths, allPaths, { arrayMerge: overwriteMerge })
+                                allPaths = merge(allPaths, auxPaths, { arrayMerge: overwriteMerge })
+                            } else
+                                allPaths = merge(paths, allPaths, { arrayMerge: overwriteMerge })
                         }
                     } else {
-                        allPaths = { ...paths, ...allPaths }
+                        allPaths = merge(paths, allPaths, { arrayMerge: overwriteMerge })
                     }
                     if (file == aRoutes.length - 1)
                         return resolve(allPaths)
                 }
             }
-            return resolve({ ...paths, ...allPaths })
+            return resolve(merge(paths, allPaths, { arrayMerge: overwriteMerge }))
         })
     })
 }
