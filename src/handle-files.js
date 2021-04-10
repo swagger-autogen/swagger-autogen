@@ -37,6 +37,17 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
             dataToGetPatterns = await handleData.removeStrings(dataToGetPatterns)
             dataToGetPatterns = await handleData.removeInsideParentheses(dataToGetPatterns, true)
 
+            /**
+             * Bug fix when HTTP methods are in the end of 'dataToGetPatterns'
+             * Issue: #49
+             */
+            if (dataToGetPatterns) {
+                let lastElem = dataToGetPatterns.split('.').slice(-1)[0].replaceAll(' ', '')
+                if (statics.METHODS.includes(lastElem)) {
+                    dataToGetPatterns = dataToGetPatterns + "("
+                }
+            }
+
             let firstPattern = null
             var patternsServer = []         // Stores patterns, such as: route, app, etc...
             let propRoutes = []             // Used to store the new Router() properties, such as 'prefix'

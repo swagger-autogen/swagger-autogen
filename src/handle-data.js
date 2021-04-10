@@ -120,19 +120,19 @@ function removeComments(data, keepSwaggerTags = false) {
 
             if (stackComment1 == 0 && stackComment2 == 0) {
                 // Type '
-                if (c == '\'' && data[idx - 1] != '\\' && isStr1 == 1)
+                if (c == '\'' && isStr1 == 1)
                     isStr1 = 2
                 if (c == '\'' && data[idx - 1] != '\\' && isStr1 == 0 && isStr2 == 0 && isStr3 == 0)
                     isStr1 = 1
 
                 // Type  "
-                if (c == '\"' && data[idx - 1] != '\\' && isStr2 == 1)
+                if (c == '\"' && isStr2 == 1)
                     isStr2 = 2
                 if (c == '\"' && data[idx - 1] != '\\' && isStr1 == 0 && isStr2 == 0 && isStr3 == 0)
                     isStr2 = 1
 
                 // Type  `
-                if (c == '\`' && data[idx - 1] != '\\' && isStr3 == 1)
+                if (c == '\`' && isStr3 == 1)
                     isStr3 = 2
                 if (c == '\`' && data[idx - 1] != '\\' && isStr1 == 0 && isStr2 == 0 && isStr3 == 0)
                     isStr3 = 1
@@ -218,19 +218,19 @@ function getSwaggerComments(data) {
 
             if (stackComment1 == 0 && stackComment2 == 0) {
                 // Type '
-                if (c == '\'' && data[idx - 1] != '\\' && isStr1 == 1)
+                if (c == '\'' && isStr1 == 1)
                     isStr1 = 2
                 if (c == '\'' && data[idx - 1] != '\\' && isStr1 == 0 && isStr2 == 0 && isStr3 == 0)
                     isStr1 = 1
 
                 // Type  "
-                if (c == '\"' && data[idx - 1] != '\\' && isStr2 == 1)
+                if (c == '\"' && isStr2 == 1)
                     isStr2 = 2
                 if (c == '\"' && data[idx - 1] != '\\' && isStr1 == 0 && isStr2 == 0 && isStr3 == 0)
                     isStr2 = 1
 
                 // Type  `
-                if (c == '\`' && data[idx - 1] != '\\' && isStr3 == 1)
+                if (c == '\`' && isStr3 == 1)
                     isStr3 = 2
                 if (c == '\`' && data[idx - 1] != '\\' && isStr1 == 0 && isStr2 == 0 && isStr3 == 0)
                     isStr3 = 1
@@ -302,31 +302,28 @@ function removeStrings(data) {
         var stackStr2 = 0; // For type  "
         var stackStr3 = 0; // For type  `
 
-        var stackComment1 = 0; // For type  //
-        var stackComment2 = 0; // For type  /* */
-
         for (var idx = 0; idx < data.length; ++idx) {
             let c = data[idx]
 
             // Type '
-            if (c == '\'' && data[idx - 1] != '\\' && stackStr1 == 1)
+            if (c == '\'' && stackStr1 == 1)
                 stackStr1 = 2
-            if (c == '\'' && data[idx - 1] != '\\' && stackStr1 == 0 && stackStr2 == 0 && stackStr3 == 0 && stackComment1 == 0 && stackComment2 == 0)
+            if (c == '\'' && data[idx - 1] != '\\' && stackStr1 == 0 && stackStr2 == 0 && stackStr3 == 0)
                 stackStr1 = 1
 
             // Type  "
-            if (c == '\"' && data[idx - 1] != '\\' && stackStr2 == 1)
+            if (c == '\"' && stackStr2 == 1)
                 stackStr2 = 2
-            if (c == '\"' && data[idx - 1] != '\\' && stackStr1 == 0 && stackStr2 == 0 && stackStr3 == 0 && stackComment1 == 0 && stackComment2 == 0)
+            if (c == '\"' && data[idx - 1] != '\\' && stackStr1 == 0 && stackStr2 == 0 && stackStr3 == 0)
                 stackStr2 = 1
 
             // Type  `
-            if (c == '\`' && data[idx - 1] != '\\' && stackStr3 == 1)
+            if (c == '\`' && stackStr3 == 1)
                 stackStr3 = 2
-            if (c == '\`' && data[idx - 1] != '\\' && stackStr1 == 0 && stackStr2 == 0 && stackStr3 == 0 && stackComment1 == 0 && stackComment2 == 0)
+            if (c == '\`' && data[idx - 1] != '\\' && stackStr1 == 0 && stackStr2 == 0 && stackStr3 == 0)
                 stackStr3 = 1
 
-            if (stackStr1 == 0 && stackStr2 == 0 && stackStr3 == 0 && stackComment1 == 0 && stackComment2 == 0) {
+            if (stackStr1 == 0 && stackStr2 == 0 && stackStr3 == 0) {
                 strToReturn += c
             }
 
