@@ -1,6 +1,7 @@
 
 const TEMPLATE = {
-    swagger: "2.0",
+    swagger: null,
+    openapi: null,
     info: {
         version: "1.0.0",
         title: "REST API",

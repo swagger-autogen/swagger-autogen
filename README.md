@@ -62,7 +62,7 @@ const swaggerAutogen = require('swagger-autogen')()
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.7.9
+$ npm install --save-dev swagger-autogen@2.8.0
 ```
 
 ## Usage
@@ -192,6 +192,7 @@ It is possible to change some options of the module by passing an object as a pa
 
 ```js
 const options = {
+    openapi: <string>,          // By default is null
     language: <string>,         // By default is 'en-US'
     disableLogs: <boolean>,     // By default is false
     disableWarnings: <boolean>  // By default is false
@@ -199,6 +200,8 @@ const options = {
 
 const swaggerAutogen = require('swagger-autogen')(options)
 ```
+
+**OpenAPI:** To enable OpenAPI v3, assign a version, such as "3.0.0" to the *openapi* parameter. In the future, OpenAPI v3 will be the default. 
 
 To see the available languages, go to the section [Response Language](#response-language)
 
@@ -900,6 +903,8 @@ Some tutorials with examples:
   - Automatic body recognition
   - Automatic 'destructuring' recognition (query and body)
   - Bug fix
+- Version 2.8.x:
+  - OpenAPI v3 features
 
 
 **TODO:**  

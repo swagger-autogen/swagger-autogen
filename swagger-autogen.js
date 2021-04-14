@@ -7,8 +7,12 @@ const statics = require('./src/statics')
 const { platform } = process
 const symbols = platform === 'win32' ? { success: '', failed: '' } : { success: '✔', failed: '✖' }
 
+function isNumeric(n) {
+    return !isNaN(parseFloat(n)) && isFinite(n)
+}
+
 module.exports = function (args) {
-    let options = { language: null, disableLogs: false, disableWarnings: false }
+    let options = { language: null, disableLogs: false, disableWarnings: false, openapi: null }
     let recLang = null
     if (args && typeof args === 'string')   // will be deprecated in a future version
         recLang = args
@@ -35,12 +39,18 @@ module.exports = function (args) {
                 }
 
                 const objDoc = { ...statics.TEMPLATE, ...data, paths: {} }
+
+                if (options.openapi && isNumeric(options.openapi.replaceAll('.', '')))
+                    objDoc.openapi = options.openapi
+                else
+                    objDoc.swagger = "2.0"
+
                 // Removing all null attributes
                 for (let key in objDoc) {
                     if (objDoc[key] === null)
                         delete objDoc[key]
                 }
-         
+
                 if (!objDoc.info.version)
                     objDoc.info.version = statics.TEMPLATE.info.version
                 if (!objDoc.info.title)
