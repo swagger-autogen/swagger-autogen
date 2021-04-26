@@ -904,7 +904,8 @@ Some tutorials with examples:
   - Automatic 'destructuring' recognition (query and body)
   - Bug fix
 - Version 2.8.x:
-  - OpenAPI v3 features
+  - OpenAPI option
+  - Bug fix
 
 
 **TODO:**  

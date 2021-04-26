@@ -227,7 +227,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
             /**
              * CASE: router.use(middleware).get(...).post(...).put(...)...
-             * TODO: refactor this: pass to function
+             * REFACTOR: pass to function
              */
             var rawRouteMiddlewares = aData.split(new RegExp(regexRouteMiddlewares))
             rawRouteMiddlewares.shift()
@@ -1244,9 +1244,24 @@ function getImportedFiles(aDataRaw, relativePath) {
                 }
 
                 // Captures only local files
+
+                /**
+                 * CASE: Cannot resolve import function from absolute path
+                 * Issue: #50
+                 */
+                if (!fileName.includes("./")) {
+                    // Checking if is a project file
+                    let extension = await getExtension(fileName)
+                    if (fs.existsSync(fileName + extension)) {  // is a absolute path
+                        fileName = './' + fileName      // TODO: check for possible problems here 
+                        relativePath = ''
+                    }
+                }
+                /* END CASE */
+
                 if (fileName.includes("./")) {
                     var pathFile = null
-                    if (relativePath) { // TODO: pass to function
+                    if (relativePath) { // REFACTOR: pass to function
                         if (fileName.includes("../")) {
                             var foldersToBack = fileName.split("../").length - 1
                             var RelativePathBacked = relativePath.split('/')
@@ -1343,10 +1358,25 @@ function getImportedFiles(aDataRaw, relativePath) {
                 fileName = fileName.replaceAll('\'', '').replaceAll('\"', '').replaceAll('\`', '').replaceAll(' ', '')
 
                 // Captures only local files
+                
+                /**
+                 * CASE: Cannot resolve import function from absolute path
+                 * Issue: #50
+                 */
+                 if (!fileName.includes("./")) {
+                    // Checking if is a project file
+                    let extension = await getExtension(fileName)
+                    if (fs.existsSync(fileName + extension)) {  // is a absolute path
+                        fileName = './' + fileName      // TODO: check for possible problems here 
+                        relativePath = ''
+                    }
+                }
+                /* END CASE */
+
                 if (fileName.includes("./")) {
                     if (fileName.split(new RegExp(`.json`, "i")).length == 1) { // Will not recognize files with .json extension
                         var pathFile = null
-                        if (relativePath) { // TODO: pass to function
+                        if (relativePath) { // REFACTOR: pass to function
                             if (fileName.includes("../")) {
                                 var foldersToBack = fileName.split("../").length - 1
                                 var RelativePathBacked = relativePath.split('/')
@@ -1429,7 +1459,7 @@ function functionRecognizerInFile(fileName, refFuncao, isRecursive = true) {
             cleanedData = cleanedData.join(': (')
             cleanedData = cleanedData.replaceAll(" function ", ' ')
 
-            // TODO: pass to function
+            // REFACTOR: pass to function
             // adding '(' and ')' to arrow functions without '(' and ')', such as: ... async req => {
             if (cleanedData.split(new RegExp("\\s*\\n*\\t*=>\\s*\\n*\\t*").length > 1)) {
                 let params = cleanedData.trim().split(new RegExp("\\s*\\n*\\t*=>\\s*\\n*\\t*"))
@@ -1472,7 +1502,7 @@ function functionRecognizerInFile(fileName, refFuncao, isRecursive = true) {
                         }
 
                         let relativePath = fileName.split('/').slice(0, -1).join('/')
-                        // TODO: Pass to function
+                        // REFACTOR: Pass to function
                         if (path && path.includes('./')) {
                             if (path.includes("../")) {
                                 let foldersToBack = path.split("../").length - 1
