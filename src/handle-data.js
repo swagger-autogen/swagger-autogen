@@ -686,7 +686,7 @@ function getQueryAndBody(elem, request, objParameters) {
                     objParameters['__obj__in__body__'] = { name: '__obj__in__body__', in: 'body', schema: { type: "object", properties: {} } }
                 }
                 if (!!objParameters['__obj__in__body__'] === true) {  // Checks if the parameter name already exists
-                    objParameters['__obj__in__body__'].schema.properties[name] = { type: "string", example: "any" }
+                    objParameters['__obj__in__body__'].schema.properties[name] = { example: "any" }
                 }
             })
         }
@@ -732,7 +732,7 @@ function getQueryAndBody(elem, request, objParameters) {
                         objParameters['__obj__in__body__'] = { name: '__obj__in__body__', in: 'body', schema: { type: "object", properties: {} } }
                     }
                     if (!!objParameters['__obj__in__body__'] === true) {  // Checks if the parameter name already exists
-                        objParameters['__obj__in__body__'].schema.properties[name] = { type: "string", example: "any" }
+                        objParameters['__obj__in__body__'].schema.properties[name] = { example: "any" }
                     }
                 })
             }
