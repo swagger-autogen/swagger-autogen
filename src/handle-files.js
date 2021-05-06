@@ -169,8 +169,7 @@ function readEndpointFile(
          * Manual pattern recognition
          */
 
-        let patterns = new Set();
-        patternsServer.forEach((p) => patterns.add(p));
+        let patterns = new Set(patternsServer);
 
         try {
           patterns = eval(
@@ -643,14 +642,14 @@ function readEndpointFile(
                         regexParams += `\\([\\w|\\s]*\\,?[\\w|\\s]*\\,?[\\w|\\s]*[\\s|\\,]+${funcParams[idx]}[\\s|\\,]+[\\w|\\s]*\\,?[\\w|\\s]*\\,?[\\w|\\s]*\\)|`;
                       }
                       regexParams = regexParams.slice(0, -1);
-                      var refFunc = funcNotRefFormated.split(
+                      let refFunc = funcNotRefFormated.split(
                         new RegExp(regexParams)
                       );
 
                       if (refFunc.length > 1) {
                         if (tsFunction) refFunc = refFunc.slice(0, -1);
                         else refFunc = refFunc.slice(1, -1);
-                        refFunc.map((f) => {
+                        refFunc.forEach((f) => {
                           let func = f
                             .replaceAll('\n', ' ')
                             .split(new RegExp('\\s*\\t*\\.\\s*\\t*'));
