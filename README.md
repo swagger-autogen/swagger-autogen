@@ -133,12 +133,12 @@ const swaggerAutogen = require('swagger-autogen')();
 
 const doc = {
   info: {
-    version: '',      // by default: "1.0.0"
-    title: '',        // by default: "REST API"
-    description: '',  // by default: ""
+    version: '',      // by default: '1.0.0'
+    title: '',        // by default: 'REST API'
+    description: '',  // by default: ''
   },
-  host: '',      // by default: "localhost:3000"
-  basePath: '',  // by default: "/"
+  host: '',      // by default: 'localhost:3000'
+  basePath: '',  // by default: '/'
   schemes: [],   // by default: ['http']
   consumes: [],  // by default: ['application/json']
   produces: [],  // by default: ['application/json']
@@ -382,7 +382,7 @@ Some examples:
     ...
     app.get('/users/:id', (req, res) => {
         ...
-        //  #swagger.parameters['id'] = { description: "User ID" }
+        //  #swagger.parameters['id'] = { description: 'User ID' }
         ...
     })
 
@@ -390,8 +390,8 @@ Some examples:
         ...
         /*  #swagger.parameters['obj'] = {
                 in: 'body',
-                type: "object",
-                description: "Book data"
+                type: 'object',
+                description: 'Book data'
         } */
         users.addUser(req.body)
         ...
@@ -401,8 +401,8 @@ Some examples:
         ...
         /*  #swagger.parameters['obj'] = {
                 in: 'body',
-                description: "Add a user",
-                schema: { $ref: "#/definitions/AddUser" }
+                description: 'Add a user',
+                schema: { $ref: '#/definitions/AddUser' }
         } */
         ...
     })
@@ -410,7 +410,7 @@ Some examples:
     app.get('/users', async (req, res) => {
         /*  #swagger.parameters['item'] = {
                 in: 'query',
-                description: "Any item..."
+                description: 'Any item...'
         } */
         let test = req.query.item
     });
@@ -440,11 +440,11 @@ The **body** is automatically recognized, for example:
     app.post('/users', (req, res) => {
         /*  #swagger.parameters['parameter_name'] = {
                 in: 'body',
-                description: "Any description...",
+                description: 'Any description...',
                 schema: {
-                    $name: "Jhon Doe",
+                    $name: 'Jhon Doe',
                     $age: 29,
-                    about: ""
+                    about: ''
                 }
         } */
 
@@ -462,7 +462,7 @@ However, if you wish to add more information to the automatically recognized **b
     app.post('/users', (req, res) => {
         /*  #swagger.parameters['any_name'] = {
                in: 'body',
-               description: "Any description..."
+               description: 'Any description...'
         } */
 
         const myItem1 = req.body.item1
@@ -504,7 +504,7 @@ For example:
 
             /* #swagger.responses[200] = {
                     description: 'User successfully obtained.',
-                    schema: { $ref: "#/definitions/User" }
+                    schema: { $ref: '#/definitions/User' }
             } */
             return res.status(200).send(data)
 
@@ -573,8 +573,8 @@ const doc = {
         ...
         /*    #swagger.parameters['obj'] = {
                 in: 'body',
-                description: "Adding new user.",
-                schema: { $ref: "#/definitions/AddUser" }
+                description: 'Adding new user.',
+                schema: { $ref: '#/definitions/AddUser' }
         } */
         ...
     })
@@ -587,11 +587,11 @@ or inserting directly, without using definitions:
         ...
         /*    #swagger.parameters['obj'] = {
                 in: 'body',
-                description: "Adding new user.",
+                description: 'Adding new user.',
                 schema: {
-                    $name: "Jhon Doe",
+                    $name: 'Jhon Doe',
                     $age: 29,
-                    about: ""
+                    about: ''
                 }
         } */
         ...
@@ -632,48 +632,48 @@ const doc = {
 ```js
 app.get('/responses', (req, res) => {
   /* #swagger.responses[001] = {
-      description: "myBoolean",
-      schema: { $ref: "#/definitions/myBoolean" }
+      description: 'myBoolean',
+      schema: { $ref: '#/definitions/myBoolean' }
   } */
 
   /* #swagger.responses[002] = {
-      description: "myNumber",
-      schema: { $ref: "#/definitions/myNumber" }
+      description: 'myNumber',
+      schema: { $ref: '#/definitions/myNumber' }
   } */
 
   /* #swagger.responses[003] = {
-      description: "myString",
-      schema: { $ref: "#/definitions/myString" }
+      description: 'myString',
+      schema: { $ref: '#/definitions/myString' }
   } */
 
   /* #swagger.responses[004] = {
-      description: "myObject",
-      schema: { $ref: "#/definitions/myObject" }
+      description: 'myObject',
+      schema: { $ref: '#/definitions/myObject' }
   } */
 
   /* #swagger.responses[005] = {
-      description: "myArrayOfBooleans",
-      schema: { $ref: "#/definitions/myArrayOfBooleans" }
+      description: 'myArrayOfBooleans',
+      schema: { $ref: '#/definitions/myArrayOfBooleans' }
   } */
 
   /* #swagger.responses[006] = {
-      description: "myArrayOfNumbers",
-      schema: { $ref: "#/definitions/myArrayOfNumbers" }
+      description: 'myArrayOfNumbers',
+      schema: { $ref: '#/definitions/myArrayOfNumbers' }
   } */
 
   /* #swagger.responses[007] = {
-      description: "myArrayOfStrings",
-      schema: { $ref: "#/definitions/myArrayOfStrings" }
+      description: 'myArrayOfStrings',
+      schema: { $ref: '#/definitions/myArrayOfStrings' }
   } */
 
   /* #swagger.responses[008] = {
-      description: "myArrayOfObjects",
-      schema: { $ref: "#/definitions/myArrayOfObjects" }
+      description: 'myArrayOfObjects',
+      schema: { $ref: '#/definitions/myArrayOfObjects' }
   } */
 
   /* #swagger.responses[009] = {
-      description: "myReferencedObjectArray",
-      schema: { $ref: "#/definitions/myReferencedObjectArray" }
+      description: 'myReferencedObjectArray',
+      schema: { $ref: '#/definitions/myReferencedObjectArray' }
   } */
 });
 ```
@@ -720,8 +720,8 @@ Use the `#swagger.auto = false` tag to disable automatic recognition. With that,
 
             #swagger.path = '/users/{id}'
             #swagger.method = 'put'
-            #swagger.produces = ["application/json"]
-            #swagger.consumes = ["application/json"]
+            #swagger.produces = ['application/json']
+            #swagger.consumes = ['application/json']
 
             #swagger.parameters['id'] = {
                 in: 'path',
@@ -739,11 +739,11 @@ Use the `#swagger.auto = false` tag to disable automatic recognition. With that,
         */
         ...
         if(...) {
-            // #swagger.responses[201] = { description: "User registered successfully." }
+            // #swagger.responses[201] = { description: 'User registered successfully.' }
             return res.status(201).send(data)
         }
         ...
-        // #swagger.responses[500] = { description: "Server failure."}
+        // #swagger.responses[500] = { description: 'Server failure.'}
         return res.status(500).send(false)
     })
 ```
@@ -760,7 +760,7 @@ function myFunction(param) {
         #swagger.path = '/forcedEndpoint/{id}'
         #swagger.method = 'put'
         #swagger.description = 'Forced endpoint.'
-        #swagger.produces = ["application/json"]
+        #swagger.produces = ['application/json']
     */
     ...
     /*  #swagger.parameters['id'] = {
@@ -772,7 +772,7 @@ function myFunction(param) {
     /*  #swagger.parameters['obj'] = {
             in: 'query',
             description: 'User data.',
-            schema: { $ref: "#/definitions/AddUser" }
+            schema: { $ref: '#/definitions/AddUser' }
     } */
     const dataObj = users.getUser(req.query.obj)
     ...
@@ -799,7 +799,7 @@ const doc = {
   securityDefinitions: {
     apiKeyAuth: {
       type: 'apiKey',
-      in: 'header', // can be "header", "query" or "cookie"
+      in: 'header', // can be 'header', 'query' or 'cookie'
       name: 'X-API-KEY', // name of the header, query parameter or cookie
       description: 'any description...'
     },
@@ -971,7 +971,7 @@ Some tutorials with examples:
 - Recognize more TypeScript's features
 - Recognize middlewares of routes (completely)
 - Recognize regex in middlewares
-- Recognize multiples "express.Router()" in the same file"
+- Recognize multiples "express.Router()" in the same file
 - Recognize referenced path, such as: foo.method(\`/${fooPath1}\` + '/' + fooPath2, foo...)
 - Recognize 'alias' in the import files
 - Write more test cases
