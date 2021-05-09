@@ -1,6 +1,6 @@
 # swagger-autogen
 
-This module performs the automatic construction of the Swagger documentation. The module can identify the endpoints and automatically capture methods such as to get, post, put, and so on. The module can also identify the paths, routes, middlewares, response status code, parameters in the path, query, and body. It is possible to add information such as endpoint description, parameter description, definitions, security, among others. It is also possible to ignore or disable the automatic capture of an endpoint (in the latter case, having to manually add each information). The module generates the *.json* file with the documentation in the swagger format.
+This module performs the automatic construction of the Swagger documentation. The module can identify the endpoints and automatically capture methods such as to get, post, put, and so on. The module can also identify the paths, routes, middlewares, response status code, parameters in the path, query and body. It is possible to add information such as endpoint description, parameter description, definitions, security, among others. It is also possible to ignore or disable the automatic capture of an endpoint (in the latter case, having to manually add each information). The module generates the *.json* file with the documentation in the swagger format.
 
 [![NPM Version](http://img.shields.io/npm/v/swagger-autogen.svg?style=flat)](https://www.npmjs.org/package/commander)
 [![NPM Downloads](https://img.shields.io/npm/dm/swagger-autogen.svg?style=flat)](https://npmcharts.com/compare/swagger-autogen?minimal=true)
@@ -56,7 +56,7 @@ It is loaded using the require() function:
 const swaggerAutogen = require('swagger-autogen')();
 ```
 
-Or if you're using ES modules, load it at the beginning of the file
+Or if you're using ES modules, load it at the beginning of the file:
 
 ```js
 import swaggerAutogen from 'swagger-autogen';
@@ -133,25 +133,24 @@ const swaggerAutogen = require('swagger-autogen')();
 
 const doc = {
   info: {
-    version: '', // by default: "1.0.0"
-    title: '', // by default: "REST API"
-    description: '', // by default: ""
+    version: '',      // by default: "1.0.0"
+    title: '',        // by default: "REST API"
+    description: '',  // by default: ""
   },
-  host: '', // by default: "localhost:3000"
-  basePath: '', // by default: "/"
-  schemes: [], // by default: ['http']
-  consumes: [], // by default: ['application/json']
-  produces: [], // by default: ['application/json']
-  tags: [
-    // by default: empty Array
+  host: '',      // by default: "localhost:3000"
+  basePath: '',  // by default: "/"
+  schemes: [],   // by default: ['http']
+  consumes: [],  // by default: ['application/json']
+  produces: [],  // by default: ['application/json']
+  tags: [        // by default: empty Array
     {
-      name: '', // Tag name
-      description: '', // Tag description
+      name: '',         // Tag name
+      description: '',  // Tag description
     },
     // { ... }
   ],
-  securityDefinitions: {}, // by default: empty object
-  definitions: {}, // by default: empty object
+  securityDefinitions: {},  // by default: empty object
+  definitions: {},          // by default: empty object
 };
 
 const outputFile = './path/swagger-output.json';
@@ -225,6 +224,15 @@ const options = {
 const swaggerAutogen = require('swagger-autogen')(options)
 ```
 
+In case, you're using ES modules in your project, rewrite the `swaggerAutogen(...)` function as follows:
+
+```js
+// ...
+swaggerAutogen(options)(outputFile, endpointsFiles, doc).then(async () => {
+  await import('./index.js'); // Your project's root file
+});
+```
+
 **OpenAPI:** To enable OpenAPI v3, assign a version, such as "3.0.0" to the *openapi* parameter. In the future, OpenAPI v3 will be the default.
 
 To see the available languages, go to the section [Response Language](#response-language)
@@ -251,7 +259,7 @@ In this case, it is not necessary to do anything. Considering, for example, if t
     ...
 ```
 
-The recognition of the method, path, parameters, and status of the response will be automatic.
+The recognition of the method, path, parameters and status of the response will be automatic.
 
 See an [example here!](#examples)
 
@@ -524,16 +532,17 @@ For example:
 
 ```js
 const doc = {
+  // { ... },
   definitions: {
     Parents: {
       father: 'Simon Doe',
-      mother: 'Marie Doe',
+      mother: 'Marie Doe'
     },
     User: {
       name: 'Jhon Doe',
       age: 29,
       parents: {
-        $ref: '#/definitions/Parents',
+        $ref: '#/definitions/Parents'
       },
       diplomas: [
         {
@@ -542,17 +551,18 @@ const doc = {
           completed: true,
           internship: {
             hours: 290,
-            location: 'XYZ Company',
-          },
-        },
-      ],
+            location: 'XYZ Company'
+          }
+        }
+      ]
     },
     AddUser: {
       $name: 'Jhon Doe',
       $age: 29,
-      about: '',
+      about: ''
     },
-  },
+    // { ... }
+  }
 };
 ```
 
@@ -596,23 +606,24 @@ The following are some examples of definitions:
 
 ```js
 const doc = {
+  // { ... },
   definitions: {
     myBoolean: true,
     myNumber: 123,
     myString: 'my example',
     myObject: {
-      field: 'my example',
+      field: 'my example'
     },
     myArrayOfBooleans: [true],
     myArrayOfNumbers: [123],
     myArrayOfStrings: ['my example'],
     myArrayOfObjects: [
       {
-        field: 'my example',
-      },
+        field: 'my example'
+      }
     ],
-    myReferencedObjectArray: [{ $ref: '#/definitions/myObject' }],
-  },
+    myReferencedObjectArray: [{ $ref: '#/definitions/myObject' }]
+  }
 };
 ```
 
@@ -624,34 +635,42 @@ app.get('/responses', (req, res) => {
       description: "myBoolean",
       schema: { $ref: "#/definitions/myBoolean" }
   } */
+
   /* #swagger.responses[002] = {
       description: "myNumber",
       schema: { $ref: "#/definitions/myNumber" }
   } */
+
   /* #swagger.responses[003] = {
       description: "myString",
       schema: { $ref: "#/definitions/myString" }
   } */
+
   /* #swagger.responses[004] = {
       description: "myObject",
       schema: { $ref: "#/definitions/myObject" }
   } */
+
   /* #swagger.responses[005] = {
       description: "myArrayOfBooleans",
       schema: { $ref: "#/definitions/myArrayOfBooleans" }
   } */
+
   /* #swagger.responses[006] = {
       description: "myArrayOfNumbers",
       schema: { $ref: "#/definitions/myArrayOfNumbers" }
   } */
+
   /* #swagger.responses[007] = {
       description: "myArrayOfStrings",
       schema: { $ref: "#/definitions/myArrayOfStrings" }
   } */
+
   /* #swagger.responses[008] = {
       description: "myArrayOfObjects",
       schema: { $ref: "#/definitions/myArrayOfObjects" }
   } */
+
   /* #swagger.responses[009] = {
       description: "myReferencedObjectArray",
       schema: { $ref: "#/definitions/myReferencedObjectArray" }
@@ -782,7 +801,7 @@ const doc = {
       type: 'apiKey',
       in: 'header', // can be "header", "query" or "cookie"
       name: 'X-API-KEY', // name of the header, query parameter or cookie
-      description: 'any description...',
+      description: 'any description...'
     },
   },
 };
@@ -809,6 +828,7 @@ The security example below was taken from the original Swagger documentation.
 
 ```js
 const doc = {
+  // { ... },
   securityDefinitions: {
     oAuthSample: {
       type: 'oauth2',
@@ -816,10 +836,10 @@ const doc = {
       flow: 'implicit',
       scopes: {
         read_pets: 'read your pets',
-        write_pets: 'modify pets in your account',
-      },
-    },
-  },
+        write_pets: 'modify pets in your account'
+      }
+    }
+  }
 };
 ```
 
@@ -873,7 +893,7 @@ const swaggerAutogen = require('swagger-autogen')();
 // 'Not Found'
 ```
 
-For now, the module has only the languages: English, Portuguese (Brazil), and Chinese (Simplified).
+For now, the module has only the languages: English, Portuguese (Brazil) and Chinese (Simplified).
 
 ## Examples
 
