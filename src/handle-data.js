@@ -868,13 +868,10 @@ function getCallbackParameters(line) {
                     } else if (typeParam.includes('req')) {
                         if (param.split(new RegExp(regex)).length === 1 && param && param.trim() !== '')
                             req.add(param)
-                    } else if (typeParam.includes('next')) {
+                    } else {
                         if (param.split(new RegExp(regex)).length === 1 && param && param.trim() !== '')
                             next.add(param)
-                    } else {    // any
-                        if (param.split(new RegExp(regex)).length === 1 && param && param.trim() !== '')
-                            next.add(param)
-                    }
+                    } 
                 } else if (params[2]) {                         // JS
                     let param = params[2].replaceAll('\n', '').replaceAll('\t', '').replaceAll(' ', '')
                     if (param.split(new RegExp(regex)).length === 1 && param && param.trim() !== '')
