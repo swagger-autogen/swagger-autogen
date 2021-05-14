@@ -1,7 +1,7 @@
 
 const users = require('./users')
 let expression = true
-
+let data = {}
 /* Teste de quebra de linha, espaços a mais e uso de ';' */
 
 module.exports = function (app) {
@@ -15,7 +15,7 @@ module.exports = function (app) {
 		const dataId = users.getUser(req.params.id)
 		const dataObj = users.getUser(req.query.obj)
 
-		if (expression)
+		if (expression && dataId && dataObj)
 			return res.status(200).send(true)
 		return res.status(404).send(false)
 	})
@@ -137,21 +137,23 @@ module.exports = function (app) {
 
 		const dataObj = users.getUser(req.query.obj)
 
-		if (expression)
+		if (expression && dataObj)
 			return res.status(200).send(true)
 		return res.status(404).send(false)
 	})
 }
 
-function myFunction1(p) {
+function myFunction1(req, res) {
 	const dataId = users.getUser(req.params.id)
 
-	if (expression)
+	if (expression && dataId)
 		return res.status(200).send(true)
+
+	myFunction2()  // workaround eslint
 	return res.status(404).send(false)
 }
 
-function myFunction2(p) {
+function myFunction2(req, res) {
 	// #swagger.start;
 
 	
@@ -179,7 +181,7 @@ function myFunction2(p) {
     } */
 	const dataObj = users.getUser(req.query.obj)
 
-	if (expression)
+	if (expression && dataId && dataObj)
 		return res.status(200).send(true)	// #swagger.responses[200]
 	return res.status(404).send(false)		// #swagger.responses[404]
 

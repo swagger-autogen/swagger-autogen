@@ -21,7 +21,6 @@ module.exports = function (args) {
 
     swaggerTags.setLanguage(recLang || options.language || 'en-US')
     return async (outputFile, endpointsFiles, data) => {
-        return new Promise(async (resolve) => {
             try {
                 if (!outputFile)
                     throw console.error("\nError: 'outputFile' was not specified.")
@@ -29,9 +28,9 @@ module.exports = function (args) {
                     throw console.error("\nError: 'endpointsFiles' was not specified.")
 
                 // Checking if endpoint files exist
-                for (var idx = 0; idx < endpointsFiles.length; ++idx) {
-                    var file = endpointsFiles[idx]
-                    var extension = await handleFiles.getExtension(file)
+                for (let idx = 0; idx < endpointsFiles.length; ++idx) {
+                    let file = endpointsFiles[idx]
+                    let extension = await handleFiles.getExtension(file)
                     endpointsFiles[idx] = file + extension
                     if (!fs.existsSync(file + extension)) {
                         throw console.error("\nError: File not found: '" + file + "'")
@@ -65,7 +64,7 @@ module.exports = function (args) {
                         console.error("\nError: Endpoint file not found => " + "'" + filePath + "'")
                         if (!options.disableLogs)
                             console.log('Swagger-autogen:', "\x1b[31m", 'Failed ' + symbols.failed, "\x1b[0m")
-                        return resolve(false)
+                        return false
                     }
 
                     let relativePath = filePath.split('/')
@@ -79,14 +78,13 @@ module.exports = function (args) {
                     if (obj === false) {
                         if (!options.disableLogs)
                             console.log('Swagger-autogen:', "\x1b[31m", 'Failed ' + symbols.failed, "\x1b[0m")
-                        return resolve(false)
+                        return false
                     }
                     objDoc.paths = { ...objDoc.paths, ...obj }
                 }
                 let constainXML = false
                 if (JSON.stringify(objDoc).includes('application/xml'))     // TODO: improve this
                     constainXML = true
-                swaggerTags.setDefinitions(objDoc.definitions)
                 Object.keys(objDoc.definitions).forEach(definition => {
                     if (constainXML)
                         objDoc.definitions[definition] = { ...swaggerTags.formatDefinitions(objDoc.definitions[definition], {}, constainXML), xml: { name: definition } }
@@ -97,12 +95,11 @@ module.exports = function (args) {
                 fs.writeFileSync(outputFile, dataJSON)
                 if (!options.disableLogs)
                     console.log('Swagger-autogen:', "\x1b[32m", 'Success ' + symbols.success, "\x1b[0m")
-                return resolve({ success: true, data: objDoc })
+                return { success: true, data: objDoc }
             } catch (err) {
                 if (!options.disableLogs)
                     console.log('Swagger-autogen:', "\x1b[31m", 'Failed ' + symbols.failed, "\x1b[0m")
-                return resolve({ success: false, data: null })
+                return { success: false, data: null }
             }
-        })
     }
 }
