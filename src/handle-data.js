@@ -369,15 +369,15 @@ function removeInsideParentheses(data, keepParentheses = false) {
 
 /**
  * Add "([_[method]_])([_[foo]_])([_[index]_])" to all endpoints. This standardize each endpoint.
- * 
+ *
  * 'method': get, post, put, etc.
- * 
+ *
  * 'foo': app, route, etc.
- * 
+ *
  * 'index': id
- * 
+ *
  * @param {string} data file content.
- * @param {array} patterns array containing patterns recognized as: app, route, etc. 
+ * @param {array} patterns array containing patterns recognized as: app, route, etc.
  */
 function addReferenceToMethods(data, patterns) {
     return new Promise(resolve => {
@@ -450,11 +450,11 @@ function addReferenceToMethods(data, patterns) {
 }
 
 /**
- * Get first substring between two characters (startSymbol and endSymbol). 
+ * Get first substring between two characters (startSymbol and endSymbol).
  * This method return remove the first character (startSymbol)
  * @param {string} data file content.
  * @param {string} startSymbol
- * @param {string} endSymbol 
+ * @param {string} endSymbol
  */
 function stackSymbolRecognizer(data, startSymbol, endSymbol) {
     return new Promise(resolve => {

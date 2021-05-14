@@ -67,7 +67,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.8.1
+$ npm install --save-dev swagger-autogen@2.8.2
 ```
 
 ## Usage
@@ -220,13 +220,17 @@ const options = {
     disableLogs: <boolean>,     // By default is false
     disableWarnings: <boolean>  // By default is false
 }
+```
 
+```js
 const swaggerAutogen = require('swagger-autogen')(options)
 ```
 
+```
 In case, you're using ES modules in your project, rewrite the `swaggerAutogen(...)` function as follows:
 
 ```js
+import swaggerAutogen from 'swagger-autogen';
 // ...
 swaggerAutogen(options)(outputFile, endpointsFiles, doc).then(async () => {
   await import('./index.js'); // Your project's root file
@@ -964,6 +968,7 @@ Some tutorials with examples:
   - Bug fix
 - Version 2.8.x:
   - OpenAPI option
+  - Code refactoring
   - Bug fix
 
 **TODO:**

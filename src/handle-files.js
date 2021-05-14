@@ -261,9 +261,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
              * Getting the reference of all files brought with 'import' and 'require'
              */
             let importedFiles = null;
-            let aRoutes = null
+            let aRoutes = null;
             let routePrefix = ''; // prefix of new Router()
-            
+
             if (restrictedContent) {
                 restrictedContent = await handleData.removeComments(restrictedContent);
                 importedFiles = await getImportedFiles(data, relativePath);
@@ -1652,6 +1652,8 @@ function functionRecognizerInFile(filePath, functionName, isRecursive = true) {
 
             let cleanedData = data;
             cleanedData = await handleData.removeComments(cleanedData, true);
+            cleanedData = cleanedData.split(new RegExp('\\s*=\\s*asyncHandler\\s*\\(')); // TODO: Implement method to remove 'fooToRemove' in this case: const|let|var foo = fooToRemove(...). Issue: #56.
+            cleanedData = cleanedData.join(' = (');
             cleanedData = cleanedData.replaceAll(' async ', ' ');
             cleanedData = cleanedData.split(new RegExp('\\=\\s*async\\s*\\('));
             cleanedData = cleanedData.join('= (');
