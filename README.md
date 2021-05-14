@@ -226,7 +226,6 @@ const options = {
 const swaggerAutogen = require('swagger-autogen')(options)
 ```
 
-```
 In case, you're using ES modules in your project, rewrite the `swaggerAutogen(...)` function as follows:
 
 ```js
