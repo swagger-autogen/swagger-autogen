@@ -50,13 +50,13 @@ This is a [Node.js](https://nodejs.org/en/) module available through the [npm](h
 $ npm install --save-dev swagger-autogen
 ```
 
-It is loaded using the require() function:
+If you're using CommonJS:
 
 ```js
 const swaggerAutogen = require('swagger-autogen')();
 ```
 
-Or if you're using ES modules, load it at the beginning of the file:
+Or if you're using ES modules:
 
 ```js
 import swaggerAutogen from 'swagger-autogen';
@@ -67,7 +67,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.8.2
+$ npm install --save-dev swagger-autogen@2.9.0
 ```
 
 ## Usage
@@ -163,6 +163,11 @@ const endpointsFiles = ['./path/endpointsUser.js', './path/endpointsBook.js'];
 swaggerAutogen(outputFile, endpointsFiles, doc);
 ```
 
+**NOTE:** If you're using ES modules, use:
+```js
+swaggerAutogen()(outputFile, endpointsFiles, doc);
+```
+
 **NOTE:** To omit any of the attributes in the *.json* file, just assign the value **null** to the specified attribute in the **doc**.
 
 ## Building documentation without starting the project
@@ -188,6 +193,8 @@ $ npm run swagger-autogen
 ## Building documentation at project startup
 
 To build the documentation before the project starts and immediately start it, rewrite the `swaggerAutogen(...)` function as follows:
+
+If you're using CommonJS, use:
 
 ```js
 // ...
@@ -221,6 +228,8 @@ const options = {
     disableWarnings: <boolean>  // By default is false
 }
 ```
+
+If you're using CommonJS, use:
 
 ```js
 const swaggerAutogen = require('swagger-autogen')(options)
@@ -968,6 +977,9 @@ Some tutorials with examples:
 - Version 2.8.x:
   - OpenAPI option
   - Code refactoring
+  - Bug fix
+- Version 2.9.x:
+  - Recognizes path with variables
   - Bug fix
 
 **TODO:**

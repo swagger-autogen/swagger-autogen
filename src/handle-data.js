@@ -1,14 +1,7 @@
 const swaggerTags = require('./swagger-tags');
 const statics = require('./statics');
 const tables = require('./tables');
-
-/**
- * Chech if the input parameter is a number
- * @param {*} n
- */
-function isNumeric(n) {
-    return !isNaN(parseFloat(n)) && isFinite(n);
-}
+const utils = require('./utils');
 
 /**
  * Converte statements such as: "require('./path')(foo)" in "foo.use(require('./path'))"
@@ -288,7 +281,7 @@ function getSwaggerComments(data) {
  */
 function removeStrings(data) {
     return new Promise(resolve => {
-        if (data.length == 0) {
+        if (!data || data.length == 0) {
             return resolve(data);
         }
 
@@ -436,73 +429,17 @@ function addReferenceToMethods(data, patterns) {
             }
 
             if (idx == methods.length - 1) {
-                /* Adding position */
+                /* Adding byte position */
                 auxData = auxData.split(']_])([_[');
+                let bytePosition = auxData[0].split('([_[')[0].length;
                 for (let idxPtn = 1; idxPtn < auxData.length; ++idxPtn) {
-                    auxData[idxPtn] = auxData[idxPtn].replace(']_])(', `]_])([_[${idxPtn - 1}]_])(`);
+                    let auxBytePosition = auxData[idxPtn].split(']_])(')[1].split('([_[')[0].length;
+                    auxData[idxPtn] = auxData[idxPtn].replace(']_])(', `]_])([_[${bytePosition}]_])(`);
+                    bytePosition += auxBytePosition;
                 }
                 auxData = auxData.join(']_])([_[');
 
                 return resolve(auxData);
-            }
-        }
-    });
-}
-
-/**
- * Get first substring between two characters (startSymbol and endSymbol).
- * This method return remove the first character (startSymbol)
- * @param {string} data file content.
- * @param {string} startSymbol
- * @param {string} endSymbol
- */
-function stackSymbolRecognizer(data, startSymbol, endSymbol) {
-    return new Promise(resolve => {
-        if (!data) {
-            return resolve(data);
-        }
-
-        let stack = 1;
-        data = data
-            .split('')
-            .filter(c => {
-                if (stack <= 0) return false;
-                if (c == startSymbol) stack += 1;
-                if (c == endSymbol) stack -= 1;
-                return true;
-            })
-            .join('');
-        return resolve(data);
-    });
-}
-
-/**
- * Get first substring between two characters (startSymbol and endSymbol)
- * @param {string} data file content.
- * @param {string} startSymbol
- * @param {string} endSymbol
- */
-function stack0SymbolRecognizer(data, startSymbol, endSymbol) {
-    return new Promise(resolve => {
-        let stack = 0;
-        let rec = 0;
-        let strVect = [];
-
-        for (let idx = 0; idx < data.length; ++idx) {
-            let c = data[idx];
-
-            if (rec == 0 && c == startSymbol) rec = 1;
-            if (c == startSymbol && rec == 1) stack += 1;
-            if (c == endSymbol && rec == 1) stack -= 1;
-            if (stack == 0 && rec == 1) rec = 2;
-
-            if (rec == 1) strVect.push(c);
-
-            if ((idx === data.length - 1 && rec == 1) || (idx === data.length - 1 && rec == 0)) return resolve(null);
-
-            if (idx === data.length - 1) {
-                strVect = strVect.join('');
-                return resolve(strVect.slice(1));
             }
         }
     });
@@ -564,11 +501,11 @@ function getStatus(elem, response, objResponses) {
                 .splice(1)
                 .forEach(s => {
                     let status = s.split(')')[0];
-                    if (isNumeric(status) && !!objResponses[status] === false) {
+                    if (utils.isNumeric(status) && !!objResponses[status] === false) {
                         objResponses[status] = {
                             description: tables.getHttpStatusDescription(status, swaggerTags.getLanguage())
                         };
-                    } else if (isNumeric(status) && !!objResponses[status] === true) {
+                    } else if (utils.isNumeric(status) && !!objResponses[status] === true) {
                         // concatenated with existing information
                         objResponses[status] = {
                             description: tables.getHttpStatusDescription(status, swaggerTags.getLanguage()),
@@ -952,7 +889,7 @@ async function getPathParameters(path, objParameters) {
         let name = ' ';
         let cnt = 0;
         while (path.includes('{')) {
-            name = await stack0SymbolRecognizer(path, '{', '}');
+            name = await utils.stack0SymbolRecognizer(path, '{', '}');
             path = path.split('{' + name + '}');
             path = path.join('');
 
@@ -991,7 +928,7 @@ async function functionRecognizerInData(data, functionName) {
     functionName = functionName.split(new RegExp('\\;|\\{|\\(|\\[|\\"|\\\'|\\`|\\}|\\)|\\]|\\:|\\,|\\*|\\+'));
     if (functionName.length > 1) {
         functionName = functionName.filter(r => r != '');
-        if (isNumeric(functionName[1])) {
+        if (utils.isNumeric(functionName[1])) {
             /* issue: (#45) */ functionName = functionName[0];
         } else {
             functionName = functionName[1];
@@ -1051,7 +988,7 @@ async function functionRecognizerInData(data, functionName) {
         // CASE: exports.validateUser = [ ]
         let array = data.split(new RegExp(`${functionName}\\s*\\n*\\t*=\\s*\\n*\\t*\\[`));
         if (array.length > 1) {
-            let resp = await stackSymbolRecognizer(array[1], '(', ')');
+            let resp = await utils.stackSymbolRecognizer(array[1], '(', ')');
             return '[' + resp;
         }
     }
@@ -1099,7 +1036,7 @@ async function functionRecognizerInData(data, functionName) {
                 funcStr = funcStr.split('{')[0];
             }
             funcStr = '(' + funcStr + (isArrowFunction ? ' { ' : ' => { '); // TODO: Verify case 'funcStr' with '=> =>'
-            let finalFunc = await stackSymbolRecognizer(func, '{', '}');
+            let finalFunc = await utils.stackSymbolRecognizer(func, '{', '}');
             return funcStr + finalFunc;
         } else {
             return null;
@@ -1146,7 +1083,7 @@ async function popFunction(data) {
         let func = data.split('{');
         let params = func[0];
         params = params.split('').reverse().join('');
-        params = await stack0SymbolRecognizer(params, ')', '(');
+        params = await utils.stack0SymbolRecognizer(params, ')', '(');
 
         if (params) {
             params = '(' + params.split('').reverse().join('') + ')';
@@ -1158,12 +1095,12 @@ async function popFunction(data) {
 
         func.shift();
         func = func.join('{');
-        func = signatureFunc + (await stackSymbolRecognizer(func, '{', '}'));
+        func = signatureFunc + (await utils.stackSymbolRecognizer(func, '{', '}'));
         return func.trim();
     } else if (isArrowFunctionWithoutCurlyBracket) {
         let func = data.split('=>')[1].trimLeft();
-        let params = await stack0SymbolRecognizer(data, '(', ')');
-        let paramsSubFunc = await stack0SymbolRecognizer(func, '(', ')');
+        let params = await utils.stack0SymbolRecognizer(data, '(', ')');
+        let paramsSubFunc = await utils.stack0SymbolRecognizer(func, '(', ')');
         func = func.split(paramsSubFunc)[0];
         func = '(' + params + ') => { ' + func + paramsSubFunc + ') }';
         return func;
@@ -1203,8 +1140,6 @@ module.exports = {
     removeComments,
     removeStrings,
     addReferenceToMethods,
-    stack0SymbolRecognizer,
-    stackSymbolRecognizer,
     getQueryIndirectly,
     getStatus,
     getHeader,

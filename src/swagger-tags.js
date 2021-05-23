@@ -1,5 +1,6 @@
 const tables = require('./tables');
 const statics = require('./statics');
+const utils = require('./utils');
 
 let lang = 'en';
 
@@ -16,7 +17,6 @@ function setLanguage(newLang) {
     return lang;
 }
 
-// TODO: Refactor
 /**
  * TODO: fill
  * @param {*} def
@@ -162,7 +162,11 @@ function getPath(elem, autoMode) {
     return path;
 }
 
-// Get #swagger.method
+/**
+ * Get #swagger.method
+ * @param {string} data
+ * @returns
+ */
 function getMethodTag(data) {
     if (data.includes(statics.SWAGGER_TAG + '.method')) {
         let method = data.split(new RegExp(statics.SWAGGER_TAG + '.method' + '\\s*\\=\\s*'))[1];
@@ -246,39 +250,6 @@ function getDeprecatedTag(data) {
     return false;
 }
 
-// pass to separated file
-/**
- * Get first substring between two characters (startSymbol and endSymbol)
- * @param {string} data file content
- * @param {string} startSymbol
- * @param {string} endSymbol
- */
-function stack0SymbolRecognizer(data, startSymbol, endSymbol) {
-    return new Promise(resolve => {
-        let stack = 0;
-        let rec = 0;
-        let strVect = [];
-
-        for (let idx = 0; idx < data.length; ++idx) {
-            let c = data[idx];
-
-            if (rec == 0 && c == startSymbol) rec = 1;
-            if (c == startSymbol && rec == 1) stack += 1;
-            if (c == endSymbol && rec == 1) stack -= 1;
-            if (stack == 0 && rec == 1) rec = 2;
-
-            if (rec == 1) strVect.push(c);
-
-            if ((idx === data.length - 1 && rec == 1) || (idx === data.length - 1 && rec == 0)) return resolve(null);
-
-            if (idx === data.length - 1) {
-                strVect = strVect.join('');
-                return resolve(strVect.slice(1));
-            }
-        }
-    });
-}
-
 /**
  * Get the content in '#swagger.parameters'
  * @param {string} data file content
@@ -289,7 +260,7 @@ async function getParametersTag(data, objParameters) {
     let swaggerParameters = data.split(new RegExp('#swagger.parameters'));
     swaggerParameters.shift();
     for (let idx = 0; idx < swaggerParameters.length; ++idx) {
-        let parameter = await stack0SymbolRecognizer(swaggerParameters[idx], '{', '}');
+        let parameter = await utils.stack0SymbolRecognizer(swaggerParameters[idx], '{', '}');
         let name = swaggerParameters[idx].split(new RegExp('\\[|\\]'))[1].replaceAll("'", '');
 
         try {
@@ -329,7 +300,7 @@ async function getProducesTag(data) {
     let swaggerProduces = data.split(new RegExp('#swagger.produces\\s*\\=\\s*'));
     swaggerProduces.shift();
     for (let idx = 0; idx < swaggerProduces.length; ++idx) {
-        let prod = await stack0SymbolRecognizer(swaggerProduces[idx], '[', ']');
+        let prod = await utils.stack0SymbolRecognizer(swaggerProduces[idx], '[', ']');
         try {
             // Handling syntax error
             if (prod) produces = [...produces, ...eval(`(${'[' + prod.toLowerCase() + ']'})`)];
@@ -356,7 +327,7 @@ async function getConsumesTag(data) {
     let swaggerConsumes = data.split(new RegExp('#swagger.consumes\\s*\\=\\s*'));
     swaggerConsumes.shift();
     for (let idx = 0; idx < swaggerConsumes.length; ++idx) {
-        let cons = await stack0SymbolRecognizer(swaggerConsumes[idx], '[', ']');
+        let cons = await utils.stack0SymbolRecognizer(swaggerConsumes[idx], '[', ']');
 
         try {
             // Handling syntax error
@@ -388,7 +359,7 @@ async function getResponsesTag(data, objResponses) {
 
         if (swaggerResponses[idx].split(new RegExp(`\\[\\s*\\t*\\s*\\t*${statusCode}\\s*\\t*\\s*\\t*\\]\\s*\\t*\\s*\\t*\\=\\s*\\t*\\s*\\t*\\{`)).length > 1) {
             // has object
-            let objResp = await stack0SymbolRecognizer(swaggerResponses[idx], '{', '}');
+            let objResp = await utils.stack0SymbolRecognizer(swaggerResponses[idx], '{', '}');
 
             try {
                 // Handling syntax error
@@ -546,7 +517,7 @@ function getTags(data) {
 async function getSecurityTag(data) {
     let security = [];
     let swaggerSecurity = data.split(new RegExp('#swagger.security\\s*\\=\\s*'))[1];
-    let securityParameters = await stack0SymbolRecognizer(swaggerSecurity, '[', ']');
+    let securityParameters = await utils.stack0SymbolRecognizer(swaggerSecurity, '[', ']');
     try {
         // Handling syntax error
         security = eval(`(${'[' + securityParameters + ']'})`);

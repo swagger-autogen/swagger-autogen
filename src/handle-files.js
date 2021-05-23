@@ -4,6 +4,8 @@ const merge = require('deepmerge');
 const swaggerTags = require('./swagger-tags');
 const handleData = require('./handle-data');
 const statics = require('./statics');
+const utils = require('./utils');
+const codeParser = require('./code-parser');
 
 const overwriteMerge = (destinationArray, sourceArray, options) => {
     if (destinationArray || sourceArray || options) return sourceArray;
@@ -23,6 +25,13 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
             if (err || data.trim() === '') {
                 return resolve(false);
             }
+
+            /**
+             * Experimental parser. Used to get variables
+             * In the future, will be used to get other patterns
+             */
+            const jsParsed = codeParser.jsParser(await handleData.removeComments(data, true));
+
             let keywords = ['route', 'use', ...statics.METHODS];
             let regex = '';
             keywords.forEach(word => (regex += '\\s*\\n*\\t*\\.\\s*\\n*\\t*' + word + '\\s*\\n*\\t*\\(|'));
@@ -80,7 +89,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
             let count = 0;
             while (!finished && count < 300) {
                 count += 1; // To avoid infinite loop
-                let dat = await handleData.stack0SymbolRecognizer(aDataAux, '(', ')');
+                let dat = await utils.stack0SymbolRecognizer(aDataAux, '(', ')');
                 if (dat == null) {
                     finished = true;
                     continue;
@@ -232,7 +241,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                 ...receivedRouteMiddlewares.map(r => {
                     r.path = false;
                     r.fixedRoute = true;
-                    r.position = -1;
+                    r.bytePosition = -1;
                     return r;
                 })
             ];
@@ -303,15 +312,28 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     }
 
                     let endpointFunctions = [];
-                    let verifyPath = elem.split(',');
-                    if (!verifyPath[0].includes('[_[use]_])([_[') && (verifyPath.length == 1 || (!verifyPath[0].includes('"') && !verifyPath[0].includes("'") && !verifyPath[0].includes('`')))) {
-                        continue;
+                    let rawPath = codeParser.getUntil(elem, ',');
+                    let bytePosition = null;
+                    if (rawPath.split(']_])(')[2]) {
+                        bytePosition = parseInt(rawPath.split(']_])(')[2].split('[_[')[1]);
+                        rawPath = rawPath.split('_])(')[3]; //.slice(-1)[0];
+                        if (rawPath && rawPath.includes(')') && !rawPath.split(')')[0].includes('(')) {
+                            // has no path
+                            rawPath = false;
+                        }
                     }
+
+                    // Middleware without path. TODO: handle arrow function
+                    if (rawPath && rawPath.split(new RegExp('\\s*function\\s*\\(')).length > 1) {
+                        rawPath = '';
+                    }
+
+                    let rawPathResolved = rawPath ? rawPath.replaceAll(' ', '') : false;
+                    rawPathResolved = await codeParser.resolvePathVariables(rawPathResolved, bytePosition, jsParsed, importedFiles);
 
                     let endpointSwaggers = null;
                     let objEndpoint = {};
                     let path = false;
-                    let rawPath = false;
                     let method = false;
                     let predefMethod = false;
                     let req = null;
@@ -322,13 +344,12 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     let forced = false;
                     let predefPattern = false;
                     let isChained = false;
-                    let position = null;
 
                     if (elem && elem.includes('[_[') && elem.includes(']_]')) {
                         elem = elem.split(new RegExp('\\[_\\[|\\]_\\]\\)\\('));
                         predefMethod = elem[1];
                         predefPattern = elem[3];
-                        position = parseInt(elem[5]);
+                        bytePosition = parseInt(elem[5]);
 
                         if (predefPattern === '____CHAINED____') {
                             // CASE: router.get(...).post(...).put(...)...
@@ -373,29 +394,19 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         }
 
                         elem = elem.trim();
-
-                        // Identifying which symbol the path stars and ends ( \", \' or \` )
-                        const quotMark = elem[0];
-                        if ((quotMark == '"' || quotMark == "'" || quotMark == '`') && !elem.includes('#swagger.path') && elem.split(quotMark).length > 2) {
-                            let elemAux = elem.replaceAll(`\\${quotMark}`, statics.STRING_BREAKER + 'quotMark' + statics.STRING_BREAKER);
-                            elemAux = elemAux.split(quotMark);
-                            rawPath = elemAux[1];
-                            rawPath = rawPath.replaceAll(statics.STRING_BREAKER + 'quotMark' + statics.STRING_BREAKER, `\\${quotMark}`);
-                        }
-
                         if (elem.includes('#swagger.path')) {
                             rawPath = swaggerTags.getPath(elem, autoMode);
                         }
                     }
 
-                    elem = await handleData.stackSymbolRecognizer(elem, '(', ')');
+                    elem = await utils.stackSymbolRecognizer(elem, '(', ')');
 
                     /**
                      * CASE (continuing): router.use(middleware).get(...).post(...).put(...)...
                      * Adding middleware to be processed together with the other endpoint functions
                      */
                     if (isChained) {
-                        const endpointRegex = `\\(\\[\\_\\[${predefMethod}\\]\\_\\]\\)\\(\\[\\_\\[____CHAINED____\\]\\_\\]\\)\\(\\[\\_\\[${position}\\]\\_\\]\\)\\(\\s*\\n*\\t*.${rawPath}.\\s*\\n*\\t*\\,`;
+                        const endpointRegex = `\\(\\[\\_\\[${predefMethod}\\]\\_\\]\\)\\(\\[\\_\\[____CHAINED____\\]\\_\\]\\)\\(\\[\\_\\[${bytePosition}\\]\\_\\]\\)\\(\\s*\\n*\\t*${rawPath}\\s*\\n*\\t*\\,`;
                         const found = localRouteMiddlewares.find(midd => midd.rawRoute && midd.rawRoute.split(new RegExp(endpointRegex)).length > 1);
                         if (found) {
                             elem += ',' + found.middleware;
@@ -424,6 +435,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         auxElem = auxElem.replace(rawPath, '');
                         let functionsInParameters = auxElem;
                         if (functionsInParameters.slice(-1)[0] == ')') {
+                            // REFACTOR: use regex
                             functionsInParameters = functionsInParameters.slice(0, -1);
                         }
                         functionsInParameters = functionsInParameters.split(',');
@@ -437,7 +449,6 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                             let functionsStr = elemOrig.replace(rawPath, '').split(',');
 
-                            elem = rawPath;
                             if (functionsStr.length > 1 && rawPath) {
                                 functionsStr.shift();
                             }
@@ -473,9 +484,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                             callbackParameters: null,
                                             func: funcNotReferenced,
                                             middleware: true,
-                                            path: rawPath,
+                                            path: rawPathResolved === '' ? false : rawPathResolved,
                                             isLocalRouteMiddleware,
-                                            position
+                                            bytePosition
                                         });
                                         functionsStr = functionsStr.replace(funcNotReferenced, ' ');
                                     }
@@ -489,7 +500,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                     if (funcNotReferenced.trim()[0] == '(') {
                                         // there are parameters
                                         let funcNotRefFormated = funcNotReferenced.replaceAll('(', '( ').replaceAll(')', ' )');
-                                        let funcParams = await handleData.stack0SymbolRecognizer(funcNotRefFormated, '(', ')');
+                                        let funcParams = await utils.stack0SymbolRecognizer(funcNotRefFormated, '(', ')');
                                         let regexParams = '';
 
                                         if (funcParams) {
@@ -532,7 +543,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                     if (functionsStr && functionsStr.split(funcNotReferenced).length > 1) {
                                         functionsStr = functionsStr.replace(funcNotReferenced, ' ');
                                     } else {
-                                        let params = await handleData.stack0SymbolRecognizer(funcNotReferenced, '(', ')');
+                                        let params = await utils.stack0SymbolRecognizer(funcNotReferenced, '(', ')');
                                         if (params && functionsStr.split('(' + params + ')').length > 1) {
                                             functionsStr = functionsStr.replace('(' + params + ')', ' ');
                                         } else {
@@ -613,7 +624,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                  * router.method('/path', fooFoo('foo') )
                                  */
                                 if (func.includes('(') && func.includes(')')) {
-                                    let params = await handleData.stack0SymbolRecognizer(func, '(', ')'); // TODO: get array with all strings and try to find with each one
+                                    let params = await utils.stack0SymbolRecognizer(func, '(', ')'); // TODO: get array with all strings and try to find with each one
                                     if (params && (params[0] == '"' || params[0] == "'" || params[0] == '`')) {
                                         refFuncInParam = params.replaceAll('"', '').replaceAll("'", '').replaceAll('`', '');
                                     }
@@ -621,7 +632,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 /* END CASE */
 
                                 func = func.split(new RegExp('\\(|\\)'))[0];
-                                if (func.split(new RegExp('\\(|\\)|\\[|\\]|\\{|\\}|\\!|\\=|\\>|\\<')).length > 1 || func.trim() == '') continue;
+                                if (func.split(new RegExp('\\(|\\)|\\[|\\]|\\{|\\}|\\!|\\=|\\>|\\<')).length > 1 || func.trim() == '') {
+                                    continue;
+                                }
 
                                 if (func.split('.').length > 1) {
                                     // Identifying subfunction reference, such as: 'controller.store' in the foo.get('/path', controller.store)
@@ -671,13 +684,13 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                     }
                                 }
 
-                                let extension = await getExtension(pathFile);
+                                let extension = await utils.getExtension(pathFile);
                                 let refFunction = await functionRecognizerInFile(pathFile + extension, functionName);
 
                                 // Trying to find the reference in the index file
                                 // TODO: implements to 'import' and 'exports.default'
                                 if (!refFunction && functionName && pathFile && pathFile.split('/').length > 1 && pathFile.split('/').slice(-1)[0] == 'index') {
-                                    let dataIndexFile = await getFileContent(pathFile + extension);
+                                    let dataIndexFile = await utils.getFileContent(pathFile + extension);
                                     if (dataIndexFile) {
                                         pathFile = pathFile.split('/').slice(0, -1).join('/'); // removing '/index'
                                         let importsIndexFile = await getImportedFiles(dataIndexFile, pathFile);
@@ -704,14 +717,14 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                             pathFile = importsIndexFile[idx].fileName;
                                         }
                                         if (pathFile) {
-                                            extension = await getExtension(pathFile);
+                                            extension = await utils.getExtension(pathFile);
                                             refFunction = await functionRecognizerInFile(pathFile + extension, functionName);
                                         }
                                     }
                                 }
 
                                 if (!refFunction && refFuncInParam) {
-                                    let fileContent = await getFileContent(pathFile + extension);
+                                    let fileContent = await utils.getFileContent(pathFile + extension);
                                     if (fileContent && fileContent.includes('awilix-express')) refFunction = await functionRecognizerInFile(pathFile + extension, refFuncInParam);
                                 }
 
@@ -721,7 +734,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                  */
                                 if (!refFunction) {
                                     if (!functionName) {
-                                        let dataIndexFile = await getFileContent(pathFile + extension);
+                                        let dataIndexFile = await utils.getFileContent(pathFile + extension);
                                         if (dataIndexFile) {
                                             pathFile = pathFile.split('/').slice(0, -1).join('/'); // removing '/index'
 
@@ -756,7 +769,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                                 });
                                             }
                                             if (pathFile) {
-                                                extension = await getExtension(pathFile);
+                                                extension = await utils.getExtension(pathFile);
                                                 refFunction = await functionRecognizerInFile(pathFile + extension, functionName);
                                             }
                                         }
@@ -782,9 +795,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                             callbackParameters: null,
                                             func: refFunction,
                                             middleware: true,
-                                            path: rawPath,
+                                            path: rawPathResolved === '' ? false : rawPathResolved,
                                             isLocalRouteMiddleware,
-                                            position
+                                            bytePosition
                                         });
                                     }
                                 } else if (refFunction) {
@@ -812,9 +825,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                             callbackParameters: null,
                                             func: refFunction,
                                             middleware: true,
-                                            path: rawPath,
+                                            path: rawPathResolved === '' ? false : rawPathResolved,
                                             isLocalRouteMiddleware,
-                                            position
+                                            bytePosition
                                         });
                                     }
                                 } else if (refFunction) {
@@ -843,8 +856,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             if (r.path === '/*' || r.path === '/') {
                                 return true;
                             }
-                            if ((r.path === false && r.position < position) || (localPath && r.path && localPath.split(r.path)[0] === '')) {
-                                // TODO: verify: r.position < position
+                            if ((r.path === false && r.bytePosition < bytePosition) || (localPath && r.path && localPath.split(r.path)[0] === '')) {
                                 return true;
                             }
                             return false;
@@ -872,10 +884,19 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         if (!autoMode || elemOrig.includes('#swagger.path')) {
                             path = swaggerTags.getPath(elemOrig, autoMode);
                         } else {
-                            path = pathRoute + routePrefix + swaggerTags.getPath(elemOrig, autoMode);
+                            path = pathRoute + routePrefix + rawPathResolved;
+                            path = path.split('/').map(p => {
+                                if (p.includes(':')) p = '{' + p.replace(':', '') + '}';
+                                return p;
+                            });
+                            path = path.join('/');
+                            path = path.replaceAll('\n', '').replaceAll('\\n', '');
                         }
 
-                        path = path.replaceAll('//', '/').replaceAll('//', '/').replaceAll('//', '/').replaceAll('//', '/');
+                        while (path.includes('//')) {
+                            path = path.replaceAll('//', '/');
+                        }
+
                         objEndpoint[path] = {};
                     }
 
@@ -1086,9 +1107,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     };
                     let data = rt.split(']_])(');
                     let routeName = data[1].split('[_[')[1].trim();
-                    let postion = parseInt(data[2].split('[_[')[1]);
+                    let bytePosition = parseInt(data[2].split('[_[')[1]);
 
-                    data = await handleData.stackSymbolRecognizer(data[3], '(', ')');
+                    data = await utils.stackSymbolRecognizer(data[3], '(', ')');
 
                     let routeFound = propRoutes.find(r => r.routeName === routeName);
                     if (routeFound) {
@@ -1150,8 +1171,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         }
                         obj.path = obj.path.replaceAll('////', '/').replaceAll('///', '/').replaceAll('//', '/');
                     } else {
-                        obj.path = data.split(',')[0];
-                        obj.path = obj.path.getBetweenStrs('`', '`') || obj.path.getBetweenStrs("'", "'") || obj.path.getBetweenStrs('"', '"');
+                        obj.path = data.split(',')[0].replaceAll(' ', '');
+                        obj.path = await codeParser.resolvePathVariables(obj.path, bytePosition, jsParsed, importedFiles);
 
                         if (obj.hasRequire && routePrefix) {
                             // TODO: Verify other cases
@@ -1235,16 +1256,16 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         }
 
                         obj.routeMiddlewares = routeMiddlewares.filter(r => {
-                            if (r.position == postion) {
+                            if (r.bytePosition == bytePosition) {
                                 return true;
                             }
 
-                            if (r.path === false && r.position < postion) {
+                            if (r.path === false && r.bytePosition < bytePosition) {
                                 return true;
                             }
 
                             // if ((r.path !== false) && (r.path === obj.path) || (r.fixedRoute === true))  // TODO: verify 'fixedRoute'
-                            if (r.path !== false && r.path && obj.path && r.path.split(obj.path)[0] === '' && r.position < postion) {
+                            if (r.path !== false && r.path && obj.path && r.path.split(obj.path)[0] === '' && r.bytePosition < bytePosition) {
                                 return true;
                             }
 
@@ -1257,7 +1278,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         auxRelativePath = auxRelativePath.join('/');
 
                         if (idx > -1 && importedFiles[idx] && importedFiles[idx].isDirectory && !exportPath) {
-                            let extension = await getExtension(obj.fileName + '/index');
+                            let extension = await utils.getExtension(obj.fileName + '/index');
                             let auxPaths = await readEndpointFile(obj.fileName + '/index' + extension, obj.path || '', obj.fileName, obj.routeMiddlewares, null);
                             if (auxPaths) {
                                 allPaths = {
@@ -1273,7 +1294,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             }
                         } else {
                             let refFunction = null;
-                            let extension = await getExtension(obj.fileName);
+                            let extension = await utils.getExtension(obj.fileName);
 
                             if (refFunc) {
                                 refFunction = await functionRecognizerInFile(obj.fileName + extension, refFunc);
@@ -1328,7 +1349,7 @@ async function getImportedFiles(data, relativePath) {
 
         // TODO: refactor this. Pass to outside
         let tsPaths = [];
-        let tsconfig = await getFileContent(process.cwd() + '/tsconfig.json');
+        let tsconfig = await utils.getFileContent(process.cwd() + '/tsconfig.json');
         if (tsconfig) {
             tsconfig = await handleData.removeComments(tsconfig);
             tsconfig = JSON5.parse(tsconfig); // Allow trailing commas
@@ -1425,7 +1446,7 @@ async function getImportedFiles(data, relativePath) {
              */
             if (!fileName.includes('./')) {
                 // Checking if is a project file
-                let extension = await getExtension(fileName);
+                let extension = await utils.getExtension(fileName);
                 if (fs.existsSync(fileName + extension)) {
                     // is a absolute path
                     fileName = './' + fileName; // TODO: check for possible problems here
@@ -1457,10 +1478,10 @@ async function getImportedFiles(data, relativePath) {
 
                 // Checking if reference is to file
                 if (obj.isDirectory && obj.exports.length > 0) {
-                    let indexExtension = await getExtension(pathFile + '/index');
+                    let indexExtension = await utils.getExtension(pathFile + '/index');
                     if (indexExtension != '') {
                         // index exist
-                        let dataFile = await getFileContent(pathFile + '/index' + indexExtension);
+                        let dataFile = await utils.getFileContent(pathFile + '/index' + indexExtension);
                         if (dataFile) {
                             let imports = await getImportedFiles(dataFile, obj.fileName);
                             for (let idx = 0; idx < obj.exports.length; ++idx) {
@@ -1483,14 +1504,14 @@ async function getImportedFiles(data, relativePath) {
                                     });
 
                                     if (exportPath) {
-                                        let extension = await getExtension(exportPath);
+                                        let extension = await utils.getExtension(exportPath);
                                         obj.exports[idx].path = exportPath + extension;
                                     }
                                 }
 
                                 if (idxFound > -1) {
                                     const pathFile = imports[idxFound].fileName;
-                                    let extension = await getExtension(pathFile);
+                                    let extension = await utils.getExtension(pathFile);
                                     obj.exports[idx].path = pathFile + extension;
                                 }
                             }
@@ -1561,7 +1582,7 @@ async function getImportedFiles(data, relativePath) {
              */
             if (!fileName.includes('./')) {
                 // Checking if is a project file
-                let extension = await getExtension(fileName);
+                let extension = await utils.getExtension(fileName);
                 if (fs.existsSync(fileName + extension)) {
                     // is an absolute path
                     fileName = './' + fileName; // TODO: check for possible problems here
@@ -1595,10 +1616,10 @@ async function getImportedFiles(data, relativePath) {
 
                     // Checking if reference is to file
                     if (obj.isDirectory) {
-                        let indexExtension = await getExtension(pathFile + '/index');
+                        let indexExtension = await utils.getExtension(pathFile + '/index');
                         if (indexExtension != '') {
                             // index exist
-                            let dataFile = await getFileContent(pathFile + '/index' + indexExtension);
+                            let dataFile = await utils.getFileContent(pathFile + '/index' + indexExtension);
                             dataFile = await handleData.removeComments(dataFile);
                             const isRequireDirLib = dataFile && dataFile.split(new RegExp('\\s*\\n*\\t*module\\s*\\n*\\t*\\.\\s*\\n*\\t*exports\\s*\\n*\\t*\\=\\s*\\n*\\t*require\\s*\\n*\\t*\\(\\s*\\n*\\t*.require\\-dir.\\s*\\n*\\t*\\)')).length > 1 ? true : false;
                             if (isRequireDirLib) {
@@ -1725,7 +1746,7 @@ function functionRecognizerInFile(filePath, functionName, isRecursive = true) {
                         }
 
                         if (path) {
-                            let extension = await getExtension(path);
+                            let extension = await utils.getExtension(path);
                             funcStr = await functionRecognizerInFile(path + extension, functionName, false);
                         }
                     }
@@ -1785,41 +1806,6 @@ function functionRecognizerInFile(filePath, functionName, isRecursive = true) {
     });
 }
 
-/**
- * Get file extension.
- * @param {string} fileName
- */
-async function getExtension(fileName) {
-    let data = fileName.split('.').slice(-1)[0].toLowerCase();
-    if (data == 'js' || data == 'ts' || data == 'jsx' || data == 'jsx') {
-        return '';
-    }
-
-    let extensios = ['.js', '.ts', '.jsx', '.tsx'];
-    for (let idx = 0; idx < extensios.length; ++idx) {
-        if (fs.existsSync(fileName + extensios[idx])) {
-            return extensios[idx];
-        }
-    }
-    return '';
-}
-
-/**
- * Get file content.
- * @param {string} pathFile
- */
-function getFileContent(pathFile) {
-    return new Promise(resolve => {
-        fs.readFile(pathFile, 'utf8', function (err, data) {
-            if (err) {
-                return resolve(null);
-            }
-            return resolve(data);
-        });
-    });
-}
-
 module.exports = {
-    readEndpointFile,
-    getExtension
+    readEndpointFile
 };
