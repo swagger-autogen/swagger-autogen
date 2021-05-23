@@ -317,7 +317,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     if (rawPath.split(']_])(')[2]) {
                         bytePosition = parseInt(rawPath.split(']_])(')[2].split('[_[')[1]);
                         rawPath = rawPath.split('_])(')[3]; //.slice(-1)[0];
-                        if (rawPath && rawPath.includes(')') && !rawPath.split(')')[0].includes('(')) {
+                        if ((rawPath && rawPath.includes(')') && !rawPath.split(')')[0].includes('(')) || rawPath == data) {
                             // has no path
                             rawPath = false;
                         }
@@ -1154,6 +1154,17 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         }
                     }
 
+                    let rawPath = codeParser.getUntil(data, ',');
+                    let rawPathResolved = null;
+
+                    if ((rawPath && rawPath.includes(')') && !rawPath.split(')')[0].includes('(')) || rawPath == data) {
+                        // has no path
+                        rawPath = false;
+                    } else {
+                        rawPathResolved = await codeParser.resolvePathVariables(rawPath, bytePosition, jsParsed, importedFiles);
+                        data = data.replace(rawPath, ''); // removing path
+                    }
+
                     if (data.split(',').length == 1) {
                         // route with 1 parameter, such as: route.use(middleware)
                         if (data && rt && rt.split(data)[0] && rt.split(data)[0].split(new RegExp(regex)).length > 1) {
@@ -1171,8 +1182,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         }
                         obj.path = obj.path.replaceAll('////', '/').replaceAll('///', '/').replaceAll('//', '/');
                     } else {
-                        obj.path = data.split(',')[0].replaceAll(' ', '');
-                        obj.path = await codeParser.resolvePathVariables(obj.path, bytePosition, jsParsed, importedFiles);
+                        obj.path = rawPathResolved;
 
                         if (obj.hasRequire && routePrefix) {
                             // TODO: Verify other cases
@@ -1276,6 +1286,17 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         let auxRelativePath = obj.fileName.split('/');
                         auxRelativePath.pop();
                         auxRelativePath = auxRelativePath.join('/');
+
+                        if (exportPath && importedFiles[idx] && importedFiles[idx].isDirectory) {
+                            let resp = await utils.fileOrDirectoryExist(exportPath);
+                            if (resp && resp.isDirectory) {
+                                let extension = await utils.getExtension(obj.fileName + '/index');
+                                let realFile = await utils.fileOrDirectoryExist(obj.fileName + '/index' + extension);
+                                if (realFile.isFile) {
+                                    exportPath = null;
+                                }
+                            }
+                        }
 
                         if (idx > -1 && importedFiles[idx] && importedFiles[idx].isDirectory && !exportPath) {
                             let extension = await utils.getExtension(obj.fileName + '/index');

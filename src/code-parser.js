@@ -148,6 +148,13 @@ function removeCharacter(data, character, ignoreInString = true) {
  * @returns
  */
 async function resolvePathVariables(rawPath, bytePosition, jsParsed, importedFiles) {
+    if (!rawPath) {
+        return rawPath;
+    }
+
+    if (rawPath) {
+        rawPath = rawPath.replaceAll(' ', '');
+    }
     let pathVariables = await handleData.removeStrings(rawPath);
     if (rawPath && (rawPath.includes('${') || pathVariables.length > 0) && jsParsed && jsParsed.variables && jsParsed.variables.length > 0) {
         pathVariables = pathVariables.split('+').filter(e => e != '' && e != ' ');

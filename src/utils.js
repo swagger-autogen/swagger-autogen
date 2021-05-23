@@ -1,6 +1,24 @@
 const fs = require('fs');
 
 /**
+ * Check if 'path' is a directory or a file
+ *
+ * @param {string} path
+ * @returns
+ */
+async function fileOrDirectoryExist(path) {
+    try {
+        if (fs.lstatSync(path).isDirectory()) {
+            return { isDirectory: true, isFile: false };
+        }
+        await fs.promises.access(path);
+        return { isDirectory: false, isFile: true };
+    } catch (error) {
+        return { isDirectory: false, isFile: false };
+    }
+}
+
+/**
  * Get file extension.
  * @param {string} fileName
  */
@@ -102,6 +120,7 @@ function stack0SymbolRecognizer(data, startSymbol, endSymbol) {
 }
 
 module.exports = {
+    fileOrDirectoryExist,
     getExtension,
     getFileContent,
     isNumeric,
