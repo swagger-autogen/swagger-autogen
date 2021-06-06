@@ -1165,6 +1165,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         data = data.replace(rawPath, ''); // removing path
                     }
 
+                    let listOfFileName = new Set();
+
                     if (data.split(',').length == 1) {
                         // route with 1 parameter, such as: route.use(middleware)
                         if (data && rt && rt.split(data)[0] && rt.split(data)[0].split(new RegExp(regex)).length > 1) {
@@ -1174,6 +1176,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         obj.path = '';
                         obj.varFileName = data;
                         obj.varFileName = obj.varFileName.replaceAll('(', '').replaceAll(')', '').replaceAll(' ', '');
+                        listOfFileName.add(obj.varFileName);
                         if (obj.hasRequire && routePrefix) {
                             // TODO: Verify other cases
                             obj.path = '';
@@ -1191,153 +1194,173 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             obj.path = pathRoute + routePrefix + obj.path;
                         }
                         obj.path = obj.path.replaceAll('////', '/').replaceAll('///', '/').replaceAll('//', '/');
-                        obj.varFileName = data.split(',').slice(-1)[0];
 
-                        /**
-                         * CASE:
-                         * import fooFoo from "./pathToFoo";
-                         * ...
-                         * router.use("/", new fooFoo().foo);
-                         */
-                        if (obj.varFileName.split(new RegExp('new\\s+')).length > 1) {
-                            if (obj.varFileName.slice(-1)[0] == ')') {
-                                obj.varFileName = obj.varFileName.slice(0, -1);
-                            }
-                            obj.varFileName = obj.varFileName.split(new RegExp('\\s*new\\s+'))[1];
-                            if (obj.varFileName.split(new RegExp('\\([\\s|\\S]*\\)')).length > 1) {
-                                obj.varFileName = obj.varFileName.split(new RegExp('\\([\\s|\\S]*\\)'));
-                                obj.varFileName = obj.varFileName.join('');
-                            }
-                            if (obj.varFileName.includes('.')) {
-                                refFunc = obj.varFileName.split('.')[1];
-                                obj.varFileName = obj.varFileName.split('.')[0];
-                            }
+                        if (data.trim()[0] === ',' && (await utils.stack0SymbolRecognizer(data, '[', ']'))) {
+                            /**
+                             * Multiple express Routers under the same name space
+                             * Issue: 61
+                             */
+                            let auxOfFileName = await utils.stack0SymbolRecognizer(data, '[', ']');
+                            auxOfFileName = auxOfFileName.replaceAll(' ', '').split(',');
+                            listOfFileName = new Set(auxOfFileName);
+                        } else {
+                            obj.varFileName = data.split(',').slice(-1)[0];
+                            listOfFileName.add(obj.varFileName);
                         }
-                        /* END CASE */
 
-                        obj.varFileName = obj.varFileName.replaceAll('(', '').replaceAll(')', '').replaceAll(' ', '');
-                        if (refFunc) {
-                            refFunc = refFunc.replaceAll('(', '').replaceAll(')', '').replaceAll(' ', '');
-                        }
-                    }
-
-                    if (obj.varFileName && obj.varFileName.split(new RegExp('\\:|\\;|\\=|\\>|\\<|\\{|\\}|\\(|\\)|\\[|\\]|\\,')).length > 1) {
-                        obj.varFileName = null;
-                    }
-
-                    if (refFunc && refFunc.split(new RegExp('\\:|\\;|\\=|\\>|\\<|\\{|\\}|\\(|\\)|\\[|\\]|\\,')).length > 1) {
-                        refFunc = null;
-                    }
-
-                    if (exportPath) {
-                        obj.varFileName = exportPath;
-                    }
-
-                    // First, tries to find in the import/require
-                    let idx = importedFiles.findIndex(e => e.varFileName && obj.varFileName && e.varFileName == obj.varFileName);
-
-                    if (idx == -1 && !exportPath) {
-                        // Second, tries to find in the 'exports' of import/require, such as 'foo' in the: import { foo } from './fooFile'
-                        importedFiles.forEach((imp, importIdx) => {
-                            if (exportPath) {
-                                return;
-                            }
-                            let found = imp && imp.exports ? imp.exports.find(e => e.varName && obj.varFileName && e.varName == obj.varFileName) : null;
-                            if (found) {
-                                if (imp.isDirectory && found.path) {
-                                    exportPath = found.path;
-                                    idx = importIdx;
-                                } else if (imp.isDirectory && !found.path) {
-                                    exportPath = imp.fileName;
-                                    idx = importIdx;
-                                } else {
-                                    exportPath = imp.fileName; // TODO: change variable name
+                        listOfFileName = [...listOfFileName];
+                        for (let idxFileName = 0; idxFileName < listOfFileName.length; ++idxFileName) {
+                            /**
+                             * CASE:
+                             * import fooFoo from "./pathToFoo";
+                             * ...
+                             * router.use("/", new fooFoo().foo);
+                             */
+                            if (listOfFileName[idxFileName].split(new RegExp('new\\s+')).length > 1) {
+                                if (listOfFileName[idxFileName].slice(-1)[0] == ')') {
+                                    listOfFileName[idxFileName] = listOfFileName[idxFileName].slice(0, -1);
+                                }
+                                listOfFileName[idxFileName] = listOfFileName[idxFileName].split(new RegExp('\\s*new\\s+'))[1];
+                                if (listOfFileName[idxFileName].split(new RegExp('\\([\\s|\\S]*\\)')).length > 1) {
+                                    listOfFileName[idxFileName] = listOfFileName[idxFileName].split(new RegExp('\\([\\s|\\S]*\\)'));
+                                    listOfFileName[idxFileName] = listOfFileName[idxFileName].join('');
+                                }
+                                if (listOfFileName[idxFileName].includes('.')) {
+                                    refFunc = listOfFileName[idxFileName].split('.')[1];
+                                    listOfFileName[idxFileName] = listOfFileName[idxFileName].split('.')[0];
                                 }
                             }
-                        });
-                    }
+                            /* END CASE */
 
-                    if (idx > -1 || exportPath) {
-                        let pathFile = null;
-                        if (exportPath) {
-                            pathFile = exportPath;
-                        } else {
-                            pathFile = importedFiles[idx].fileName;
-                        }
-
-                        obj.routeMiddlewares = routeMiddlewares.filter(r => {
-                            if (r.bytePosition == bytePosition) {
-                                return true;
-                            }
-
-                            if (r.path === false && r.bytePosition < bytePosition) {
-                                return true;
-                            }
-
-                            // if ((r.path !== false) && (r.path === obj.path) || (r.fixedRoute === true))  // TODO: verify 'fixedRoute'
-                            if (r.path !== false && r.path && obj.path && r.path.split(obj.path)[0] === '' && r.bytePosition < bytePosition) {
-                                return true;
-                            }
-
-                            return false;
-                        });
-
-                        obj.fileName = pathFile;
-                        let auxRelativePath = obj.fileName.split('/');
-                        auxRelativePath.pop();
-                        auxRelativePath = auxRelativePath.join('/');
-
-                        if (exportPath && importedFiles[idx] && importedFiles[idx].isDirectory) {
-                            let resp = await utils.fileOrDirectoryExist(exportPath);
-                            if (resp && resp.isDirectory) {
-                                let extension = await utils.getExtension(obj.fileName + '/index');
-                                let realFile = await utils.fileOrDirectoryExist(obj.fileName + '/index' + extension);
-                                if (realFile.isFile) {
-                                    exportPath = null;
-                                }
-                            }
-                        }
-
-                        if (idx > -1 && importedFiles[idx] && importedFiles[idx].isDirectory && !exportPath) {
-                            let extension = await utils.getExtension(obj.fileName + '/index');
-                            let auxPaths = await readEndpointFile(obj.fileName + '/index' + extension, obj.path || '', obj.fileName, obj.routeMiddlewares, null);
-                            if (auxPaths) {
-                                allPaths = {
-                                    ...paths,
-                                    ...allPaths,
-                                    ...auxPaths
-                                };
-                            } else {
-                                allPaths = {
-                                    ...paths,
-                                    ...allPaths
-                                };
-                            }
-                        } else {
-                            let refFunction = null;
-                            let extension = await utils.getExtension(obj.fileName);
-
+                            listOfFileName[idxFileName] = listOfFileName[idxFileName].replaceAll('(', '').replaceAll(')', '').replaceAll(' ', '');
                             if (refFunc) {
-                                refFunction = await functionRecognizerInFile(obj.fileName + extension, refFunc);
+                                refFunc = refFunc.replaceAll('(', '').replaceAll(')', '').replaceAll(' ', '');
+                            }
+                        }
+                    }
+
+                    listOfFileName = [...listOfFileName];
+                    for (let idxFileName = 0; idxFileName < listOfFileName.length; ++idxFileName) {
+                        obj.varFileName = listOfFileName[idxFileName];
+
+                        if (obj.varFileName && obj.varFileName.split(new RegExp('\\:|\\;|\\=|\\>|\\<|\\{|\\}|\\(|\\)|\\[|\\]|\\,')).length > 1) {
+                            obj.varFileName = null;
+                        }
+
+                        if (refFunc && refFunc.split(new RegExp('\\:|\\;|\\=|\\>|\\<|\\{|\\}|\\(|\\)|\\[|\\]|\\,')).length > 1) {
+                            refFunc = null;
+                        }
+
+                        if (exportPath) {
+                            obj.varFileName = exportPath;
+                        }
+
+                        // First, tries to find in the import/require
+                        let idx = importedFiles.findIndex(e => e.varFileName && obj.varFileName && e.varFileName == obj.varFileName);
+
+                        if (idx == -1 && !exportPath) {
+                            // Second, tries to find in the 'exports' of import/require, such as 'foo' in the: import { foo } from './fooFile'
+                            importedFiles.forEach((imp, importIdx) => {
+                                if (exportPath) {
+                                    return;
+                                }
+                                let found = imp && imp.exports ? imp.exports.find(e => e.varName && obj.varFileName && e.varName == obj.varFileName) : null;
+                                if (found) {
+                                    if (imp.isDirectory && found.path) {
+                                        exportPath = found.path;
+                                        idx = importIdx;
+                                    } else if (imp.isDirectory && !found.path) {
+                                        exportPath = imp.fileName;
+                                        idx = importIdx;
+                                    } else {
+                                        exportPath = imp.fileName; // TODO: change variable name
+                                    }
+                                }
+                            });
+                        }
+
+                        if (idx > -1 || exportPath) {
+                            let pathFile = null;
+                            if (exportPath) {
+                                pathFile = exportPath;
+                            } else {
+                                pathFile = importedFiles[idx].fileName;
                             }
 
-                            let auxPaths = await readEndpointFile(obj.fileName + extension, routePrefix + (obj.path || ''), auxRelativePath, obj.routeMiddlewares, refFunction);
-                            if (auxPaths) {
-                                allPaths = merge(paths, allPaths, {
-                                    arrayMerge: overwriteMerge
-                                });
-                                allPaths = merge(allPaths, auxPaths, {
-                                    arrayMerge: overwriteMerge
-                                });
-                            } else
-                                allPaths = merge(paths, allPaths, {
-                                    arrayMerge: overwriteMerge
-                                });
+                            obj.routeMiddlewares = routeMiddlewares.filter(r => {
+                                if (r.bytePosition == bytePosition) {
+                                    return true;
+                                }
+
+                                if (r.path === false && r.bytePosition < bytePosition) {
+                                    return true;
+                                }
+
+                                // if ((r.path !== false) && (r.path === obj.path) || (r.fixedRoute === true))  // TODO: verify 'fixedRoute'
+                                if (r.path !== false && r.path && obj.path && r.path.split(obj.path)[0] === '' && r.bytePosition < bytePosition) {
+                                    return true;
+                                }
+
+                                return false;
+                            });
+
+                            obj.fileName = pathFile;
+                            let auxRelativePath = obj.fileName.split('/');
+                            auxRelativePath.pop();
+                            auxRelativePath = auxRelativePath.join('/');
+
+                            if (exportPath && importedFiles[idx] && importedFiles[idx].isDirectory) {
+                                let resp = await utils.fileOrDirectoryExist(exportPath);
+                                if (resp && resp.isDirectory) {
+                                    let extension = await utils.getExtension(obj.fileName + '/index');
+                                    let realFile = await utils.fileOrDirectoryExist(obj.fileName + '/index' + extension);
+                                    if (realFile.isFile) {
+                                        exportPath = null;
+                                    }
+                                }
+                            }
+
+                            if (idx > -1 && importedFiles[idx] && importedFiles[idx].isDirectory && !exportPath) {
+                                let extension = await utils.getExtension(obj.fileName + '/index');
+                                let auxPaths = await readEndpointFile(obj.fileName + '/index' + extension, obj.path || '', obj.fileName, obj.routeMiddlewares, null);
+                                if (auxPaths) {
+                                    allPaths = {
+                                        ...paths,
+                                        ...allPaths,
+                                        ...auxPaths
+                                    };
+                                } else {
+                                    allPaths = {
+                                        ...paths,
+                                        ...allPaths
+                                    };
+                                }
+                            } else {
+                                let refFunction = null;
+                                let extension = await utils.getExtension(obj.fileName);
+
+                                if (refFunc) {
+                                    refFunction = await functionRecognizerInFile(obj.fileName + extension, refFunc);
+                                }
+
+                                let auxPaths = await readEndpointFile(obj.fileName + extension, routePrefix + (obj.path || ''), auxRelativePath, obj.routeMiddlewares, refFunction);
+                                if (auxPaths) {
+                                    allPaths = merge(paths, allPaths, {
+                                        arrayMerge: overwriteMerge
+                                    });
+                                    allPaths = merge(allPaths, auxPaths, {
+                                        arrayMerge: overwriteMerge
+                                    });
+                                } else
+                                    allPaths = merge(paths, allPaths, {
+                                        arrayMerge: overwriteMerge
+                                    });
+                            }
+                        } else {
+                            allPaths = merge(paths, allPaths, {
+                                arrayMerge: overwriteMerge
+                            });
                         }
-                    } else {
-                        allPaths = merge(paths, allPaths, {
-                            arrayMerge: overwriteMerge
-                        });
                     }
                     if (file == aRoutes.length - 1) {
                         return resolve(allPaths);
