@@ -25,13 +25,33 @@ module.exports = function (args) {
             if (!outputFile) throw console.error("\nError: 'outputFile' was not specified.");
             if (!endpointsFiles) throw console.error("\nError: 'endpointsFiles' was not specified.");
 
+            let allFiles = [];
             // Checking if endpoint files exist
             for (let idx = 0; idx < endpointsFiles.length; ++idx) {
                 let file = endpointsFiles[idx];
-                let extension = await utils.getExtension(file);
-                endpointsFiles[idx] = file + extension;
-                if (!fs.existsSync(file + extension)) {
-                    throw console.error("\nError: File not found: '" + file + "'");
+
+                if (file.includes('*')) {
+                    const patternPath = await utils.resolvePatternPath(file)
+                    if (patternPath) {
+                        for (let idxFile = 0; idxFile < patternPath.length; ++idxFile) {
+                            let file = patternPath[idxFile]
+                            let extension = await utils.getExtension(file);
+
+                            if (!fs.existsSync(file + extension)) {
+                                throw console.error("\nError: File not found: '" + file + "'");
+                            } else {
+                                patternPath[idxFile] = file + extension;
+                            }
+                        }
+                        allFiles = [...allFiles, ...patternPath];
+                    }
+
+                } else {
+                    let extension = await utils.getExtension(file);
+                    allFiles = [...allFiles, file + extension];
+                    if (!fs.existsSync(file + extension)) {
+                        throw console.error("\nError: File not found: '" + file + "'");
+                    }
                 }
             }
 
@@ -60,8 +80,8 @@ module.exports = function (args) {
                 objDoc.info.description = statics.TEMPLATE.info.description;
             }
 
-            for (let file = 0; file < endpointsFiles.length; file++) {
-                const filePath = endpointsFiles[file];
+            for (let file = 0; file < allFiles.length; file++) {
+                const filePath = allFiles[file];
                 const resp = await fs.existsSync(filePath);
                 if (!resp) {
                     console.error('\nError: Endpoint file not found => ' + "'" + filePath + "'");

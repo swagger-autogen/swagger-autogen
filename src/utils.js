@@ -1,4 +1,5 @@
 const fs = require('fs');
+const glob = require('glob');
 
 /**
  * Check if 'path' is a directory or a file
@@ -119,11 +120,23 @@ function stack0SymbolRecognizer(data, startSymbol, endSymbol) {
     });
 }
 
+function resolvePatternPath(path) {
+    return new Promise(resolve => {
+        glob(path, function (err, files) {
+            if (err) {
+                return resolve(null);
+            }
+            return resolve(files);
+        });
+    });
+}
+
 module.exports = {
     fileOrDirectoryExist,
     getExtension,
     getFileContent,
     isNumeric,
+    resolvePatternPath,
     stackSymbolRecognizer,
     stack0SymbolRecognizer
 };
