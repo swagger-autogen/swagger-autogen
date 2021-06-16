@@ -499,9 +499,30 @@ function getStatus(elem, response, objResponses) {
             elem.replaceAll(' ', '')
                 .split(res + '.status(')
                 .splice(1)
-                .forEach(s => {
-                    let status = s.split(')')[0];
-                    if (utils.isNumeric(status) && !!objResponses[status] === false) {
+                .forEach(async s => {
+                    let status = await utils.stackSymbolRecognizer(s, '(', ')');
+                    status = status.replaceAll('(', '').replaceAll(')', '');
+
+                    if (status && !utils.isNumeric(status) && status.split(new RegExp('\\?|\\|\\||\\:')).length > 1) {
+                        /**
+                         * CASE: Handle status function (Express.js) with variables or multiple status code
+                         * Issue: #62
+                         */
+                        let auxStatus = status.split(new RegExp('\\?|\\|\\||\\:'));
+                        auxStatus.forEach(sts => {
+                            if (utils.isNumeric(sts) && !!objResponses[sts] === false) {
+                                objResponses[sts] = {
+                                    description: tables.getHttpStatusDescription(sts, swaggerTags.getLanguage())
+                                };
+                            } else if (utils.isNumeric(sts) && !!objResponses[sts] === true) {
+                                // concatenated with existing information
+                                objResponses[sts] = {
+                                    description: tables.getHttpStatusDescription(sts, swaggerTags.getLanguage()),
+                                    ...objResponses[sts]
+                                };
+                            }
+                        });
+                    } else if (utils.isNumeric(status) && !!objResponses[status] === false) {
                         objResponses[status] = {
                             description: tables.getHttpStatusDescription(status, swaggerTags.getLanguage())
                         };
