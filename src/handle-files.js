@@ -652,7 +652,15 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                         if (exportPath) {
                                             return;
                                         }
-                                        let found = imp && imp.exports ? imp.exports.find(e => e.varName && varFileName && e.varName == varFileName) : null;
+
+                                        // First, try to find the 'alias'
+                                        let found = imp && imp.exports ? imp.exports.find(e => e.varAlias && varFileName && e.varAlias == varFileName) : null;
+
+                                        if (!found) {
+                                            found = imp && imp.exports ? imp.exports.find(e => e.varName && varFileName && e.varName == varFileName) : null;
+                                        } else {
+                                            found.varName = found.varAlias;
+                                        }
                                         if (found) {
                                             if (!functionName) {
                                                 functionName = found.varName;
@@ -1409,8 +1417,6 @@ async function getImportedFiles(data, relativePath) {
             };
             let varFileName = imp.split(new RegExp(`from`, 'i'))[0].trim();
             if (varFileName.includes('{')) {
-                // TODO: handle alias 'as'
-
                 if (varFileName.split(new RegExp(',\\s*\\n*\\t*{')).length > 1) {
                     // such as: import foo, { Foo } from './foo'
                     obj.varFileName = varFileName.split('{')[0].replaceAll(',', '').trim();

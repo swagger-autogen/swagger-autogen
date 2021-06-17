@@ -67,7 +67,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.9.4
+$ npm install --save-dev swagger-autogen@2.10.0
 ```
 
 ## Usage
@@ -982,13 +982,14 @@ Some tutorials with examples:
   - Recognizes path with variables
   - Recognizes regex in middlewares
   - Bug fix
+- Version 2.10.x:
+  - Recognizes 'alias' in the import files
 
 **TODO:**
 
 - Recognize more TypeScript's features
 - Recognize middlewares of routes (completely)
 - Recognize multiples "express.Router()" in the same file
-- Recognize 'alias' in the import files
 - Write more test cases
 - Improve performance
 - Refactor code
