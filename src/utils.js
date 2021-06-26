@@ -68,19 +68,23 @@ function isNumeric(n) {
  * @param {string} startSymbol
  * @param {string} endSymbol
  */
-function stackSymbolRecognizer(data, startSymbol, endSymbol) {
+function stackSymbolRecognizer(data, startSymbol, endSymbol, ignoreString = true) {
     return new Promise(resolve => {
         if (!data) {
             return resolve(data);
         }
 
         let stack = 1;
+        let ignore = false;
         data = data
             .split('')
             .filter(c => {
+                if (ignoreString && (c == "'" || c == '"' || c == '`')) {
+                    ignore = !ignore;
+                }
                 if (stack <= 0) return false;
-                if (c == startSymbol) stack += 1;
-                if (c == endSymbol) stack -= 1;
+                if (c == startSymbol && !ignore) stack += 1;
+                if (c == endSymbol && !ignore) stack -= 1;
                 return true;
             })
             .join('');

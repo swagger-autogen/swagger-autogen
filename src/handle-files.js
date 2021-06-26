@@ -316,7 +316,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     let bytePosition = null;
                     if (rawPath.split(']_])(')[2]) {
                         bytePosition = parseInt(rawPath.split(']_])(')[2].split('[_[')[1]);
-                        rawPath = rawPath.split('_])(')[3]; //.slice(-1)[0];
+                        rawPath = rawPath.split('_])(')[3];
                         if ((rawPath && rawPath.includes(')') && !rawPath.split(')')[0].includes('(')) || rawPath == data) {
                             // has no path
                             rawPath = false;
@@ -892,6 +892,10 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         if (!autoMode || elemOrig.includes('#swagger.path')) {
                             path = swaggerTags.getPath(elemOrig, autoMode);
                         } else {
+                            if (!rawPathResolved) {
+                                continue;
+                            }
+
                             path = pathRoute + routePrefix + rawPathResolved;
                             path = path.split('/').map(p => {
                                 if (p.includes(':')) p = '{' + p.replace(':', '') + '}';
@@ -1165,6 +1169,24 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     let rawPath = codeParser.getUntil(data, ',');
                     let rawPathResolved = null;
 
+                    /*
+                    // TODO: Variable in other file
+                    if (rawPath && rawPath.includes('.') && importedFiles.find(e => e.varFileName && rawPath.split('.')[0].trim() && e.varFileName == rawPath.split('.')[0].trim())) {
+                        // let functionName = rawPath.split('.')[1].trim();
+                        let varFileName = rawPath.split('.')[0].trim();
+
+                        let found = importedFiles.find(e => e.varFileName && varFileName && e.varFileName == varFileName);
+                        if (found) {
+                            // Variable in other file
+                            let extension = await utils.getExtension(found.fileName);
+                            const content = await utils.getFileContent(found.fileName + extension);
+                            if (content) {
+                                // TODO: Try to find the variable
+                                // rawPathResolved = await codeParser.resolvePathVariables(rawPath, bytePosition, jsParsed, importedFiles);
+                            }
+                        }
+                    } 
+                    */
                     if ((rawPath && rawPath.includes(')') && !rawPath.split(')')[0].includes('(')) || rawPath == data) {
                         // has no path
                         rawPath = false;
@@ -1174,6 +1196,19 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     }
 
                     let listOfFileName = new Set();
+                    let dataAux = await handleData.removeComments(data, false);
+                    dataAux = await handleData.removeStrings(dataAux);
+                    dataAux = await handleData.removeInsideParentheses(dataAux, true, true);
+                    dataAux = dataAux.split(',');
+                    for (let idx = 0; idx < dataAux.length; ++idx) {
+                        let param = dataAux[idx];
+                        if (param && param.trim()[0] != '(' && !rexRequire.test(param) && param.includes(')')) {
+                            let functionName = param.split(')')[0];
+                            let functionArguments = await utils.stackSymbolRecognizer(data.split(functionName)[1], '(', ')');
+                            data = data.replace(functionArguments, ')');
+                            data = data.replaceAll('()', '');
+                        }
+                    }
 
                     if (data.split(',').length == 1) {
                         // route with 1 parameter, such as: route.use(middleware)
@@ -1209,7 +1244,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                              * Issue: 61
                              */
                             let auxOfFileName = await utils.stack0SymbolRecognizer(data, '[', ']');
-                            auxOfFileName = auxOfFileName.replaceAll(' ', '').split(',');
+                            if (auxOfFileName) {
+                                auxOfFileName = auxOfFileName.replaceAll(' ', '').split(',');
+                            }
                             listOfFileName = new Set(auxOfFileName);
                         } else {
                             obj.varFileName = data.split(',').slice(-1)[0];
@@ -1285,6 +1322,24 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                     }
                                 }
                             });
+                        }
+
+                        if (idx == -1 && !exportPath && obj && obj.varFileName && obj.varFileName.includes('.')) {
+                            let functionName = obj.varFileName.split('.')[1].trim();
+                            let varFileName = obj.varFileName.split('.')[0].trim();
+
+                            let found = importedFiles.find(e => e.varFileName && varFileName && e.varFileName == varFileName);
+                            if (found) {
+                                let extension = await utils.getExtension(found.fileName);
+                                const content = await utils.getFileContent(found.fileName + extension);
+                                if (content) {
+                                    // Trying to find the 'router' variable
+                                    let varRouteFound = content.split(new RegExp('(const|let|var)(\\s+\\w+\\s*\\=\\s*Router\\(\\))')).find(e => e.replaceAll(' ', '').includes('=Router()'));
+                                    if (varRouteFound && varRouteFound.split('=')[0].trim() == functionName) {
+                                        exportPath = found.fileName;
+                                    }
+                                }
+                            }
                         }
 
                         if (idx > -1 || exportPath) {
@@ -1447,7 +1502,11 @@ async function getImportedFiles(data, relativePath) {
                         }
                     });
             } else {
-                obj.varFileName = varFileName;
+                if (varFileName.includes(' as ')) {
+                    obj.varFileName = varFileName.split(' as ')[1];
+                } else {
+                    obj.varFileName = varFileName;
+                }
             }
 
             // REFACTOR
@@ -1457,33 +1516,31 @@ async function getImportedFiles(data, relativePath) {
             fileName = fileName.split(new RegExp('\\n|\\;'))[0].trim();
             fileName = fileName.replaceAll("'", '').replaceAll('"', '').replaceAll('`', '').replaceAll(' ', '').replaceAll(';', '').replaceAll('\n', '');
 
-            if (fileName[0] === '@') {
-                // reference to tsconfig.json
-                let refFileName = fileName.split('/')[0];
-                let found = tsPaths.find(path => (path && path[0] && path[0].split('/')[0] == refFileName ? true : false));
-                if (found) {
-                    if (Array.isArray(found[1])) {
-                        let realPath = found[1][0];
-                        if (realPath) {
-                            realPath = realPath.replaceAll('/*', '');
-                            fileName = './' + fileName.replace(refFileName, realPath);
-                            relativePath = relativePath.split('/');
-                            let rootPath = realPath ? realPath.split('/')[0] : null;
-                            let rootFound = false;
+            let pathPattern = fileName.split('/').slice(0, -1).join('/');
+            let found = tsPaths.find(p => p[0] && p[0].split('/*')[0] == pathPattern);
+            if (found) {
+                let refFileName = found[0].split('/*')[0];
+                if (Array.isArray(found[1])) {
+                    let realPath = found[1][0];
+                    if (realPath) {
+                        realPath = realPath.replaceAll('/*', '');
+                        fileName = './' + fileName.replace(new RegExp('^' + refFileName), realPath);
+                        relativePath = relativePath.split('/');
+                        let rootPath = realPath ? realPath.split('/')[0] : null;
+                        let rootFound = false;
 
-                            relativePath = relativePath.filter(path => {
-                                if (rootFound) {
-                                    return false;
-                                }
-                                if (path == rootPath) {
-                                    rootFound = true;
-                                    return false;
-                                }
-                                return true;
-                            });
+                        relativePath = relativePath.filter(path => {
+                            if (rootFound) {
+                                return false;
+                            }
+                            if (path == rootPath) {
+                                rootFound = true;
+                                return false;
+                            }
+                            return true;
+                        });
 
-                            relativePath = relativePath.join('/');
-                        }
+                        relativePath = relativePath.join('/');
                     }
                 }
             }

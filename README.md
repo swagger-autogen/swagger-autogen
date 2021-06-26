@@ -67,7 +67,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.10.0
+$ npm install --save-dev swagger-autogen@2.10.1
 ```
 
 ## Usage
@@ -984,6 +984,8 @@ Some tutorials with examples:
   - Bug fix
 - Version 2.10.x:
   - Recognizes 'alias' in the import files
+  - Bug fix
+  
 
 **TODO:**
 
