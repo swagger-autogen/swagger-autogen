@@ -381,10 +381,10 @@ All optional parameters:
 } */
 ```
 
-**in:** 'path', 'query' or 'body' // by default is 'query'  
+**in:** 'path', 'query', 'body', 'formData', etc.      // by default is 'query'  
 **description:** The parameter description  
 **required:** true or false  
-**type:** 'string', 'integer', 'object', etc. // by default is 'string' when 'schema' is missing
+**type:** 'string', 'integer', 'object', 'array', etc. // by default is 'string' when 'schema' is missing
 **format:** 'int64', etc.  
 **schema:** See section [Schema and Definitions](#schema-and-definitions)
 
@@ -425,6 +425,36 @@ Some examples:
                 description: 'Any item...'
         } */
         let test = req.query.item
+    });
+
+    // (Swagger 2.0) Upload single file using Multer
+    app.post("/upload", uploader.single("singleFile"), (req, res) => {
+        /*
+          #swagger.consumes = ['multipart/form-data']  
+          #swagger.parameters['singleFile'] = {
+              in: 'formData',
+              type: 'file',
+              required: 'true',
+              description: 'Transactions file',
+        } */
+
+        const file = req.file;
+    });
+
+    // (Swagger 2.0) Upload multiple files using Multer
+    app.post("/uploads", uploader.array("multFiles", 2), (req, res) => {
+        /*
+          #swagger.consumes = ['multipart/form-data']  
+          #swagger.parameters['multFiles'] = {
+              in: 'formData',
+              type: 'array',
+              required: true,
+              description: 'Transactions file',
+              collectionFormat: 'multi',
+              items: { type: 'file' }
+          } */
+
+        const files = req.files;
     });
 
 ```
