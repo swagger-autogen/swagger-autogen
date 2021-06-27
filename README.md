@@ -384,7 +384,7 @@ All optional parameters:
 **in:** 'path', 'query', 'body', 'formData', etc.      // by default is 'query'  
 **description:** The parameter description  
 **required:** true or false  
-**type:** 'string', 'integer', 'object', 'array', etc. // by default is 'string' when 'schema' is missing
+**type:** 'string', 'integer', 'object', 'array', etc. // by default is 'string' when 'schema' is missing  
 **format:** 'int64', etc.  
 **schema:** See section [Schema and Definitions](#schema-and-definitions)
 
