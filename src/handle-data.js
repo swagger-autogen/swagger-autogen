@@ -325,8 +325,9 @@ function removeStrings(data) {
  * Remove all content in parentheses.
  * @param {string} data file content.
  * @param {boolean} keepParentheses if true, keep the parentheses "()" after erasing the contents inside.
+ * @param {number} level remove according to stack level
  */
-function removeInsideParentheses(data, keepParentheses = false) {
+function removeInsideParentheses(data, keepParentheses = false, level = 0) {
     return new Promise(resolve => {
         if (data.length == 0) {
             return resolve(data);
@@ -334,21 +335,50 @@ function removeInsideParentheses(data, keepParentheses = false) {
 
         let strToReturn = '';
         let stack = 0;
-
+        let buffer = '';
         for (let idx = 0; idx < data.length; ++idx) {
             let c = data[idx];
 
             if (c == '(') {
                 stack += 1;
+                if (keepParentheses) {
+                    buffer += '(';
+                }
             }
 
-            if (stack == 0) {
+            if (stack == level) {
                 strToReturn += c;
+            }
+            if (stack == 1) {
+                buffer += c;
             }
 
             if (c == ')') {
                 stack -= 1;
-                if (stack == 0 && keepParentheses) {
+                if (keepParentheses) {
+                    buffer += ')';
+                }
+                if (stack == level) {
+                    let auxIdx = idx + 1;
+                    let validChar = null;
+
+                    while (validChar == null && auxIdx <= data.length) {
+                        if (data[auxIdx] != ' ' && data[auxIdx] != '\n' && data[auxIdx] != '\t') {
+                            validChar = data[auxIdx];
+                        }
+                        auxIdx += 1;
+                    }
+
+                    if (validChar == '(') {
+                        /**
+                         * Recognize middlewares in parentheses
+                         * Issue: #67
+                         */
+                        strToReturn += buffer;
+                    }
+                    buffer = '';
+                }
+                if (stack == level && keepParentheses) {
                     strToReturn += '()';
                 }
             }
