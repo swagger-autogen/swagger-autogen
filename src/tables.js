@@ -229,6 +229,7 @@ function getHttpStatusDescription(statusCode, lang) {
         // Chinese (Simplified)
         return tableStatusCodes_zhCN[statusCode];
     } else if (lang == 'ko') {
+        // Korean
         return tableStatusCodes_ko[statusCode];
     }
     else {
