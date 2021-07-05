@@ -168,6 +168,57 @@ const tableStatusCodes_zhCN = {
     599: '网络连接超时错误'
 };
 
+const tableStatusCodes_ko = {
+    100: '계속',
+    101: '프로토콜 전환',
+    102: '처리',
+    200: '성공',
+    201: '작성됨',
+    202: '허용됨',
+    203: '신뢰할 수 없는 정보',
+    204: '콘텐츠 없음',
+    205: '콘텐츠 재설정',
+    206: '일부 콘텐츠',
+    300: '여러 선택항목',
+    301: '영구 이동',
+    302: '임시 이동',
+    303: '기타 위치 보기',
+    304: '수정되지 않음',
+    305: '프록시 사용',
+    306: '프록시 전환',
+    307: '임시 리다이렉션',
+    400: '잘못된 요청',
+    401: '권한 없음',
+    402: '결제 필요',
+    403: '금지됨',
+    404: '찾을 수 없음',
+    405: '허용되지 않는 방법',
+    406: '허용되지 않음',
+    407: '프록시 인증 필요',
+    408: '요청 시간초과',
+    409: '충돌',
+    410: '사라짐',
+    411: '길이 필요',
+    412: '사전조건 실패',
+    413: '요청 속성이 너무 큼',
+    414: '요청 URI가 너무 긺',
+    415: '지원되지 않는 미디어 유형',
+    416: '처리할 수 없는 요청범위',
+    417: '예상 실패',
+    500: '내부 서버 오류',
+    501: '구현되지 않음',
+    502: '불량 게이트웨이',
+    503: '서비스를 사용할 수 없음',
+    504: '게이트웨이 시간초과',
+    505: 'HTTP 버전이 지원되지 않음',
+    506: '변형도 협상',
+    507: '용량 부족',
+    508: '루프 감지됨',
+    510: '확장되지 않음',
+    511: '네트워크 인증 필요',
+    599: '네트워크 연결 시간초과 오류'
+};
+
 // TODO: add other languages
 function getHttpStatusDescription(statusCode, lang) {
     lang = lang.toLowerCase();
@@ -177,7 +228,11 @@ function getHttpStatusDescription(statusCode, lang) {
     } else if (lang == 'zh-cn') {
         // Chinese (Simplified)
         return tableStatusCodes_zhCN[statusCode];
-    } else {
+    } else if (lang == 'ko') {
+        // Korean
+        return tableStatusCodes_ko[statusCode];
+    }
+    else {
         return tableStatusCodes_enUS[statusCode]; // English by default
     }
 }
