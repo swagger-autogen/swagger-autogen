@@ -67,7 +67,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.10.2
+$ npm install --save-dev swagger-autogen@2.10.3
 ```
 
 ## Usage
@@ -435,7 +435,7 @@ Some examples:
               in: 'formData',
               type: 'file',
               required: 'true',
-              description: 'Transactions file',
+              description: 'Any description...',
         } */
 
         const file = req.file;
@@ -449,7 +449,7 @@ Some examples:
               in: 'formData',
               type: 'array',
               required: true,
-              description: 'Transactions file',
+              description: 'Any description...',
               collectionFormat: 'multi',
               items: { type: 'file' }
           } */
@@ -907,6 +907,16 @@ At the endpoint, add the `#swagger.security` tag, for example:
 
 It is possible to change the default language (English) of the description in the automatic response, for example, status code 404, the description will be: 'Not Found'. To change, pass an object with the following parameter:
 
+**English (by default)**
+
+```js
+const swaggerAutogen = require('swagger-autogen')();
+// In this case, for example, the description of status code 404 will be:
+// 'Not Found'
+```
+
+OR
+
 **Portuguese (Brazil)**
 
 ```js
@@ -927,12 +937,12 @@ const swaggerAutogen = require('swagger-autogen')({ language: 'zh-CN' });
 
 OR
 
-**English (by default)**
+**Korean**
 
 ```js
-const swaggerAutogen = require('swagger-autogen')();
+const swaggerAutogen = require('swagger-autogen')({ language: 'ko' });
 // In this case, for example, the description of status code 404 will be:
-// 'Not Found'
+// '찾을 수 없음'
 ```
 
 For now, the module has only the languages: English, Portuguese (Brazil) and Chinese (Simplified).
@@ -1014,6 +1024,7 @@ Some tutorials with examples:
   - Bug fix
 - Version 2.10.x:
   - Recognizes 'alias' in the import files
+  - New language
   - Bug fix
   
 
