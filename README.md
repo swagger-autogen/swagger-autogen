@@ -945,7 +945,7 @@ const swaggerAutogen = require('swagger-autogen')({ language: 'ko' });
 // '찾을 수 없음'
 ```
 
-For now, the module has only the languages: English, Portuguese (Brazil) and Chinese (Simplified).
+For now, the module only has the above languages.
 
 ## Examples
 
