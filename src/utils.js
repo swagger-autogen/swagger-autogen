@@ -98,11 +98,20 @@ function stackSymbolRecognizer(data, startSymbol, endSymbol, ignoreString = true
  * @param {string} startSymbol
  * @param {string} endSymbol
  */
-function stack0SymbolRecognizer(data, startSymbol, endSymbol) {
+function stack0SymbolRecognizer(data, startSymbol, endSymbol, keepSymbol = false) {
     return new Promise(resolve => {
+        
         let stack = 0;
         let rec = 0;
         let strVect = [];
+
+        if(!endSymbol && startSymbol === '['){
+            endSymbol = ']'
+        } else if(!endSymbol && startSymbol === '{'){
+            endSymbol = '}'
+        } else if(!endSymbol && startSymbol === '('){
+            endSymbol = ')'
+        }
 
         for (let idx = 0; idx < data.length; ++idx) {
             let c = data[idx];
@@ -118,6 +127,9 @@ function stack0SymbolRecognizer(data, startSymbol, endSymbol) {
 
             if (idx === data.length - 1) {
                 strVect = strVect.join('');
+                if(keepSymbol){
+                    return resolve(startSymbol + strVect.slice(1) + endSymbol);  
+                }
                 return resolve(strVect.slice(1));
             }
         }
