@@ -30,7 +30,12 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
              * Experimental parser. Used to get variables
              * In the future, will be used to get other patterns
              */
-            const jsParsed = codeParser.jsParser(await handleData.removeComments(data, true));
+            let jsParsed = codeParser.jsParser(await handleData.removeComments(data, true));
+
+            // If 'jsParsed' == null, try to get only the variables
+            if (!jsParsed) {
+                jsParsed = await codeParser.jsParserEsModule(data);
+            }
 
             let keywords = ['route', 'use', ...statics.METHODS];
             let regex = '';
@@ -1169,7 +1174,6 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     let rawPath = codeParser.getUntil(data, ',');
                     let rawPathResolved = null;
 
-                    /*
                     // TODO: Variable in other file
                     if (rawPath && rawPath.includes('.') && importedFiles.find(e => e.varFileName && rawPath.split('.')[0].trim() && e.varFileName == rawPath.split('.')[0].trim())) {
                         // let functionName = rawPath.split('.')[1].trim();
@@ -1179,18 +1183,27 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         if (found) {
                             // Variable in other file
                             let extension = await utils.getExtension(found.fileName);
-                            const content = await utils.getFileContent(found.fileName + extension);
+                            let content = await utils.getFileContent(found.fileName + extension);
                             if (content) {
-                                // TODO: Try to find the variable
-                                // rawPathResolved = await codeParser.resolvePathVariables(rawPath, bytePosition, jsParsed, importedFiles);
+                                // Try to find the variable
+                                content = await handleData.removeComments(content);
+                                let jsParsedContent = await codeParser.jsParserEsModule(content);
+                                if (jsParsedContent && jsParsedContent.variables.length > 0) {
+                                    let found = jsParsedContent.variables.filter(v => v.name == rawPath.split('.')[1]);
+                                    if (found && found[0] && found[0].end) {
+                                        bytePosition = found[0].end;
+                                        rawPathResolved = await codeParser.resolvePathVariables(rawPath.split('.')[1], bytePosition, jsParsedContent, importedFiles);
+                                        data = data.replace(rawPath, ''); // removing path
+                                    }
+                                }
                             }
                         }
-                    } 
-                    */
+                    }
+
                     if ((rawPath && rawPath.includes(')') && !rawPath.split(')')[0].includes('(')) || rawPath == data) {
                         // has no path
                         rawPath = false;
-                    } else {
+                    } else if (!rawPathResolved) {
                         rawPathResolved = await codeParser.resolvePathVariables(rawPath, bytePosition, jsParsed, importedFiles);
                         data = data.replace(rawPath, ''); // removing path
                     }
@@ -1463,6 +1476,21 @@ async function getImportedFiles(data, relativePath) {
             tsPaths = tsconfig.compilerOptions && tsconfig.compilerOptions.paths && typeof tsconfig.compilerOptions.paths === 'object' ? Object.entries(tsconfig.compilerOptions.paths) : [];
         }
 
+        // Verify if .eslintrc
+        let eslintConfig = await utils.getFileContent(process.cwd() + '/.eslintrc');
+        if (eslintConfig) {
+            eslintConfig = await handleData.removeComments(eslintConfig);
+            eslintConfig = JSON5.parse(eslintConfig); // Allow trailing commas
+            if (eslintConfig.settings && eslintConfig.settings['import/resolver'] && eslintConfig.settings['import/resolver']['babel-plugin-root-import']) {
+                let rootPath = eslintConfig.settings['import/resolver']['babel-plugin-root-import'];
+                let rootPathPrefix = rootPath.rootPathPrefix;
+                let rootPathSuffix = rootPath.rootPathSuffix;
+                if (rootPathPrefix && rootPathSuffix) {
+                    tsPaths.push([rootPathPrefix, [rootPathSuffix]]);
+                }
+            }
+        }
+
         for (let index = 0; index < importeds.length; ++index) {
             let imp = importeds[index];
             let obj = {
@@ -1518,6 +1546,13 @@ async function getImportedFiles(data, relativePath) {
 
             let pathPattern = fileName.split('/').slice(0, -1).join('/');
             let found = tsPaths.find(p => p[0] && p[0].split('/*')[0] == pathPattern);
+
+            // TO TEST
+            // if (!found) {
+            //     pathPattern = fileName.split('/')[0]
+            //     found = tsPaths.find(p => p[0] && p[0].split('/*')[0] == pathPattern);
+            // }
+
             if (found) {
                 let refFileName = found[0].split('/*')[0];
                 if (Array.isArray(found[1])) {

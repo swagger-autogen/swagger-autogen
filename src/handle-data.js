@@ -128,16 +128,16 @@ function removeComments(data, keepSwaggerTags = false) {
 
             if (stackComment1 == 0 && stackComment2 == 0) {
                 // Type '
-                if (c == "'" && isStr1 == 1) isStr1 = 2;
-                if (c == "'" && data[idx - 1] != '\\' && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) isStr1 = 1;
+                if (c == "'" && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 1) isStr1 = 2;
+                if (c == "'" && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) isStr1 = 1;
 
                 // Type  "
-                if (c == '"' && isStr2 == 1) isStr2 = 2;
-                if (c == '"' && data[idx - 1] != '\\' && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) isStr2 = 1;
+                if (c == '"' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr2 == 1) isStr2 = 2;
+                if (c == '"' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) isStr2 = 1;
 
                 // Type  `
-                if (c == '`' && isStr3 == 1) isStr3 = 2;
-                if (c == '`' && data[idx - 1] != '\\' && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) isStr3 = 1;
+                if (c == '`' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr3 == 1) isStr3 = 2;
+                if (c == '`' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) isStr3 = 1;
             }
 
             // Type //
@@ -215,16 +215,16 @@ function getSwaggerComments(data) {
 
             if (stackComment1 == 0 && stackComment2 == 0) {
                 // Type '
-                if (c == "'" && isStr1 == 1) isStr1 = 2;
-                if (c == "'" && data[idx - 1] != '\\' && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) isStr1 = 1;
+                if (c == "'" && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 1) isStr1 = 2;
+                if (c == "'" && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) isStr1 = 1;
 
                 // Type  "
-                if (c == '"' && isStr2 == 1) isStr2 = 2;
-                if (c == '"' && data[idx - 1] != '\\' && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) isStr2 = 1;
+                if (c == '"' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr2 == 1) isStr2 = 2;
+                if (c == '"' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) isStr2 = 1;
 
                 // Type  `
-                if (c == '`' && isStr3 == 1) isStr3 = 2;
-                if (c == '`' && data[idx - 1] != '\\' && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) isStr3 = 1;
+                if (c == '`' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr3 == 1) isStr3 = 2;
+                if (c == '`' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) isStr3 = 1;
             }
 
             // Type //
@@ -294,16 +294,16 @@ function removeStrings(data) {
             let c = data[idx];
 
             // Type '
-            if (c == "'" && stackStr1 == 1) stackStr1 = 2;
-            if (c == "'" && data[idx - 1] != '\\' && stackStr1 == 0 && stackStr2 == 0 && stackStr3 == 0) stackStr1 = 1;
+            if (c == "'" && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && stackStr1 == 1) stackStr1 = 2;
+            if (c == "'" && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && stackStr1 == 0 && stackStr2 == 0 && stackStr3 == 0) stackStr1 = 1;
 
             // Type  "
-            if (c == '"' && stackStr2 == 1) stackStr2 = 2;
-            if (c == '"' && data[idx - 1] != '\\' && stackStr1 == 0 && stackStr2 == 0 && stackStr3 == 0) stackStr2 = 1;
+            if (c == '"' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && stackStr2 == 1) stackStr2 = 2;
+            if (c == '"' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && stackStr1 == 0 && stackStr2 == 0 && stackStr3 == 0) stackStr2 = 1;
 
             // Type  `
-            if (c == '`' && stackStr3 == 1) stackStr3 = 2;
-            if (c == '`' && data[idx - 1] != '\\' && stackStr1 == 0 && stackStr2 == 0 && stackStr3 == 0) stackStr3 = 1;
+            if (c == '`' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && stackStr3 == 1) stackStr3 = 2;
+            if (c == '`' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && stackStr1 == 0 && stackStr2 == 0 && stackStr3 == 0) stackStr3 = 1;
 
             if (stackStr1 == 0 && stackStr2 == 0 && stackStr3 == 0) {
                 strToReturn += c;

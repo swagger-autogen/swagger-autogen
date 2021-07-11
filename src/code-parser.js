@@ -102,6 +102,82 @@ function jsParser(data) {
 }
 
 /**
+ * Parse a ES Module content.
+ * It get only the variables. In the future, it will get other patterns.
+ *
+ * @param {string} data content
+ * @param {boolean} onlyPrimitiveTypes
+ * @returns
+ */
+async function jsParserEsModule(data, onlyPrimitiveTypes = true) {
+    try {
+        let dataAux = data;
+        dataAux = dataAux && dataAux.split(new RegExp('(const|let|var)(\\s+.*\\s*=\\s*)'));
+        if (dataAux.length > 3) {
+            dataAux[0] = '/*' + dataAux[0] + '*/';
+            for (let idx = 3; idx < dataAux.length; idx += 3) {
+                if (dataAux[idx - 1].substr(-1) == '=' && dataAux[idx][0] == '>') {
+                    // Arrow function
+                    dataAux[idx - 3] += '/*';
+                    dataAux[idx] += '*/\n';
+                    continue;
+                }
+                let varValue = dataAux[idx];
+                if (varValue.split(/^null/).length > 1) {
+                    // null
+                    varValue = varValue.split(/^null/);
+                    varValue = 'null\n/*' + varValue[1] + '*/\n';
+                    dataAux[idx] = varValue;
+                } else if (varValue.split(/^true/).length > 1) {
+                    // boolean
+                    varValue = varValue.split(/^true/);
+                    varValue = 'true\n/*' + varValue[1] + '*/\n';
+                    dataAux[idx] = varValue;
+                } else if (varValue.split(/^false/).length > 1) {
+                    // boolean
+                    varValue = varValue.split(/^false/);
+                    varValue = 'false\n/*' + varValue[1] + '*/\n';
+                    dataAux[idx] = varValue;
+                } else if (varValue.split(/^\d+/).length > 1) {
+                    // number
+                    varValue = varValue.split(/^(\d+)/);
+                    varValue = `${varValue[1]}\n/*` + varValue[2] + '*/\n';
+                    dataAux[idx] = varValue;
+                } else if (varValue.split(/^"|^'|^`/).length > 1) {
+                    // string
+                    let symbol = varValue[0];
+                    let str = await handleData.popString(varValue, true);
+                    varValue = `${symbol + str + symbol}\n/*` + varValue.split(symbol + str + symbol)[1] + '*/\n';
+                    dataAux[idx] = varValue;
+                } else if (varValue.split(/^\[|^\{|^\[/).length > 1) {
+                    // object or array
+                    let symbol = varValue[0];
+                    let dat = await utils.stack0SymbolRecognizer(varValue, symbol, null, true);
+                    varValue = `${dat}\n/*` + varValue.split(dat)[1] + '*/\n';
+                    dataAux[idx] = varValue;
+                } else if (varValue.split(/^>/).length == 1) {
+                    if (onlyPrimitiveTypes) {
+                        dataAux[idx - 3] += '/*';
+                        dataAux[idx] += '*/\n';
+                    } else {
+                        let varValueAux = varValue.split(/;|\n/);
+                        if (varValueAux.length > 1) {
+                            varValue = `${varValueAux[0]}\n/*` + varValue.split(varValueAux[0])[1] + '*/\n';
+                            dataAux[idx] = varValue;
+                        }
+                    }
+                }
+            }
+            dataAux = dataAux.join('');
+            return jsParser(dataAux);
+        }
+        return null;
+    } catch (err) {
+        return null;
+    }
+}
+
+/**
  * Remove a specific character.
  * @param {string} data
  * @param {string} character
@@ -284,6 +360,7 @@ module.exports = {
     getUntil,
     getVariablesNode,
     jsParser,
+    jsParserEsModule,
     removeCharacter,
     resolvePathVariables,
     resolveVariableValue,
