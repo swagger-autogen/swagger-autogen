@@ -100,17 +100,16 @@ function stackSymbolRecognizer(data, startSymbol, endSymbol, ignoreString = true
  */
 function stack0SymbolRecognizer(data, startSymbol, endSymbol, keepSymbol = false) {
     return new Promise(resolve => {
-        
         let stack = 0;
         let rec = 0;
         let strVect = [];
 
-        if(!endSymbol && startSymbol === '['){
-            endSymbol = ']'
-        } else if(!endSymbol && startSymbol === '{'){
-            endSymbol = '}'
-        } else if(!endSymbol && startSymbol === '('){
-            endSymbol = ')'
+        if (!endSymbol && startSymbol === '[') {
+            endSymbol = ']';
+        } else if (!endSymbol && startSymbol === '{') {
+            endSymbol = '}';
+        } else if (!endSymbol && startSymbol === '(') {
+            endSymbol = ')';
         }
 
         for (let idx = 0; idx < data.length; ++idx) {
@@ -127,8 +126,8 @@ function stack0SymbolRecognizer(data, startSymbol, endSymbol, keepSymbol = false
 
             if (idx === data.length - 1) {
                 strVect = strVect.join('');
-                if(keepSymbol){
-                    return resolve(startSymbol + strVect.slice(1) + endSymbol);  
+                if (keepSymbol) {
+                    return resolve(startSymbol + strVect.slice(1) + endSymbol);
                 }
                 return resolve(strVect.slice(1));
             }

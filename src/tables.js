@@ -231,8 +231,7 @@ function getHttpStatusDescription(statusCode, lang) {
     } else if (lang == 'ko') {
         // Korean
         return tableStatusCodes_ko[statusCode];
-    }
-    else {
+    } else {
         return tableStatusCodes_enUS[statusCode]; // English by default
     }
 }
