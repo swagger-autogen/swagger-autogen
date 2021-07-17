@@ -24,6 +24,7 @@ This module performs the automatic construction of the Swagger documentation. Th
   - [Operation ID](#operation-id)
   - [Consumes and Produces](#consumes-and-produces)
   - [Parameters](#parameters)
+  - [Request Body](#request-body)
   - [Responses](#responses)
   - [Schema and Definitions](#schema-and-definitions)
     - [Examples of Definitions](#examples-of-definitions)
@@ -67,7 +68,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.10.4
+$ npm install --save-dev swagger-autogen@2.11.0
 ```
 
 ## Usage
@@ -562,6 +563,48 @@ For example:
 
 **NOTE:** As the 404 status description was not entered, "Not Found" will automatically be added. It is possible to change the language of the automatic response, see the [Response Language](#response-language) section.
 
+### Request Body
+
+Use the `#swagger.requestBody` tag to impletent [Request Body](https://swagger.io/docs/specification/describing-request-body/).
+
+To use this feature, you need to enable the OpenAPI v3 in the options:
+If you're using CommonJS, use:
+
+```js
+const swaggerAutogen = require('swagger-autogen')({openapi: '3.0.0'})
+```
+
+In case, you're using ES modules in your project, rewrite the `swaggerAutogen(...)` function as follows:
+
+```js
+import swaggerAutogen from 'swagger-autogen';
+// ...
+swaggerAutogen({openapi: '3.0.0'})(outputFile, endpointsFiles, doc).then(async () => {
+  await import('./index.js'); // Your project's root file
+});
+```
+
+**Endpoint example:** 
+```js
+app.post('/path', (req, res, next) => {
+    /*	#swagger.requestBody = {
+            required: true,
+            content: {
+                "application/json": {
+                    schema: {
+                        $ref: "#/definitions/User"
+                    }  
+                },
+                "application/xml": {
+                    schema: {
+                        $ref: "#/definitions/User"
+                    }  
+                }
+            }
+    } */
+})
+```
+
 ### Schema and Definitions
 
 Unlike how Swagger writes, the answers in this module are added more simply, that is, in the way you want to see the result. These responses can be added to the *definitions* parameter of the *doc* object seen in the [Usage](#usage) section, or directly to the response via the *schema* parameter.
@@ -1026,7 +1069,9 @@ Some tutorials with examples:
   - Recognizes 'alias' in the import files
   - New language
   - Bug fix
-  
+- Version 2.11.x:
+  - New feature: #swagger.requestBody
+
 
 **TODO:**
 
