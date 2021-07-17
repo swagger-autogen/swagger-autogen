@@ -345,6 +345,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     let res = null;
                     let autoMode = true;
                     let objParameters = {};
+                    let objRequestBody = {};
                     let objResponses = {};
                     let forced = false;
                     let predefPattern = false;
@@ -1008,6 +1009,13 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 if (objParameters === false) {
                                     console.error("[swagger-autogen]: Error when trying to recognize '#swagger.parameters'");
                                 }
+                            }
+                            if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.requestBody')) {
+                                objRequestBody = await swaggerTags.getRequestBodyTag(endpoint);
+                                if (objRequestBody === false) {
+                                    console.error("[swagger-autogen]: Error when trying to recognize '#swagger.requestBody'");
+                                }
+                                objEndpoint[path][method].requestBody = objRequestBody;
                             }
                             if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.produces')) {
                                 objEndpoint[path][method].produces = await swaggerTags.getProducesTag(endpoint);

@@ -291,6 +291,31 @@ async function getParametersTag(data, objParameters) {
 }
 
 /**
+ * Get the content in '#swagger.requestBody'
+ * @param {string} data file content
+ */
+async function getRequestBodyTag(data) {
+    let requestBody = {};
+    data = data.replaceAll('"', "'").replaceAll('`', "'").replaceAll('`', "'").replaceAll('\n', ' ');
+    let swaggerRequestBody = data.split(new RegExp('#swagger.requestBody'));
+    swaggerRequestBody.shift();
+    for (let idx = 0; idx < swaggerRequestBody.length; ++idx) {
+        let parameter = await utils.stack0SymbolRecognizer(swaggerRequestBody[idx], '{', '}');
+        parameter = parameter.replaceAll('__¬¬¬__', '"');
+        try {
+            requestBody = {
+                ...eval(`(${'{' + parameter + '}'})`)
+            };
+        } catch (err) {
+            console.error('Syntax error: ' + parameter);
+            console.error(err);
+            return false;
+        }
+    }
+    return requestBody;
+}
+
+/**
  * TODO: fill
  * @param {*} data
  */
@@ -547,5 +572,6 @@ module.exports = {
     getSecurityTag,
     getSummary,
     getOperationId,
-    getDeprecatedTag
+    getDeprecatedTag,
+    getRequestBodyTag
 };
