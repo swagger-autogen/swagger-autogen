@@ -76,11 +76,16 @@ function stackSymbolRecognizer(data, startSymbol, endSymbol, ignoreString = true
 
         let stack = 1;
         let ignore = false;
+        let strSymbol = null;
         data = data
             .split('')
-            .filter(c => {
-                if (ignoreString && (c == "'" || c == '"' || c == '`')) {
-                    ignore = !ignore;
+            .filter((c, idx) => {
+                if (ignoreString && (c == "'" || c == '"' || c == '`') && !strSymbol) {
+                    strSymbol = c;
+                    ignore = true;
+                } else if (ignoreString && strSymbol == c && data[idx - 1] != '\\') {
+                    strSymbol = null;
+                    ignore = false;
                 }
                 if (stack <= 0) return false;
                 if (c == startSymbol && !ignore) stack += 1;
