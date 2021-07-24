@@ -68,7 +68,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.11.0
+$ npm install --save-dev swagger-autogen@2.11.1
 ```
 
 ## Usage
@@ -1048,7 +1048,7 @@ Some tutorials with examples:
   - Code refactoring
   - Bug fix
 - Version 2.5.x:
-  - New features: #swagger.summary and #swagger.operationId
+  - New tags: #swagger.summary and #swagger.operationId
   - Bug fix
 - Version 2.6.x:
   - Recognition of more patterns
@@ -1070,7 +1070,8 @@ Some tutorials with examples:
   - New language
   - Bug fix
 - Version 2.11.x:
-  - New feature: #swagger.requestBody
+  - New tag: #swagger.requestBody
+  - Bug fix
 
 
 **TODO:**
