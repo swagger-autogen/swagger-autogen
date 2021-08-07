@@ -739,7 +739,7 @@ function getQueryAndBody(elem, request, objParameters) {
                 /**
                  * CASE: const { item1, item2: { subItem1, subItem2 } } = req.body;
                  * Solution: Eliminate sub-items for now
-                 * TODO: In the furute, handle sub-items
+                 * TODO: In the future, handle sub-items
                  */
                 if (objBody.split(new RegExp('\\:\\s*\\{')).length > 1) {
                     let subObjs = objBody.split(new RegExp('\\:\\s*\\{'));
