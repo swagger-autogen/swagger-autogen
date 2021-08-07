@@ -1078,6 +1078,10 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             objEndpoint[path][method].responses = objResponses;
 
                             if (objInBody && _idxEF == endpointFunctions.length - 1) {
+                                /**
+                                 * If #swagger.parameter or #swagger.requestBody is present
+                                 * the automatic body recognition will be ignored.
+                                 */
                                 objInBody.name = 'obj'; // By default, the name of object recognized automatically in the body will be 'obj' if no parameter are found to be concatenate with it.
                                 if (objEndpoint[path][method].parameters && objEndpoint[path][method].parameters.length > 0 && objEndpoint[path][method].parameters.find(e => e.in === 'body')) {
                                     let body = objEndpoint[path][method].parameters.find(e => e.in === 'body');
@@ -1088,7 +1092,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                             ...body
                                         };
                                     }
-                                } else {
+                                } else if (!objEndpoint[path][method].requestBody) {
                                     objEndpoint[path][method].parameters.push(objInBody);
                                 }
                             }
