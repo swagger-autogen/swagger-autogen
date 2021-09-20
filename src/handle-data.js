@@ -484,33 +484,37 @@ function addReferenceToMethods(data, patterns) {
 function getQueryIndirectly(elem, request, objParameters) {
     for (let idx = 0; idx < request.length; ++idx) {
         let req = request[idx];
-        if (req && req.split(new RegExp('\\;|\\{|\\(|\\[|\\"|\\\'|\\`|\\}|\\)|\\]|\\:|\\,|\\*|\\!|\\|')).length == 1 && elem && elem.split(new RegExp(' .*?\\s*\\t*=\\s*\\t*' + req + '\\.\\s*\\t*query(\\s|\\n|;|\\t)', 'gmi').length > 1)) {
-            let queryVars = [];
-            let aQuerys = elem.split(new RegExp('\\s*\\t*=\\s*\\t*' + req + '\\.\\s*\\t*query(\\s|\\n|;|\\t)', 'i'));
-            aQuerys = aQuerys.slice(0, -1);
+        try {
+            if (req && req.split(new RegExp('\\;|\\{|\\(|\\[|\\"|\\\'|\\`|\\}|\\)|\\]|\\:|\\,|\\*|\\!|\\|')).length == 1 && elem && elem.split(new RegExp(' .*?\\s*\\t*=\\s*\\t*' + req + '\\.\\s*\\t*query(\\s|\\n|;|\\t)', 'gmi').length > 1)) {
+                let queryVars = [];
+                let aQuerys = elem.split(new RegExp('\\s*\\t*=\\s*\\t*' + req + '\\.\\s*\\t*query(\\s|\\n|;|\\t)', 'i'));
+                aQuerys = aQuerys.slice(0, -1);
 
-            if (aQuerys.length > 0) {
-                // get variables name
-                for (let idx = 0; idx < aQuerys.length; idx++) {
-                    if (aQuerys[idx] && aQuerys[idx].replaceAll(' ', '') != '') {
-                        queryVars.push(aQuerys[idx].split(new RegExp('\\s*|\\t*')).slice(-1)[0]);
+                if (aQuerys.length > 0) {
+                    // get variables name
+                    for (let idx = 0; idx < aQuerys.length; idx++) {
+                        if (aQuerys[idx] && aQuerys[idx].replaceAll(' ', '') != '') {
+                            queryVars.push(aQuerys[idx].split(new RegExp('\\s*|\\t*')).slice(-1)[0]);
+                        }
+                    }
+                    if (queryVars.length > 0) {
+                        queryVars.forEach(query => {
+                            if (query && query.split(new RegExp('\\;|\\{|\\(|\\[|\\"|\\\'|\\`|\\}|\\)|\\]|\\:|\\,|\\*|\\!|\\|')).length == 1) {
+                                let varNames = elem.split(new RegExp(' ' + query + '\\.')).splice(1);
+                                varNames = varNames.map(v => (v = v.split(new RegExp('\\s|;|\\n|\\t'))[0]));
+                                varNames.forEach(name => {
+                                    objParameters[name] = {
+                                        name,
+                                        in: 'query'
+                                    };
+                                });
+                            }
+                        });
                     }
                 }
-                if (queryVars.length > 0) {
-                    queryVars.forEach(query => {
-                        if (query && query.split(new RegExp('\\;|\\{|\\(|\\[|\\"|\\\'|\\`|\\}|\\)|\\]|\\:|\\,|\\*|\\!|\\|')).length == 1) {
-                            let varNames = elem.split(new RegExp(' ' + query + '\\.')).splice(1);
-                            varNames = varNames.map(v => (v = v.split(new RegExp('\\s|;|\\n|\\t'))[0]));
-                            varNames.forEach(name => {
-                                objParameters[name] = {
-                                    name,
-                                    in: 'query'
-                                };
-                            });
-                        }
-                    });
-                }
             }
+        } catch (e) {
+            console.log("Minor Skip");
         }
     }
     return objParameters;

@@ -523,9 +523,15 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                                 regexParams += `\\([\\w|\\s]*\\,?[\\w|\\s]*\\,?[\\w|\\s]*[\\s|\\,]+${funcParams[idx]}[\\s|\\,]+[\\w|\\s]*\\,?[\\w|\\s]*\\,?[\\w|\\s]*\\)|`;
                                             }
                                             regexParams = regexParams.slice(0, -1);
-                                            let refFunc = funcNotRefFormated.split(new RegExp(regexParams));
+                                            let refFunc;
+                                            try {
+                                                const regex = new RegExp(regexParams);
+                                                refFunc = funcNotRefFormated.split(regex);
+                                            } catch (e) {
+                                              console.log("Minor Skip");
+                                            }
 
-                                            if (refFunc.length > 1) {
+                                            if (refFunc && refFunc.length > 1) {
                                                 if (tsFunction) {
                                                     refFunc = refFunc.slice(0, -1);
                                                 } else {
