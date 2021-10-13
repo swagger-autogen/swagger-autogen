@@ -14,7 +14,8 @@ const TEMPLATE = {
     consumes: [],
     produces: [],
     paths: {},
-    definitions: {}
+    definitions: {},
+    examples: {}
 };
 
 const SWAGGER_TAG = '#swagger';
