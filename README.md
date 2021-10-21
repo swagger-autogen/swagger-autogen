@@ -152,6 +152,7 @@ const doc = {
   ],
   securityDefinitions: {},  // by default: empty object
   definitions: {},          // by default: empty object
+  examples: {},          // by default: empty object
 };
 
 const outputFile = './path/swagger-output.json';
@@ -679,6 +680,48 @@ or inserting directly, without using definitions:
                     about: ''
                 }
         } */
+        ...
+    })
+```
+
+By the way, `openapi 3.0` is different from `swagger 2.0`. 
+The above sample can't working on `openapi 3.0`.
+
+For example:
+
+```js
+const doc = {
+    ...
+    definitions: {},
+    examples: {
+        Users:{
+            value:{
+                name: 'Jhon Doe',
+                age: 29
+            },
+            summary: "Sample for User"
+        }
+    }
+}
+```
+
+`Endpoint file:`
+
+It doesn't allow insert directly without reference on `openapi 3.0`
+
+```js
+    app.post('/users', (req, res) => {
+        ...
+        /* #swagger.requestBody = {
+              required: true,
+              content: {
+                "application/json": {
+                    schema: { $ref: "#/definitions/Users" },
+                    examples: { $ref: "#/examples/Users" }
+                  }
+              }
+            }
+        */
         ...
     })
 ```
