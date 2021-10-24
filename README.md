@@ -37,7 +37,7 @@ This module performs the automatic construction of the Swagger documentation. Th
       - [OAuth2 example](#oauth2-example)
   - [OpenAPI 3.x](#openapi-3.x)
     - [Request Body](#request-body)
-    - [Responses](#responses-openapi-3.x)
+    - [Responses](#responses-1)
     - [Security](#security-1)
       - [Bearer Auth example](#bearer-auth-example)
       - [OAuth2 example](#oauth2-example-1)
