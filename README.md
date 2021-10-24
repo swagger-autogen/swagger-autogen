@@ -22,19 +22,25 @@ This module performs the automatic construction of the Swagger documentation. Th
   - [Summary](#summary)
   - [Description](#description)
   - [Operation ID](#operation-id)
-  - [Consumes and Produces](#consumes-and-produces)
   - [Parameters](#parameters)
-  - [Request Body](#request-body)
-  - [Responses](#responses)
   - [Schema and Definitions](#schema-and-definitions)
-    - [Examples of Definitions](#examples-of-definitions)
+      - [Examples of Definitions](#examples-of-definitions)
   - [Endpoint as deprecated](#endpoint-as-deprecated)
   - [Ignoring endpoint](#ignoring-endpoint)
+  - [Responses](#responses)
   - [Manual capture](#manual-capture)
   - [Forced endpoint creation](#forced-endpoint-creation)
-- [Security](#security)
-  - [API Keys (Token) example](#api-keys-token-example)
-  - [OAuth2 example](#oauth2-example)
+  - [Swagger 2.0](#swagger-2.0)
+    - [Consumes and Produces](#consumes-and-produces)
+    - [Security](#security-swagger-2.0)
+      - [API Keys (Token) example](#api-keys-token-example)
+      - [OAuth2 example](#oauth2-example)
+  - [OpenAPI 3.x](#openapi-3.x)
+    - [Request Body](#request-body)
+    - [Responses](#responses-openapi-3.x)
+    - [Security](#security-openapi-3.x)
+      - [Bearer Auth example](#bearer-auth-example-openapi-3.x)
+      - [OAuth2 example](#oauth2-example-openapi-3.x)
 - [Response Language](#response-language)
 - [Examples](#examples)
 - [Compatibility](#compatibility)
@@ -68,7 +74,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.11.2
+$ npm install --save-dev swagger-autogen@2.12.0
 ```
 
 ## Usage
@@ -150,7 +156,8 @@ const doc = {
     },
     // { ... }
   ],
-  securityDefinitions: {},  // by default: empty object
+  securityDefinitions: {},  // by default: empty object (Swagger 2.0)
+  components: {},           // by default: empty object (OpenAPI 3.x)
   definitions: {},          // by default: empty object
   examples: {},          // by default: empty object
 };
@@ -329,43 +336,6 @@ This is the operationId of the Endpoint. To add it, use the `#swagger.operationI
     })
 ```
 
-### Consumes and Produces
-
-Use the `#swagger.produces = ['contentType']` or `#swagger.consumes = ['contentType']` tag to add a new produce or a new consume, respectively. In the **Example (Consumes)** below, the two endpoints will have the same result in the documentation.
-
-**Example (Consumes):**
-
-```js
-    ...
-    app.get('/users/:id', (req, res) => {
-        ...
-        // Recognizes the 'consumes' automatically
-        res.setHeader('Content-Type', 'application/xml')
-        ...
-    })
-```
-
-OR
-
-```js
-    app.get('/users/:id', (req, res) => {
-        ...
-        // #swagger.consumes = ['application/xml']
-        ...
-    })
-```
-
-**Example (Produces):**
-
-```js
-    ...
-    app.get('/v2/users/:id', (req, res) => {
-        ...
-        // #swagger.produces = ['application/json']
-        ...
-    })
-```
-
 ### Parameters
 
 It is possible to create or complement automatically detected parameters. Use the `#swagger.parameters['parameterName']` tag to create a new parameter or to complete an existing parameter (automatically detected).
@@ -437,7 +407,7 @@ Some examples:
               in: 'formData',
               type: 'file',
               required: 'true',
-              description: 'Any description...',
+              description: 'Some description...',
         } */
 
         const file = req.file;
@@ -451,7 +421,7 @@ Some examples:
               in: 'formData',
               type: 'array',
               required: true,
-              description: 'Any description...',
+              description: 'Some description...',
               collectionFormat: 'multi',
               items: { type: 'file' }
           } */
@@ -484,7 +454,7 @@ The **body** is automatically recognized, for example:
     app.post('/users', (req, res) => {
         /*  #swagger.parameters['parameter_name'] = {
                 in: 'body',
-                description: 'Any description...',
+                description: 'Some description...',
                 schema: {
                     $name: 'Jhon Doe',
                     $age: 29,
@@ -506,7 +476,7 @@ However, if you wish to add more information to the automatically recognized **b
     app.post('/users', (req, res) => {
         /*  #swagger.parameters['any_name'] = {
                in: 'body',
-               description: 'Any description...'
+               description: 'Some description...'
         } */
 
         const myItem1 = req.body.item1
@@ -521,7 +491,7 @@ Automatically the **body** will be recognized and the parameters 'any_name' and 
 
 ### Responses
 
-It is possible to create or complement automatically detected responses. Use the `#swagger.reponses[statusCode]` tag to create a new answer or to complete an existing answer (automatically detected).
+It is possible to create or complement automatically detected responses. Use the `#swagger.reponses[statusCode]` tag to create a new answer or to complete an existing answer (automatically detected). If OpenAPI 3.x option is enabled ([see how to enable OpenAPI 3.x option](#???)), the *content* will be "application/json" by default. To see more options about OpenAPI 3.x response, see it here [OpenAPI 3.x response](#???)
 
 All optional parameters:
 
@@ -563,48 +533,6 @@ For example:
 **NOTE:** For more information about **schema** and **definitions**, see the section: [Schema and Definitions](#schema-and-definitions)
 
 **NOTE:** As the 404 status description was not entered, "Not Found" will automatically be added. It is possible to change the language of the automatic response, see the [Response Language](#response-language) section.
-
-### Request Body
-
-Use the `#swagger.requestBody` tag to impletent [Request Body](https://swagger.io/docs/specification/describing-request-body/).
-
-To use this feature, you need to enable the OpenAPI v3 in the options:
-If you're using CommonJS, use:
-
-```js
-const swaggerAutogen = require('swagger-autogen')({openapi: '3.0.0'})
-```
-
-In case, you're using ES modules in your project, rewrite the `swaggerAutogen(...)` function as follows:
-
-```js
-import swaggerAutogen from 'swagger-autogen';
-// ...
-swaggerAutogen({openapi: '3.0.0'})(outputFile, endpointsFiles, doc).then(async () => {
-  await import('./index.js'); // Your project's root file
-});
-```
-
-**Endpoint example:** 
-```js
-app.post('/path', (req, res, next) => {
-    /*	#swagger.requestBody = {
-            required: true,
-            content: {
-                "application/json": {
-                    schema: {
-                        $ref: "#/definitions/User"
-                    }  
-                },
-                "application/xml": {
-                    schema: {
-                        $ref: "#/definitions/User"
-                    }  
-                }
-            }
-    } */
-})
-```
 
 ### Schema and Definitions
 
@@ -680,48 +608,6 @@ or inserting directly, without using definitions:
                     about: ''
                 }
         } */
-        ...
-    })
-```
-
-By the way, `openapi 3.0` is different from `swagger 2.0`. 
-The above sample can't working on `openapi 3.0`.
-
-For example:
-
-```js
-const doc = {
-    ...
-    definitions: {},
-    examples: {
-        Users:{
-            value:{
-                name: 'Jhon Doe',
-                age: 29
-            },
-            summary: "Sample for User"
-        }
-    }
-}
-```
-
-`Endpoint file:`
-
-It doesn't allow insert directly without reference on `openapi 3.0`
-
-```js
-    app.post('/users', (req, res) => {
-        ...
-        /* #swagger.requestBody = {
-              required: true,
-              content: {
-                "application/json": {
-                    schema: { $ref: "#/definitions/Users" },
-                    examples: { $ref: "#/examples/Users" }
-                  }
-              }
-            }
-        */
         ...
     })
 ```
@@ -913,7 +799,46 @@ function myFunction(param) {
 }
 ```
 
-## Security
+## Swagger 2.0
+
+### Consumes and Produces
+
+Use the `#swagger.produces = ['contentType']` or `#swagger.consumes = ['contentType']` tag to add a new produce or a new consume, respectively. In the **Example (Consumes)** below, the two endpoints will have the same result in the documentation.
+
+**Example (Consumes):**
+
+```js
+    ...
+    app.get('/users/:id', (req, res) => {
+        ...
+        // Recognizes the 'consumes' automatically
+        res.setHeader('Content-Type', 'application/xml')
+        ...
+    })
+```
+
+OR
+
+```js
+    app.get('/users/:id', (req, res) => {
+        ...
+        // #swagger.consumes = ['application/xml']
+        ...
+    })
+```
+
+**Example (Produces):**
+
+```js
+    ...
+    app.get('/v2/users/:id', (req, res) => {
+        ...
+        // #swagger.produces = ['application/json']
+        ...
+    })
+```
+
+## Security [](#security-swagger-2.0)
 
 It is possible to add security to endpoints. The following are some examples, but a complete approach can be seen on the website [swagger.io](#https://swagger.io/docs/specification/authentication)
 
@@ -929,7 +854,7 @@ const doc = {
       type: 'apiKey',
       in: 'header', // can be 'header', 'query' or 'cookie'
       name: 'X-API-KEY', // name of the header, query parameter or cookie
-      description: 'any description...'
+      description: 'Some description...'
     },
   },
 };
@@ -989,6 +914,170 @@ At the endpoint, add the `#swagger.security` tag, for example:
     })
 ```
 
+## OpenAPI 3.x
+
+To use the OpenAPI 3.x features, you need to enable the OpenAPI v3 in the options:
+If you're using CommonJS, use:
+
+```js
+const swaggerAutogen = require('swagger-autogen')({openapi: '3.0.0'})
+```
+
+In case, you're using ES modules in your project, rewrite the `swaggerAutogen(...)` function as follows:
+
+```js
+import swaggerAutogen from 'swagger-autogen';
+// ...
+swaggerAutogen({openapi: '3.0.0'})(outputFile, endpointsFiles, doc).then(async () => {
+  await import('./index.js'); // Your project's root file
+});
+```
+
+### Request Body
+
+Use the `#swagger.requestBody` tag to impletent [Request Body](https://swagger.io/docs/specification/describing-request-body/).
+
+**Endpoint example:** 
+```js
+app.post('/path', (req, res, next) => {
+    /*	#swagger.requestBody = {
+            required: true,
+            content: {
+                "application/json": {
+                    schema: {
+                        $ref: "#/definitions/User"
+                    }  
+                },
+                "application/xml": {
+                    schema: {
+                        $ref: "#/definitions/User"
+                    }  
+                }
+            }
+    } */
+})
+```
+
+### Responses (OpenAPI 3.x) [](#responses-openapi-3.x)
+
+It is possible to create or complement automatically detected responses. Use the `#swagger.reponses[statusCode]` tag to create a new answer or to complete an existing answer (automatically detected).
+
+All optional parameters:
+
+```js
+/* #swagger.responses[<number>] = {
+        description:              <string>,
+        content:
+            "<content-type>"      application/json, application/xml, etc
+                schema:           <object> or <Array>
+} */
+```
+
+**description:** The parameter description.  
+**schema:** See section [Schema and Definitions](#schema-and-definitions)
+
+**Endpoint example:** 
+```js
+app.get('/path', (req, res, next) => {
+    /* #swagger.responses[200] = {
+            description: "Any description... OpenAPI 3.x",
+            content: {
+                "application/json": {
+                    schema:{
+                        $ref: "#/definitions/User"
+                    }
+                }           
+            }
+        }   
+    */
+})
+```
+
+## Security (OpenAPI 3.x) [](#security-openapi-3.x)
+
+It is possible to add security to endpoints. The following are some examples, but a complete approach can be seen on the website [swagger.io](#https://swagger.io/docs/specification/authentication)
+
+### Bearer Auth example (OpenAPI 3.x) [](#bearer-auth-example-openapi-3.x)
+
+The security example below was taken from the original Swagger documentation.
+
+```js
+const doc = {
+  // { ... },
+  components: {        
+    securitySchemes: {
+      bearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT'
+      }
+    }
+  }
+};
+```
+
+To see more about the properties of the **doc**, see the [Usage (With Optionals)](#usage-with-optionals) section.
+
+At the endpoint, add the `#swagger.security` tag, for example:
+
+```js
+    ...
+    app.get('/users/:id', (req, res) => {
+        ...
+        /* #swagger.security = [{
+               "bearerAuth": []
+        }] */
+        ...
+    })
+```
+
+### OAuth2 example (OpenAPI 3.x) [](#oauth2-example-openapi-3.x)
+
+The security example below was taken from the original Swagger documentation.
+
+```js
+const doc = {
+  // { ... },
+  components: {        
+    securitySchemes: {
+      OAuth2: {
+        type: 'oauth2',
+        flows: {
+          authorizationCode: {
+            authorizationUrl: 'https://example.com/oauth/authorize',
+            tokenUrl: 'https://example.com/oauth/token',
+            scopes: {
+              read: 'Grants read access',
+              write: 'Grants write access',
+              admin: 'Grants access to admin operations'
+            }
+          }
+        }
+      }
+    }
+  }
+};
+```
+
+To see more about the properties of the **doc**, see the [Usage (With Optionals)](#usage-with-optionals) section.
+
+At the endpoint, add the `#swagger.security` tag, for example:
+
+```js
+    ...
+    app.get('/users/:id', (req, res) => {
+        ...
+        /* #swagger.security = [{
+               "OAuth2": [
+                   'read', 
+                   'write'
+               ]
+        }] */
+        ...
+    })
+```
+
+
 ## Response Language
 
 It is possible to change the default language (English) of the description in the automatic response, for example, status code 404, the description will be: 'Not Found'. To change, pass an object with the following parameter:
@@ -1033,7 +1122,7 @@ const swaggerAutogen = require('swagger-autogen')({ language: 'ko' });
 
 For now, the module only has the above languages.
 
-## Examples
+### Examples
 
 Links to projects that cover the simplest use of this module as well as the most complete use. See the links below:
 
@@ -1114,6 +1203,9 @@ Some tutorials with examples:
   - Bug fix
 - Version 2.11.x:
   - New tag: #swagger.requestBody
+  - Bug fix
+- Version 2.12.x:
+  - Some OpenAPI 3.x features
   - Bug fix
 
 
