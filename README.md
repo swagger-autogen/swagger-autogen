@@ -32,13 +32,13 @@ This module performs the automatic construction of the Swagger documentation. Th
   - [Forced endpoint creation](#forced-endpoint-creation)
   - [Swagger 2.0](#swagger-2.0)
     - [Consumes and Produces](#consumes-and-produces)
-    - [Security](#security-swagger-2.0)
+    - [Security](#security-1)
       - [API Keys (Token) example](#api-keys-token-example)
       - [OAuth2 example](#oauth2-example)
   - [OpenAPI 3.x](#openapi-3.x)
     - [Request Body](#request-body)
     - [Responses](#responses-openapi-3.x)
-    - [Security](#security-openapi-3.x)
+    - [Security](#security-2)
       - [Bearer Auth example](#bearer-auth-example-openapi-3.x)
       - [OAuth2 example](#oauth2-example-openapi-3.x)
 - [Response Language](#response-language)
@@ -838,7 +838,7 @@ OR
     })
 ```
 
-## Security [](#security-swagger-2.0)
+## Security
 
 It is possible to add security to endpoints. The following are some examples, but a complete approach can be seen on the website [swagger.io](#https://swagger.io/docs/specification/authentication)
 
@@ -958,7 +958,7 @@ app.post('/path', (req, res, next) => {
 })
 ```
 
-### Responses (OpenAPI 3.x) [](#responses-openapi-3.x)
+### Responses (OpenAPI 3.x)
 
 It is possible to create or complement automatically detected responses. Use the `#swagger.reponses[statusCode]` tag to create a new answer or to complete an existing answer (automatically detected).
 
@@ -993,11 +993,11 @@ app.get('/path', (req, res, next) => {
 })
 ```
 
-## Security (OpenAPI 3.x) [](#security-openapi-3.x)
+## Security
 
 It is possible to add security to endpoints. The following are some examples, but a complete approach can be seen on the website [swagger.io](#https://swagger.io/docs/specification/authentication)
 
-### Bearer Auth example (OpenAPI 3.x) [](#bearer-auth-example-openapi-3.x)
+### Bearer Auth example (OpenAPI 3.x)
 
 The security example below was taken from the original Swagger documentation.
 
@@ -1031,7 +1031,7 @@ At the endpoint, add the `#swagger.security` tag, for example:
     })
 ```
 
-### OAuth2 example (OpenAPI 3.x) [](#oauth2-example-openapi-3.x)
+### OAuth2 example (OpenAPI 3.x)
 
 The security example below was taken from the original Swagger documentation.
 
