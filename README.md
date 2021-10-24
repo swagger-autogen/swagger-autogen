@@ -841,7 +841,7 @@ OR
 
 ## Security
 
-It is possible to add security to endpoints. The following are some examples, but a complete approach can be seen on the website [swagger.io](#https://swagger.io/docs/specification/authentication)
+It is possible to add security to endpoints. The following are some examples, but a complete approach can be seen on the website [swagger.io](https://swagger.io/docs/specification/authentication)
 
 ### API Keys (Token) example
 
@@ -999,7 +999,7 @@ app.get('/path', (req, res, next) => {
 
 ## Security
 
-It is possible to add security to endpoints. The following are some examples, but a complete approach can be seen on the website [swagger.io](#https://swagger.io/docs/specification/authentication)
+It is possible to add security to endpoints. The following are some examples, but a complete approach can be seen on the website [swagger.io](https://swagger.io/docs/specification/authentication)
 
 ### Bearer Auth example
 
