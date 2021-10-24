@@ -800,6 +800,7 @@ function myFunction(param) {
 ```
 
 ## Swagger 2.0
+By default, the documentation is generated using Swagger 2.0 features. If you want to use OpenAPI 3.x features [click here](#openapi-3x).
 
 ### Consumes and Produces
 
@@ -916,7 +917,10 @@ At the endpoint, add the `#swagger.security` tag, for example:
 
 ## OpenAPI 3.x
 
+*NOTE:* The implementation of OpenAPI 3.x features are in progress. Some features are not yet available in the lib.
+
 To use the OpenAPI 3.x features, you need to enable the OpenAPI v3 in the options:
+
 If you're using CommonJS, use:
 
 ```js
