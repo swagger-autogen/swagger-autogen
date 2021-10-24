@@ -20,6 +20,7 @@ module.exports = function (args) {
     }
 
     swaggerTags.setLanguage(recLang || options.language || 'en-US');
+    swaggerTags.setOpenAPI(options.openapi);
     return async (outputFile, endpointsFiles, data) => {
         try {
             if (!outputFile) throw console.error("\nError: 'outputFile' was not specified.");
@@ -120,6 +121,14 @@ module.exports = function (args) {
                     objDoc.definitions[definition] = { ...swaggerTags.formatDefinitions(objDoc.definitions[definition], {}, constainXML) };
                 }
             });
+
+            /**
+             * Removing unused parameters
+             */
+            if(Object.keys(objDoc.examples).length == 0){
+                delete objDoc.examples;
+            }
+
             let dataJSON = JSON.stringify(objDoc, null, 2);
             fs.writeFileSync(outputFile, dataJSON);
             if (!options.disableLogs) {

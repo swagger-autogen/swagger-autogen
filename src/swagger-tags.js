@@ -3,6 +3,7 @@ const statics = require('./statics');
 const utils = require('./utils');
 
 let lang = 'en';
+let openapi = null;
 
 function getLanguage() {
     return lang;
@@ -15,6 +16,15 @@ function getLanguage() {
 function setLanguage(newLang) {
     lang = newLang;
     return lang;
+}
+
+function getOpenAPI() {
+    return openapi;
+}
+
+function setOpenAPI(param) {
+    openapi = param;
+    return openapi;
 }
 
 /**
@@ -301,7 +311,9 @@ async function getRequestBodyTag(data) {
     swaggerRequestBody.shift();
     for (let idx = 0; idx < swaggerRequestBody.length; ++idx) {
         let parameter = await utils.stack0SymbolRecognizer(swaggerRequestBody[idx], '{', '}');
-        parameter = parameter.replaceAll('__¬¬¬__', '"');
+        if (parameter) {
+            parameter = parameter.replaceAll('__¬¬¬__', '"');
+        }
         try {
             requestBody = {
                 ...eval(`(${'{' + parameter + '}'})`)
@@ -427,6 +439,21 @@ async function getResponsesTag(data, objResponses) {
             objResponses[statusCode].description = tables.getHttpStatusDescription(statusCode, lang);
         }
 
+        // Forcing convertion to OpenAPI 3.x
+        if (getOpenAPI() && objResponses[statusCode] && objResponses[statusCode].schema && !objResponses[statusCode].content) {
+            objResponses[statusCode] = {
+                ...objResponses[statusCode],
+                content: {
+                    'application/json': {
+                        schema: objResponses[statusCode].schema
+                    },
+                    'application/xml': {
+                        schema: objResponses[statusCode].schema
+                    }
+                }
+            };
+            delete objResponses[statusCode].schema;
+        }
         if (idx == swaggerResponses.length - 1) {
             return objResponses;
         }
@@ -558,7 +585,7 @@ async function getSecurityTag(data) {
 module.exports = {
     formatDefinitions,
     getLanguage,
-    setLanguage,
+    getOpenAPI,
     getPath,
     getMethodTag,
     getForcedEndpoints,
@@ -574,5 +601,7 @@ module.exports = {
     getSummary,
     getOperationId,
     getDeprecatedTag,
-    getRequestBodyTag
+    getRequestBodyTag,
+    setLanguage,
+    setOpenAPI
 };
