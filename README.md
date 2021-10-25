@@ -74,7 +74,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.12.2
+$ npm install --save-dev swagger-autogen@2.12.3
 ```
 
 ## Usage
@@ -1059,14 +1059,12 @@ The security example below was taken from the original Swagger documentation.
 ```js
 const doc = {
   // { ... },
-  components: {        
-    securitySchemes: {
+  securityDefinitions: {
       bearerAuth: {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT'
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT'
       }
-    }
   }
 };
 ```
@@ -1093,23 +1091,21 @@ The security example below was taken from the original Swagger documentation.
 ```js
 const doc = {
   // { ... },
-  components: {        
-    securitySchemes: {
+  securityDefinitions: {
       OAuth2: {
-        type: 'oauth2',
-        flows: {
-          authorizationCode: {
-            authorizationUrl: 'https://example.com/oauth/authorize',
-            tokenUrl: 'https://example.com/oauth/token',
-            scopes: {
-              read: 'Grants read access',
-              write: 'Grants write access',
-              admin: 'Grants access to admin operations'
-            }
+          type: 'oauth2',
+          flows: {
+              authorizationCode: {
+                  authorizationUrl: 'https://example.com/oauth/authorize',
+                  tokenUrl: 'https://example.com/oauth/token',
+                  scopes: {
+                      read: 'Grants read access',
+                      write: 'Grants write access',
+                      admin: 'Grants access to admin operations'
+                  }
+              }
           }
-        }
       }
-    }
   }
 };
 ```
