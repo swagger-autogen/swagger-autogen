@@ -636,7 +636,7 @@ const doc = {
 ```
 
 **Endpoint file:** 
-It doesn't allow insert directly without reference on `openapi 3.x`. To reference OpenAPI 3.x, [click here](#options).
+It doesn't allow insert directly without reference on `openapi 3.x`. To enable OpenAPI 3.x [See it here](#options).
 
 ```js
     app.post('/users', (req, res) => {
