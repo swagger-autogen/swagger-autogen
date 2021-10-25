@@ -123,16 +123,6 @@ module.exports = function (args) {
             });
 
             /**
-             * Removing unused parameters
-             */
-            if (Object.keys(objDoc.components).length == 0) {
-                delete objDoc.components;
-            }
-            if (Object.keys(objDoc.servers).length == 0) {
-                delete objDoc.servers;
-            }
-
-            /**
              * Forcing convertion to OpenAPI 3.x
              */
             if (objDoc.openapi) {
@@ -141,13 +131,24 @@ module.exports = function (args) {
                         objDoc.host += objDoc.basePath
                     }
                     if (objDoc.host.slice(0, 4).toLowerCase() != 'http') {
-                        objDoc.host = 'http://' + objDoc.host
-                    }
-                    objDoc.servers = [
-                        {
-                            url: objDoc.host
+                        if (objDoc.schemes && objDoc.schemes.length > 0) {
+                            objDoc.schemes.forEach(scheme => {
+                                objDoc.servers.push(
+                                    {
+                                        url: scheme + '://' + objDoc.host
+                                    }
+                                )
+                            })
+                        } else {
+                            objDoc.host = 'http://' + objDoc.host
+                            objDoc.servers = [
+                                {
+                                    url: objDoc.host
+                                }
+                            ]
                         }
-                    ]
+                    }
+
                     delete objDoc.host
                 } else {
                     delete objDoc.servers
@@ -191,6 +192,22 @@ module.exports = function (args) {
                     delete objDoc.definitions
                 }
 
+                if (objDoc.securityDefinitions && Object.keys(objDoc.securityDefinitions).length > 0) {
+                    if (!objDoc.components) {
+                        objDoc.components = {}
+                    }
+                    if (!objDoc.components.securitySchemes) {
+                        objDoc.components.securitySchemes = {}
+                    }
+
+                    objDoc.components.securitySchemes = {
+                        ...objDoc.components.securitySchemes,
+                        ...objDoc.securityDefinitions
+                    }
+
+                    delete objDoc.securityDefinitions
+                }
+
                 if (objDoc.basePath) {
                     delete objDoc.basePath
                 }
@@ -204,6 +221,17 @@ module.exports = function (args) {
                     delete objDoc.produces
                 }
             }
+
+            /**
+             * Removing unused parameters
+             */
+            if (Object.keys(objDoc.components).length == 0) {
+                delete objDoc.components;
+            }
+            if (Object.keys(objDoc.servers).length == 0) {
+                delete objDoc.servers;
+            }
+
 
             let dataJSON = JSON.stringify(objDoc, null, 2);
             fs.writeFileSync(outputFile, dataJSON);
