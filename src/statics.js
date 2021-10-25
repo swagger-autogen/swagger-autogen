@@ -7,6 +7,7 @@ const TEMPLATE = {
         description: ''
     },
     host: 'localhost:3000',
+    servers: [],
     basePath: '/',
     tags: [],
     schemes: ['http'],
@@ -15,7 +16,7 @@ const TEMPLATE = {
     produces: [],
     paths: {},
     definitions: {},
-    examples: {}
+    components: {}
 };
 
 const SWAGGER_TAG = '#swagger';

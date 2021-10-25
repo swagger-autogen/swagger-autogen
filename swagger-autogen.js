@@ -125,8 +125,84 @@ module.exports = function (args) {
             /**
              * Removing unused parameters
              */
-            if(Object.keys(objDoc.examples).length == 0){
-                delete objDoc.examples;
+            if (Object.keys(objDoc.components).length == 0) {
+                delete objDoc.components;
+            }
+            if (Object.keys(objDoc.servers).length == 0) {
+                delete objDoc.servers;
+            }
+
+            /**
+             * Forcing convertion to OpenAPI 3.x
+             */
+            if (objDoc.openapi) {
+                if (objDoc.host) {
+                    if (objDoc.basePath) {
+                        objDoc.host += objDoc.basePath
+                    }
+                    if (objDoc.host.slice(0, 4).toLowerCase() != 'http') {
+                        objDoc.host = 'http://' + objDoc.host
+                    }
+                    objDoc.servers = [
+                        {
+                            url: objDoc.host
+                        }
+                    ]
+                    delete objDoc.host
+                } else {
+                    delete objDoc.servers
+                }
+
+                if (objDoc.components && objDoc.components.schemas) {
+                    Object.keys(objDoc.components.schemas).forEach(schema => {
+                        if (constainXML) {
+                            objDoc.components.schemas[schema] = { ...swaggerTags.formatDefinitions(objDoc.components.schemas[schema], {}, constainXML), xml: { name: schema } };
+                        } else {
+                            objDoc.components.schemas[schema] = { ...swaggerTags.formatDefinitions(objDoc.components.schemas[schema], {}, constainXML) };
+                        }
+                    });
+                }
+
+                if (objDoc.components && objDoc.components.examples) {
+                    Object.keys(objDoc.components.examples).forEach(example => {
+                        if (!objDoc.components.examples[example].value) {
+                            let auxExample = { ...objDoc.components.examples[example] }
+                            delete objDoc.components.examples[example]
+                            objDoc.components.examples[example] = {
+                                value: auxExample
+                            }
+                        }
+                    });
+                }
+
+                if (objDoc.definitions && Object.keys(objDoc.definitions).length > 0) {
+                    if (!objDoc.components) {
+                        objDoc.components = {}
+                    }
+                    if (!objDoc.components.schemas) {
+                        objDoc.components.schemas = {}
+                    }
+
+                    objDoc.components.schemas = {
+                        ...objDoc.components.schemas,
+                        ...objDoc.definitions
+                    }
+
+                    delete objDoc.definitions
+                }
+
+                if (objDoc.basePath) {
+                    delete objDoc.basePath
+                }
+                if (objDoc.schemes) {
+                    delete objDoc.schemes
+                }
+                if (objDoc.consumes) {
+                    delete objDoc.consumes
+                }
+                if (objDoc.produces) {
+                    delete objDoc.produces
+                }
             }
 
             let dataJSON = JSON.stringify(objDoc, null, 2);

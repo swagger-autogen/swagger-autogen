@@ -1017,11 +1017,13 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 }
                                 objEndpoint[path][method].requestBody = objRequestBody;
                             }
-                            if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.produces')) {
-                                objEndpoint[path][method].produces = await swaggerTags.getProducesTag(endpoint);
-                            }
-                            if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.consumes')) {
-                                objEndpoint[path][method].consumes = await swaggerTags.getConsumesTag(endpoint);
+                            if (!swaggerTags.getOpenAPI()) {
+                                if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.produces')) {
+                                    objEndpoint[path][method].produces = await swaggerTags.getProducesTag(endpoint);
+                                }
+                                if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.consumes')) {
+                                    objEndpoint[path][method].consumes = await swaggerTags.getConsumesTag(endpoint);
+                                }
                             }
                             if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.responses')) {
                                 objResponses = await swaggerTags.getResponsesTag(endpoint, objResponses);

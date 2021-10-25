@@ -33,11 +33,18 @@ function setOpenAPI(param) {
  * @param {*} resp
  */
 function formatDefinitions(def, resp = {}, constainXML) {
+    /**
+     * Forcing convertion to OpenAPI 3.x
+     */
+    if (def && def.$ref && getOpenAPI() && def.$ref.includes('#/definitions/')) {
+        def.$ref = def.$ref.replaceAll('#/definitions/', '#/components/schemas/');
+    }
+
     if (def.$ref) {
-        if (def.$ref.split('#/definitions/').length === 1) {
+        if (def.$ref.split('#/').length === 1) {
             throw console.error('[Swagger-autogen] Syntax error: ', def.$ref);
         }
-        let param = def.$ref.split('#/definitions/')[1].replaceAll(' ', '');
+        let param = def.$ref.split('/').slice(-1)[0].replaceAll(' ', '');
         if (constainXML) {
             return {
                 xml: {
@@ -296,6 +303,17 @@ async function getParametersTag(data, objParameters) {
         if (objParameters[name].schema && !objParameters[name].schema.$ref) {
             objParameters[name].schema = formatDefinitions(objParameters[name].schema);
         }
+        /**
+         * Forcing convertion to OpenAPI 3.x
+         */
+        if (getOpenAPI() && objParameters[name].type != 'body') {
+            objParameters[name].schema = {
+                type: objParameters[name].type ? objParameters[name].type : 'string'
+            };
+            if (objParameters[name].type) {
+                delete objParameters[name].type;
+            }
+        }
     }
     return objParameters;
 }
@@ -313,6 +331,13 @@ async function getRequestBodyTag(data) {
         let parameter = await utils.stack0SymbolRecognizer(swaggerRequestBody[idx], '{', '}');
         if (parameter) {
             parameter = parameter.replaceAll('__¬¬¬__', '"');
+
+            /**
+             * Forcing convertion to OpenAPI 3.x
+             */
+            if (parameter && getOpenAPI() && parameter.includes('#/definitions/')) {
+                parameter = parameter.replaceAll('#/definitions/', '#/components/schemas/');
+            }
         }
         try {
             requestBody = {
@@ -324,6 +349,7 @@ async function getRequestBodyTag(data) {
             return false;
         }
     }
+
     return requestBody;
 }
 
@@ -398,6 +424,13 @@ async function getResponsesTag(data, objResponses) {
             // has object
             let objResp = await utils.stack0SymbolRecognizer(swaggerResponses[idx], '{', '}');
             objResp = objResp.replaceAll('__¬¬¬__', '"');
+
+            /**
+             * Forcing convertion to OpenAPI 3.x
+             */
+            if (objResp && getOpenAPI() && objResp.includes('#/definitions/')) {
+                objResp = objResp.replaceAll('#/definitions/', '#/components/schemas/');
+            }
 
             try {
                 // Handling syntax error
