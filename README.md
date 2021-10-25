@@ -74,7 +74,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.12.1
+$ npm install --save-dev swagger-autogen@2.12.2
 ```
 
 ## Usage
@@ -157,9 +157,8 @@ const doc = {
     // { ... }
   ],
   securityDefinitions: {},  // by default: empty object (Swagger 2.0)
-  components: {},           // by default: empty object (OpenAPI 3.x)
   definitions: {},          // by default: empty object
-  examples: {},          // by default: empty object
+  components: {}            // by default: empty object (OpenAPI 3.x)
 };
 
 const outputFile = './path/swagger-output.json';
@@ -608,6 +607,58 @@ or inserting directly, without using definitions:
                     about: ''
                 }
         } */
+        ...
+    })
+```
+
+#### Adding examples (only OpenAPI 3.x)
+
+It is possible to add examples as shown in the OpenAPI 3.x specification [click here](https://swagger.io/docs/specification/adding-examples/).
+
+**For example:**
+```js
+const doc = {
+    ...
+    definitions: {...},
+    components: {
+      ...
+      examples: {
+          User:{
+              value:{
+                  name: 'Jhon Doe',
+                  age: 29
+              },
+              summary: "Sample for User"
+          }
+      }
+    }
+}
+```
+
+**Endpoint file:** 
+It doesn't allow insert directly without reference on `openapi 3.x`. To reference OpenAPI 3.x, [click here](#options).
+
+```js
+    app.post('/users', (req, res) => {
+        ...
+        /* #swagger.requestBody = {
+              required: true,
+              content: {
+                  "application/json": {
+                      schema: { $ref: "#/definitions/User" },
+                      examples: { 
+                          User: { $ref: "#/components/examples/User" },
+                          UserExample2: {
+                              value: {
+                                  name: 'Marie Doe',
+                                  age: 28
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+        */
         ...
     })
 ```
