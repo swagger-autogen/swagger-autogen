@@ -863,7 +863,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     /**
                      * endpointFunctions: receives the endpoint functions, local middleware and received middlewares
                      */
-                    let localPath = swaggerTags.getPath(elemOrig, autoMode);
+                    let localPath = swaggerTags.getPath(elemOrig, true);
 
                     endpointFunctions = [
                         ...routeMiddlewares.filter(r => {
@@ -895,8 +895,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                     // Getting Path
                     if (!path) {
-                        if (!autoMode || elemOrig.includes('#swagger.path')) {
-                            path = swaggerTags.getPath(elemOrig, autoMode);
+                        if (elemOrig.includes('#swagger.path')) {
+                            path = swaggerTags.getPath(elemOrig, true);
                         } else {
                             if (!rawPathResolved) {
                                 continue;

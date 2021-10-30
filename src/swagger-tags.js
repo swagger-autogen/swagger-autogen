@@ -274,6 +274,9 @@ function getDeprecatedTag(data) {
  */
 async function getParametersTag(data, objParameters) {
     data = data.replaceAll('"', "'").replaceAll('`', "'").replaceAll('`', "'").replaceAll('\n', ' ');
+    if (getOpenAPI() && data.includes('#/definitions')) {
+        data = data.replaceAll('#/definitions', '#/components/schemas');
+    }
     let swaggerParameters = data.split(new RegExp('#swagger.parameters'));
     swaggerParameters.shift();
     for (let idx = 0; idx < swaggerParameters.length; ++idx) {
@@ -306,9 +309,10 @@ async function getParametersTag(data, objParameters) {
         /**
          * Forcing convertion to OpenAPI 3.x
          */
-        if (getOpenAPI() && objParameters[name].type != 'body') {
+        if (getOpenAPI() && !objParameters[name].schema.$ref) {
             objParameters[name].schema = {
-                type: objParameters[name].type ? objParameters[name].type : 'string'
+                type: objParameters[name].type ? objParameters[name].type : 'string',
+                ...objParameters[name].schema
             };
             if (objParameters[name].type) {
                 delete objParameters[name].type;
