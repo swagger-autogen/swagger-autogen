@@ -1131,7 +1131,7 @@ At the endpoint, add the `#swagger.security` tag, for example:
 
 ### oneOf and anyOf
 
-This section show how to use oneOf and anyOf features of OpenAPI 3. See more about it [here](https://swagger.io/docs/specification/data-models/oneof-anyof-allof-not)
+This section show how to use oneOf and anyOf features of OpenAPI 3. [See more about it here](https://swagger.io/docs/specification/data-models/oneof-anyof-allof-not)
 
 
 **oneOf example:** 
