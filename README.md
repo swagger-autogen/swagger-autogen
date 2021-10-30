@@ -1136,7 +1136,7 @@ This section show how to use oneOf and anyOf features of OpenAPI 3. [See more ab
 
 **oneOf example:** 
 ```js
-app.get('/path', (req, res, next) => {
+app.get('/path', (req, res) => {
     ...
     /* #swagger.requestBody = {
               required: true,
@@ -1162,7 +1162,7 @@ app.get('/path', (req, res, next) => {
 
 **anyOf example:** 
 ```js
-app.get('/path', (req, res, next) => {
+app.get('/path', (req, res) => {
     ...
     /* #swagger.requestBody = {
               required: true,
