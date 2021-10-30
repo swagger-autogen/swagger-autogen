@@ -41,6 +41,7 @@ This module performs the automatic construction of the Swagger documentation. Th
     - [Security](#security-1)
       - [Bearer Auth example](#bearer-auth-example)
       - [OAuth2 example](#oauth2-example-1)
+    - [oneOf and anyOf](#oneof-and-anyof)
 - [Response Language](#response-language)
 - [Examples](#examples)
 - [Compatibility](#compatibility)
@@ -74,7 +75,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.12.3
+$ npm install --save-dev swagger-autogen@2.12.4
 ```
 
 ## Usage
@@ -1126,6 +1127,63 @@ At the endpoint, add the `#swagger.security` tag, for example:
         }] */
         ...
     })
+```
+
+### oneOf and anyOf
+
+This section show how to use oneOf and anyOf features of OpenAPI 3. See more about it [here](https://swagger.io/docs/specification/data-models/oneof-anyof-allof-not)
+
+
+**oneOf example:** 
+```js
+app.get('/path', (req, res, next) => {
+    ...
+    /* #swagger.requestBody = {
+              required: true,
+              content: {
+                "application/json": {
+                    schema:{
+                        oneOf: [
+                            {
+                                $ref: "#/definitions/SomeSchema1",
+                            },
+                            {
+                                $ref: "#/definitions/SomeSchema2"
+                            }
+                        ]
+                    }
+                }           
+            }
+          }
+    */
+   ...
+})
+```
+
+**anyOf example:** 
+```js
+app.get('/path', (req, res, next) => {
+    ...
+    /* #swagger.requestBody = {
+              required: true,
+              content: {
+                "application/json": {
+                    schema:{
+                        anyOf: [
+                            {
+                                $ref: "#/definitions/SomeSchema1",
+                            },
+                            {
+                                $ref: "#/definitions/SomeSchema2"
+                            }
+                        ]
+                    }
+                }           
+            }
+          }
+    */
+   ...
+})
 ```
 
 
