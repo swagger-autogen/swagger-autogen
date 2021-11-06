@@ -956,7 +956,7 @@ async function getPathParameters(path, objParameters) {
             /**
              * Forcing convertion to OpenAPI 3.x
              */
-            if (swaggerTags.getOpenAPI() && !objParameters[name].schema.$ref) {
+            if (swaggerTags.getOpenAPI() && objParameters[name] && objParameters[name].schema && !objParameters[name].schema.$ref) {
                 objParameters[name].schema = {
                     type: objParameters[name].type ? objParameters[name].type : 'string',
                     ...objParameters[name].schema

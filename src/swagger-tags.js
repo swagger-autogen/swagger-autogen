@@ -40,7 +40,7 @@ function formatDefinitions(def, resp = {}, constainXML) {
         def.$ref = def.$ref.replaceAll('#/definitions/', '#/components/schemas/');
     }
 
-    if (def.$ref) {
+    if (def && def.$ref) {
         if (def.$ref.split('#/').length === 1) {
             throw console.error('[Swagger-autogen] Syntax error: ', def.$ref);
         }
@@ -303,13 +303,13 @@ async function getParametersTag(data, objParameters) {
             // by default: 'type' is 'string' when 'schema' is missing
             objParameters[name].type = 'string';
         }
-        if (objParameters[name].schema && !objParameters[name].schema.$ref) {
+        if (objParameters[name].schema && objParameters[name] && objParameters[name].schema && !objParameters[name].schema.$ref) {
             objParameters[name].schema = formatDefinitions(objParameters[name].schema);
         }
         /**
          * Forcing convertion to OpenAPI 3.x
          */
-        if (getOpenAPI() && !objParameters[name].schema.$ref) {
+        if (getOpenAPI() && objParameters[name] && objParameters[name].schema && !objParameters[name].schema.$ref) {
             objParameters[name].schema = {
                 type: objParameters[name].type ? objParameters[name].type : 'string',
                 ...objParameters[name].schema
