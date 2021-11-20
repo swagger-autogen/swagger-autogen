@@ -1043,7 +1043,17 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                             if (objResponses === false || objParameters === false || objEndpoint === false) return resolve(false);
 
-                            if (autoMode && ((req && req.length > 0) || (res && res.length > 0))) {
+                            if (autoMode && endpoint && ((req && req.length > 0) || (res && res.length > 0))) {
+                                let hasOwnProperties = endpoint.split(new RegExp('\\s*\\.\\s*hasOwnProperty\\s*\\('));
+                                if (hasOwnProperties && hasOwnProperties.length > 1) {
+                                    hasOwnProperties.shift();
+                                    hasOwnProperties.forEach(h => {
+                                        let varName = h.replaceAll('"', '').replaceAll("'", '').replaceAll('`', '').replaceAll(' ', '');
+                                        varName = '.' + varName.split(')')[0];
+                                        endpoint = endpoint.replace(new RegExp('\\s*\\.\\s*hasOwnProperty\\s*\\('), varName);
+                                    });
+                                }
+
                                 endpoint = await handleData.removeStrings(endpoint); // Avoiding .status(...) in string
                                 endpoint = endpoint.replaceAll('__¬¬¬__', '"');
                                 if (req) {
@@ -1079,7 +1089,25 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             });
                             objEndpoint[path][method].responses = objResponses;
 
-                            if (objInBody && _idxEF == endpointFunctions.length - 1) {
+                            /**
+                             * If OpenAPI is enabled, convert body parameters to requestBody 
+                             */
+                            if (swaggerTags.getOpenAPI() && objInBody && objInBody.schema && objEndpoint[path][method] && !objEndpoint[path][method].requestBody) {
+                                objEndpoint[path][method].requestBody = {
+                                    content: {
+                                        'application/json': { schema: objInBody.schema }
+                                    }
+                                };
+                                if (objEndpoint[path][method].parameters) {
+                                    delete objEndpoint[path][method].parameters;
+                                }
+                                if (objEndpoint[path][method].tags && objEndpoint[path][method].tags.length == 0) {
+                                    delete objEndpoint[path][method].tags;
+                                }
+                                if (objEndpoint[path][method].description == '') {
+                                    delete objEndpoint[path][method].description;
+                                }
+                            } else if (objInBody && _idxEF == endpointFunctions.length - 1) {
                                 /**
                                  * If #swagger.parameter or #swagger.requestBody is present
                                  * the automatic body recognition will be ignored.
@@ -1094,7 +1122,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                             ...body
                                         };
                                     }
-                                } else if (!objEndpoint[path][method].requestBody) {
+                                } else if (objEndpoint[path][method] && !objEndpoint[path][method].requestBody) {
                                     objEndpoint[path][method].parameters.push(objInBody);
                                 }
                             }
