@@ -75,7 +75,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.12.7
+$ npm install --save-dev swagger-autogen@2.13.0
 ```
 
 ## Usage
@@ -1316,7 +1316,8 @@ Some tutorials with examples:
 - Version 2.12.x:
   - Some OpenAPI 3.x features
   - Bug fix
-
+- Version 2.13.x:
+  - Recognizes 'sendStatus' function
 
 **TODO:**
 
