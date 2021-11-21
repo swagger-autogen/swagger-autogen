@@ -525,9 +525,9 @@ function getQueryIndirectly(elem, request, objParameters) {
 function getStatus(elem, response, objResponses) {
     for (let idx = 0; idx < response.length; ++idx) {
         let res = response[idx];
-        if (res && elem && elem.replaceAll(' ', '').includes(res + '.status(')) {
+        if (res && elem && elem.replaceAll(' ', '').split(new RegExp(res + '\\s*\\.\\s*status\\s*\\(|\\s*\\.\\s*sendStatus\\s*\\(')).length > 1) {
             elem.replaceAll(' ', '')
-                .split(res + '.status(')
+                .split(new RegExp(res + '\\s*\\.\\s*status\\s*\\(|\\s*\\.\\s*sendStatus\\s*\\('))
                 .splice(1)
                 .forEach(async s => {
                     let status = await utils.stackSymbolRecognizer(s, '(', ')');
