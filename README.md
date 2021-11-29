@@ -75,7 +75,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.13.0
+$ npm install --save-dev swagger-autogen@2.13.1
 ```
 
 ## Usage
@@ -84,11 +84,11 @@ $ npm install --save-dev swagger-autogen@2.13.0
 
 [Example without Router](https://github.com/davibaltar/example-swagger-autogen)
 
-[See Tutorial in English](https://medium.com/@davibaltarx/automatic-api-documentation-in-node-js-using-swagger-dd1ab3c78284)
+[Tutorial in English](https://medium.com/@davibaltarx/automatic-api-documentation-in-node-js-using-swagger-dd1ab3c78284)
 
-[See Tutorial em Português Brasil](https://medium.com/@davibaltarx/documenta%C3%A7%C3%A3o-autom%C3%A1tica-de-apis-em-node-js-eb03041c643b)
+[Tutorial em Português Brasil](https://medium.com/@davibaltarx/documenta%C3%A7%C3%A3o-autom%C3%A1tica-de-apis-em-node-js-eb03041c643b)
 
-The two sections below will show the most basic and most complete use of this module.
+The two sections below will show the basic usage and the full usage of the module.
 
 Function signature:
 
@@ -1318,9 +1318,11 @@ Some tutorials with examples:
   - Bug fix
 - Version 2.13.x:
   - Recognizes 'sendStatus' function
+  - Bug fix
 
 **TODO:**
 
+- Recognize more OpenAPI v3 features
 - Recognize more TypeScript's features
 - Recognize middlewares of routes (completely)
 - Recognize multiples "express.Router()" in the same file
