@@ -455,6 +455,18 @@ function addReferenceToMethods(data, patterns) {
                 let pattern = patterns[idxPtn];
                 let regexMethods = `${pattern}\\s*\\n*\\t*\\.\\s*\\n*\\t*${method}\\s*\\n*\\t*\\(`;
                 auxData = auxData.split(new RegExp(regexMethods));
+
+                /**
+                 * Chained middlewares. For example: route.use(...).use(...).use(...)
+                 */
+                if (auxData && auxData.length > 1 && method == 'use') {
+                    for (let idxData = 1; idxData < auxData.length; ++idxData) {
+                        let chainedUse = auxData[idxData].split(new RegExp(`\\)\\s*\\n*\\t*\\.\\s*\\n*\\t*use\\s*\\n*\\t*\\(`));
+                        if (chainedUse.length > 1) {
+                            auxData[idxData] = chainedUse.join(`) ${pattern}` + `.use([_[use]_])([_[${pattern}]_])(`);
+                        }
+                    }
+                }
                 auxData = auxData.join((pattern || '_app') + `.${method}([_[${method}]_])([_[${pattern}]_])(`);
             }
 

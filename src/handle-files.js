@@ -196,7 +196,6 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
             } else {
                 /**
                  * Automatic pattern recognition
-                 * NOTE: Deprecated
                  */
 
                 let serverVars = [];
@@ -668,7 +667,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                             found.varName = found.varAlias;
                                         }
                                         if (found) {
-                                            if (!functionName) {
+                                            if (!functionName && !imp.isDirectory) {
                                                 functionName = found.varName;
                                             }
                                             imp.isDirectory ? (exportPath = found.path) : (exportPath = imp.fileName); // TODO: change variable name
@@ -1090,7 +1089,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             objEndpoint[path][method].responses = objResponses;
 
                             /**
-                             * If OpenAPI is enabled, convert body parameters to requestBody 
+                             * If OpenAPI is enabled, convert body parameters to requestBody
                              */
                             if (swaggerTags.getOpenAPI() && objInBody && objInBody.schema && objEndpoint[path][method] && !objEndpoint[path][method].requestBody) {
                                 objEndpoint[path][method].requestBody = {
