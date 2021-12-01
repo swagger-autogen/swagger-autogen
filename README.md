@@ -75,7 +75,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.13.1
+$ npm install --save-dev swagger-autogen@2.13.2
 ```
 
 ## Usage
@@ -254,7 +254,7 @@ swaggerAutogen(options)(outputFile, endpointsFiles, doc).then(async () => {
 });
 ```
 
-**OpenAPI:** To enable OpenAPI v3, assign a version, such as "3.0.0" to the *openapi* parameter. In the future, OpenAPI v3 will be the default.
+**OpenAPI:** _(BETA)_ To enable OpenAPI v3, assign a version, such as "3.0.0" to the *openapi* parameter. In the future, OpenAPI v3 will be the default.
 
 To see the available languages, go to the section [Response Language](#response-language)
 
