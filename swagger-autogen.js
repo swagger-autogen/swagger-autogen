@@ -220,6 +220,9 @@ module.exports = function (args) {
                 if (objDoc.produces) {
                     delete objDoc.produces
                 }
+                if (objDoc.definitions) {
+                    delete objDoc.definitions
+                }
             }
 
             /**

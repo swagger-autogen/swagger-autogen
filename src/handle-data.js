@@ -641,7 +641,11 @@ function getQueryAndBody(elem, request, objParameters) {
                     }
                     if (!objParameters[name].type && !objParameters[name].schema) {
                         // by default: 'type' is 'string' when 'schema' is missing
-                        objParameters[name].type = 'string';
+                        if (swaggerTags.getOpenAPI()) {
+                            objParameters[name].schema = { type: 'string' };
+                        } else {
+                            objParameters[name].type = 'string';
+                        }
                     }
                 });
         }
@@ -693,7 +697,11 @@ function getQueryAndBody(elem, request, objParameters) {
                     }
                     if (!objParameters[name].type && !objParameters[name].schema) {
                         // by default: 'type' is 'string' when 'schema' is missing
-                        objParameters[name].type = 'string';
+                        if (swaggerTags.getOpenAPI()) {
+                            objParameters[name].schema = { type: 'string' };
+                        } else {
+                            objParameters[name].type = 'string';
+                        }
                     }
                 });
             }
@@ -957,26 +965,24 @@ async function getPathParameters(path, objParameters) {
             path = path.join('');
 
             if (!!objParameters[name] === false)
-                // Checks if the parameter name already exists
-                objParameters[name] = {
-                    name,
-                    in: 'path',
-                    required: true,
-                    type: 'string'
-                }; // by deafult 'type' is 'string'
-
-            /**
-             * Forcing convertion to OpenAPI 3.x
-             */
-            if (swaggerTags.getOpenAPI() && objParameters[name] && objParameters[name].schema && !objParameters[name].schema.$ref) {
-                objParameters[name].schema = {
-                    type: objParameters[name].type ? objParameters[name].type : 'string',
-                    ...objParameters[name].schema
-                };
-                if (objParameters[name].type) {
-                    delete objParameters[name].type;
+                if (swaggerTags.getOpenAPI()) {
+                    // Checks if the parameter name already exists
+                    objParameters[name] = {
+                        name,
+                        in: 'path',
+                        required: true,
+                        schema: {
+                            type: 'string'
+                        }
+                    };
+                } else {
+                    objParameters[name] = {
+                        name,
+                        in: 'path',
+                        required: true,
+                        type: 'string'
+                    }; // by deafult 'type' is 'string'
                 }
-            }
 
             cnt += 1;
             if (cnt > 10) {

@@ -820,6 +820,12 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                         callbackParameters: null,
                                         func: refFunction
                                     });
+                                } else if (!refFunction && functionName) {
+                                    endpointFunctions.push({
+                                        metadata: '',
+                                        callbackParameters: null,
+                                        func: ''
+                                    });
                                 }
                             } else {
                                 /**
@@ -1057,6 +1063,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 endpoint = endpoint.replaceAll('__¬¬¬__', '"');
                                 if (req) {
                                     objParameters = handleData.getQueryAndBody(endpoint, req, objParameters); // Search for parameters in the query and body
+                                    if (method === 'get' && objParameters['__obj__in__body__']) {
+                                        delete objParameters['__obj__in__body__'];
+                                    }
                                     objParameters = handleData.getQueryIndirectly(endpoint, req, objParameters); // Search for parameters in the query (indirectly)
                                     if (objParameters['__obj__in__body__']) {
                                         if (!objInBody) {
@@ -1097,7 +1106,10 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                         'application/json': { schema: objInBody.schema }
                                     }
                                 };
-                                if (objEndpoint[path][method].parameters) {
+                                if (objEndpoint[path][method].parameters && objEndpoint[path][method].parameters.length > 0) {
+                                    objEndpoint[path][method].parameters = objEndpoint[path][method].parameters.filter(p => p.in && p.in.toLowerCase() !== 'body');
+                                }
+                                if (objEndpoint[path][method].parameters.length === 0) {
                                     delete objEndpoint[path][method].parameters;
                                 }
                                 if (objEndpoint[path][method].tags && objEndpoint[path][method].tags.length == 0) {

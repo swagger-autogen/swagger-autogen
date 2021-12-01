@@ -295,13 +295,21 @@ async function getParametersTag(data, objParameters) {
             return false;
         }
 
+        if (objParameters[name].in && objParameters[name].in.toLowerCase() === 'path' && !objParameters[name].required) {
+            objParameters[name].required = true;
+        }
+
         if (!objParameters[name].in) {
             // by default: 'in' is 'query'
             objParameters[name].in = 'query';
         }
         if (!objParameters[name].type && !objParameters[name].schema && objParameters[name].in != 'body') {
             // by default: 'type' is 'string' when 'schema' is missing
-            objParameters[name].type = 'string';
+            if (getOpenAPI()) {
+                objParameters[name].schema = { type: 'string' };
+            } else {
+                objParameters[name].type = 'string';
+            }
         }
         if (objParameters[name].schema && objParameters[name] && objParameters[name].schema && !objParameters[name].schema.$ref) {
             objParameters[name].schema = formatDefinitions(objParameters[name].schema);
@@ -309,13 +317,19 @@ async function getParametersTag(data, objParameters) {
         /**
          * Forcing convertion to OpenAPI 3.x
          */
-        if (getOpenAPI() && objParameters[name] && objParameters[name].schema && !objParameters[name].schema.$ref) {
-            objParameters[name].schema = {
-                type: objParameters[name].type ? objParameters[name].type : 'string',
-                ...objParameters[name].schema
-            };
-            if (objParameters[name].type) {
+        if (getOpenAPI()) {
+            if (objParameters[name] && objParameters[name].type && !objParameters[name].schema) {
+                objParameters[name].schema = { type: objParameters[name].type };
                 delete objParameters[name].type;
+            }
+            if (objParameters[name] && objParameters[name].schema && !objParameters[name].schema.$ref) {
+                objParameters[name].schema = {
+                    type: objParameters[name].type ? objParameters[name].type : 'string',
+                    ...objParameters[name].schema
+                };
+                if (objParameters[name].type) {
+                    delete objParameters[name].type;
+                }
             }
         }
     }
