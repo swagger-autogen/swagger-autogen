@@ -21,6 +21,8 @@ module.exports = function (args) {
 
     swaggerTags.setLanguage(recLang || options.language || 'en-US');
     swaggerTags.setOpenAPI(options.openapi);
+    swaggerTags.setDisableLogs(options.disableLogs);
+
     return async (outputFile, endpointsFiles, data) => {
         try {
             if (!outputFile) throw console.error("\nError: 'outputFile' was not specified.");
