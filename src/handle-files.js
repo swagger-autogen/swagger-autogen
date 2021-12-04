@@ -1017,9 +1017,6 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             }
                             if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.parameters') && endpoint.includes('[') && endpoint.includes(']')) {
                                 objParameters = await swaggerTags.getParametersTag(endpoint, objParameters, reference);
-                                if (objParameters === false) {
-                                    console.error("[swagger-autogen]: Error when trying to recognize '#swagger.parameters'");
-                                }
                             }
                             if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.requestBody')) {
                                 objEndpoint[path][method].requestBody = await swaggerTags.getRequestBodyTag(endpoint, reference);

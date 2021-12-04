@@ -49,6 +49,20 @@ function formatDefinitions(def, resp = {}, constainXML) {
             def.$ref = def.$ref.replaceAll('#/definitions/', '#/components/schemas/');
         }
 
+        if (def['@enum']) {
+            /**
+             * Enum (OpenAPI v3)
+             */
+            let enumType = 'string';
+            if (def['@enum'][0]) {
+                enumType = typeof def['@enum'][0];
+            }
+            def.type = enumType;
+            def.enum = def['@enum'];
+            delete def['@enum'];
+            return def;
+        }
+
         if (def && def.$ref) {
             if (def.$ref.split('#/').length === 1) {
                 console.error('[swagger-autogen]: Syntax error: ', def.$ref);
@@ -322,6 +336,8 @@ async function getParametersTag(data, objParameters, reference) {
     const origObjParameters = objParameters;
     try {
         data = data.replaceAll('"', "'").replaceAll('`', "'").replaceAll('`', "'").replaceAll('\n', ' ');
+        data = data.replaceAll("'@enum'", '@enum').replaceAll('"@enum"', '@enum').replaceAll('`@enum`', '@enum').replaceAll('@enum', '"@enum"');
+
         if (getOpenAPI() && data.includes('#/definitions')) {
             data = data.replaceAll('#/definitions', '#/components/schemas');
         }
@@ -338,9 +354,9 @@ async function getParametersTag(data, objParameters, reference) {
                     ...eval(`(${'{' + parameter + '}'})`)
                 };
             } catch (err) {
-                console.error('Syntax error: ' + parameter);
-                console.error(err);
-                return false;
+                console.error('[swagger-autogen]: Syntax error: ' + parameter);
+                console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.parameters' out of structure in '${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
+                return origObjParameters;
             }
 
             if (objParameters[name].in && objParameters[name].in.toLowerCase() === 'path' && !objParameters[name].required) {
@@ -360,7 +376,20 @@ async function getParametersTag(data, objParameters, reference) {
                 }
             }
             if (objParameters[name].schema && objParameters[name] && objParameters[name].schema && !objParameters[name].schema.$ref) {
-                objParameters[name].schema = formatDefinitions(objParameters[name].schema);
+                if (objParameters[name].schema['@enum']) {
+                    /**
+                     * Enum (OpenAPI v3)
+                     */
+                    let enumType = 'string';
+                    if (objParameters[name].schema['@enum'][0]) {
+                        enumType = typeof objParameters[name].schema['@enum'][0];
+                    }
+                    objParameters[name].schema.type = enumType;
+                    objParameters[name].schema.enum = objParameters[name].schema['@enum'];
+                    delete objParameters[name].schema['@enum'];
+                } else {
+                    objParameters[name].schema = formatDefinitions(objParameters[name].schema);
+                }
             }
             /**
              * Forcing convertion to OpenAPI 3.x

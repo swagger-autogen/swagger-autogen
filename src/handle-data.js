@@ -579,7 +579,7 @@ function getStatus(elem, response, objResponses) {
     try {
         for (let idx = 0; idx < response.length; ++idx) {
             let res = response[idx];
-            if (res && elem && elem.replaceAll(' ', '').split(new RegExp(res + '\\s*\\.\\s*status\\s*\\(|\\s*\\.\\s*sendStatus\\s*\\(')).length > 1) {
+            if (res && elem && elem.replaceAll(' ', '').split(new RegExp(res + '\\s*\\.\\s*status\\s*\\(|' + res + '\\s*\\.\\s*sendStatus\\s*\\(')).length > 1) {
                 elem.replaceAll(' ', '')
                     .split(new RegExp(res + '\\s*\\.\\s*status\\s*\\(|\\s*\\.\\s*sendStatus\\s*\\('))
                     .splice(1)
@@ -618,6 +618,23 @@ function getStatus(elem, response, objResponses) {
                             };
                         }
                     });
+            }
+
+            /**
+             * Catching status code 200 when res.send(...) or res.json(...)
+             */
+            if (res && elem && elem.replaceAll(' ', '').split(new RegExp(res + '\\s*\\.\\s*send\\s*\\(|' + res + '\\s*\\.\\s*json\\s*\\(')).length > 1) {
+                if (!!objResponses[200] === false) {
+                    objResponses[200] = {
+                        description: tables.getHttpStatusDescription(200, swaggerTags.getLanguage())
+                    };
+                } else if (!!objResponses[200] === true) {
+                    // concatenated with existing information
+                    objResponses[200] = {
+                        description: tables.getHttpStatusDescription(200, swaggerTags.getLanguage()),
+                        ...objResponses[200]
+                    };
+                }
             }
         }
         return objResponses;
