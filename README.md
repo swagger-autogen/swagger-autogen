@@ -42,6 +42,7 @@ This module performs the automatic construction of the Swagger documentation. Th
       - [Bearer Auth example](#bearer-auth-example)
       - [OAuth2 example](#oauth2-example-1)
     - [oneOf and anyOf](#oneof-and-anyof)
+    - [Enums](#enums)
 - [Response Language](#response-language)
 - [Examples](#examples)
 - [Compatibility](#compatibility)
@@ -75,7 +76,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.13.3
+$ npm install --save-dev swagger-autogen@2.14.0
 ```
 
 ## Usage
@@ -268,7 +269,7 @@ In this case, it is not necessary to do anything. Considering, for example, if t
 
 ```js
     ...
-    app.post('/users', (req, res) => {
+    app.post('/path', (req, res) => {
         ...
         users.addUser(req.query.obj)
         ...
@@ -290,7 +291,7 @@ To inform which tags the endpoints belong to, use the `#swagger.tags` tag, for e
 
 ```js
     ...
-    app.get('/users', (req, res) => {
+    app.get('/path', (req, res) => {
         ...
         // #swagger.tags = ['Users']
         ...
@@ -303,9 +304,9 @@ This is the summary of the Endpoint. To add it, use the `#swagger.summary` tag, 
 
 ```js
     ...
-    app.get('/users/:id', (req, res) => {
+    app.get('/path', (req, res) => {
         ...
-        // #swagger.summary = 'Your summary here'
+        // #swagger.summary = 'Some summary...'
         ...
     })
 ```
@@ -316,9 +317,9 @@ This is the description of the Endpoint. To add it, use the `#swagger.descriptio
 
 ```js
     ...
-    app.get('/users/:id', (req, res) => {
+    app.get('/path', (req, res) => {
         ...
-        // #swagger.description = 'Endpoint used to obtain a user.'
+        // #swagger.description = 'Some description...'
         ...
     })
 ```
@@ -329,7 +330,7 @@ This is the operationId of the Endpoint. To add it, use the `#swagger.operationI
 
 ```js
     ...
-    app.get('/users/:id', (req, res) => {
+    app.get('/path', (req, res) => {
         ...
         // #swagger.operationId = 'Your_operationId_here'
         ...
@@ -360,27 +361,17 @@ All optional parameters:
 **format:** 'int64', etc.  
 **schema:** See section [Schema and Definitions](#schema-and-definitions)
 
-Some examples:
+**Some examples:**  
 
 ```js
-    ...
-    app.get('/users/:id', (req, res) => {
+    app.get('/path/:id', (req, res) => {
         ...
-        //  #swagger.parameters['id'] = { description: 'User ID' }
-        ...
-    })
-
-    app.post('/books', (req, res) => {
-        ...
-        /*  #swagger.parameters['obj'] = {
-                in: 'body',
-                type: 'object',
-                description: 'Book data'
-        } */
-        users.addUser(req.body)
+        //  #swagger.parameters['id'] = { description: 'Some description...' }
         ...
     })
+```
 
+```js
     app.post('/users', (req, res) => {
         ...
         /*  #swagger.parameters['obj'] = {
@@ -390,15 +381,26 @@ Some examples:
         } */
         ...
     })
+```
 
-    app.get('/users', async (req, res) => {
-        /*  #swagger.parameters['item'] = {
-                in: 'query',
-                description: 'Any item...'
+```js
+    app.post('/path', (req, res) => {
+        ...
+        /*  #swagger.parameters['obj'] = {
+                in: 'body',
+                description: 'Some description...',
+                schema: {
+                    $name: 'Jhon Doe',
+                    $age: 29,
+                    about: ''
+                }
         } */
-        let test = req.query.item
-    });
+        ...
+    })
+```
 
+**Examples using upload (Swagger 2.0)**  
+```js
     // (Swagger 2.0) Upload single file using Multer
     app.post("/upload", uploader.single("singleFile"), (req, res) => {
         /*
@@ -451,7 +453,8 @@ The **body** is automatically recognized, for example:
 **NOTE:** But, if there is any `#swagger.parameters[...] = { in: 'body', ... }` with **schema** declared, the recognition of **body** will be ignored, for example:
 
 ```js
-    app.post('/users', (req, res) => {
+    app.post('/path', (req, res) => {
+        ...
         /*  #swagger.parameters['parameter_name'] = {
                 in: 'body',
                 description: 'Some description...',
@@ -462,10 +465,9 @@ The **body** is automatically recognized, for example:
                 }
         } */
 
-        const myItem1 = req.body.item1  // Will be ignored
+        const myItem1 = req.body.item1  // Will be ignored by swagger-autogen
 
-        const { item2, item3 } = req.body  // Will be ignored
-
+        const { item2, item3 } = req.body  // Will be ignored by swagger-autogen
         ...
     })
 ```
@@ -473,7 +475,8 @@ The **body** is automatically recognized, for example:
 However, if you wish to add more information to the automatically recognized **body**, declared the `#swagger.parameters` adding **in: 'body'**, BUT without the **schema**, such as:
 
 ```js
-    app.post('/users', (req, res) => {
+    app.post('/path', (req, res) => {
+        ...
         /*  #swagger.parameters['any_name'] = {
                in: 'body',
                description: 'Some description...'
@@ -491,7 +494,7 @@ Automatically the **body** will be recognized and the parameters 'any_name' and 
 
 ### Responses
 
-It is possible to create or complement automatically detected responses. Use the `#swagger.reponses[statusCode]` tag to create a new answer or to complete an existing answer (automatically detected). If OpenAPI 3.x option is enabled ([see how to enable OpenAPI 3.x option](#???)), the *content* will be "application/json" by default. To see more options about OpenAPI 3.x response, see it here [OpenAPI 3.x response](#???)
+It is possible to create or complement automatically detected responses. Use the `#swagger.reponses[statusCode]` tag to create a new answer or to complete an existing answer (automatically detected). If OpenAPI 3.x option is enabled ([see how to enable OpenAPI 3.x option](#options)), the *content* will be "application/json" by default. To see more options about OpenAPI 3.x response, see it here [OpenAPI 3.x response](#responses-1).
 
 All optional parameters:
 
@@ -505,34 +508,48 @@ All optional parameters:
 **description:** The parameter description.  
 **schema:** See section [Schema and Definitions](#schema-and-definitions)
 
-For example:
 
+**Endpoint example:** 
 ```js
+app.get('/path', (req, res, next) => {
     ...
-    app.get('/users/:id', (req, res) => {
+    /* #swagger.responses[200] = {
+            description: 'User successfully obtained.',
+            schema: { $ref: '#/definitions/User' }
+    } */
+   return res.status(200).send(data)
+   ...
+})
+```
 
-        if(...)
-            return res.status(404)
+**Endpoint example:** 
+```js
+app.get('/path', (req, res, next) => {
+    ...
+    /* #swagger.responses[200] = {
+            description: 'User successfully obtained.',
+            schema: {
+                $name: 'Jhon Doe',
+                $age: 29,
+                about: ''
+            }
+    } */
+   return res.status(200).send(data)
+   ...
+})
+```
 
-        try {
-
-            /* #swagger.responses[200] = {
-                    description: 'User successfully obtained.',
-                    schema: { $ref: '#/definitions/User' }
-            } */
-            return res.status(200).send(data)
-
-        } catch (err) {
-            // #swagger.responses[500] = { description: 'Problem with the server.' }
-            return res.status(500)
-        }
-
-    })
+**Endpoint example:** 
+```js
+app.get('/path', (req, res, next) => {
+    ...
+    // #swagger.responses[500] = { description: 'Some description...' }
+    return res.status(500)
+    ...
+})
 ```
 
 **NOTE:** For more information about **schema** and **definitions**, see the section: [Schema and Definitions](#schema-and-definitions)
-
-**NOTE:** As the 404 status description was not entered, "Not Found" will automatically be added. It is possible to change the language of the automatic response, see the [Response Language](#response-language) section.
 
 ### Schema and Definitions
 
@@ -648,13 +665,7 @@ It doesn't allow insert directly without reference on `openapi 3.x`. To enable O
                   "application/json": {
                       schema: { $ref: "#/definitions/User" },
                       examples: { 
-                          User: { $ref: "#/components/examples/User" },
-                          UserExample2: {
-                              value: {
-                                  name: 'Marie Doe',
-                                  age: 28
-                              }
-                          }
+                          User: { $ref: "#/components/examples/User" }
                       }
                   }
               }
@@ -754,7 +765,7 @@ Use the `#swagger.deprecated = true` tag to inform that a given endpoint is depr
 
 ```js
     ...
-    app.get('/users/:id', (req, res) => {
+    app.get('/path', (req, res) => {
         ...
         // #swagger.deprecated = true
         ...
@@ -767,7 +778,7 @@ Use the `#swagger.ignore = true` tag to ignore a given endpoint. Thus, it will n
 
 ```js
     ...
-    app.get('/users/:id', (req, res) => {
+    app.get('/path', (req, res) => {
         ...
         // #swagger.ignore = true
         ...
@@ -861,8 +872,7 @@ Use the `#swagger.produces = ['contentType']` or `#swagger.consumes = ['contentT
 **Example (Consumes):**
 
 ```js
-    ...
-    app.get('/users/:id', (req, res) => {
+    app.get('/path', (req, res) => {
         ...
         // Recognizes the 'consumes' automatically
         res.setHeader('Content-Type', 'application/xml')
@@ -873,9 +883,9 @@ Use the `#swagger.produces = ['contentType']` or `#swagger.consumes = ['contentT
 OR
 
 ```js
-    app.get('/users/:id', (req, res) => {
+    app.get('/path', (req, res) => {
         ...
-        // #swagger.consumes = ['application/xml']
+        // #swagger.consumes = ['application/json']
         ...
     })
 ```
@@ -883,8 +893,7 @@ OR
 **Example (Produces):**
 
 ```js
-    ...
-    app.get('/v2/users/:id', (req, res) => {
+    app.get('/path', (req, res) => {
         ...
         // #swagger.produces = ['application/json']
         ...
@@ -917,9 +926,9 @@ To see more about the properties of the **doc**, see the [Usage (With Optionals)
 
 At the endpoint, add the `#swagger.security` tag, for example:
 
+**Example endpoint:**  
 ```js
-    ...
-    app.get('/users/:id', (req, res) => {
+    app.get('/path', (req, res) => {
         ...
         /* #swagger.security = [{
                "apiKeyAuth": []
@@ -953,9 +962,9 @@ To see more about the properties of the **doc**, see the [Usage (With Optionals)
 
 At the endpoint, add the `#swagger.security` tag, for example:
 
+**Example endpoint:**  
 ```js
-    ...
-    app.get('/users/:id', (req, res) => {
+    app.get('/path', (req, res) => {
         ...
         /* #swagger.security = [{
             "oAuthSample": [
@@ -996,6 +1005,7 @@ Use the `#swagger.requestBody` tag to impletent [Request Body](https://swagger.i
 **Endpoint example:** 
 ```js
 app.post('/path', (req, res, next) => {
+    ...
     /*	#swagger.requestBody = {
             required: true,
             content: {
@@ -1011,6 +1021,7 @@ app.post('/path', (req, res, next) => {
                 }
             }
     } */
+    ...
 })
 ```
 
@@ -1035,6 +1046,7 @@ All optional parameters:
 **Endpoint example:** 
 ```js
 app.get('/path', (req, res, next) => {
+    ...
     /* #swagger.responses[200] = {
             description: "Any description... OpenAPI 3.x",
             content: {
@@ -1046,6 +1058,28 @@ app.get('/path', (req, res, next) => {
             }
         }   
     */
+   ...
+})
+```
+
+**Endpoint example:** 
+```js
+app.get('/path', (req, res, next) => {
+    ...
+    /* #swagger.responses[200] = {
+            description: "Any description... OpenAPI 3.x",
+            content: {
+                "application/json": {
+                    schema: {
+                        $name: 'Jhon Doe',
+                        $age: 29,
+                        about: ''
+                    }
+                }           
+            }
+        }   
+    */
+   ...
 })
 ```
 
@@ -1075,8 +1109,7 @@ To see more about the properties of the **doc**, see the [Usage (With Optionals)
 At the endpoint, add the `#swagger.security` tag, for example:
 
 ```js
-    ...
-    app.get('/users/:id', (req, res) => {
+    app.get('/path', (req, res) => {
         ...
         /* #swagger.security = [{
                "bearerAuth": []
@@ -1115,9 +1148,9 @@ To see more about the properties of the **doc**, see the [Usage (With Optionals)
 
 At the endpoint, add the `#swagger.security` tag, for example:
 
+**Example endpoint:**  
 ```js
-    ...
-    app.get('/users/:id', (req, res) => {
+    app.get('/path', (req, res) => {
         ...
         /* #swagger.security = [{
                "OAuth2": [
@@ -1186,6 +1219,58 @@ app.get('/path', (req, res) => {
 })
 ```
 
+
+### Enums
+
+You can use the `'@enum'` reserved keyword to specify possible values of a request parameter or a model property.  [See more about it here](https://swagger.io/docs/specification/data-models/enums).
+
+
+**Enums example:** 
+```js
+app.get('/path', (req, res) => {
+    ...
+    /*  #swagger.parameters['some_param'] = {
+            in: 'query',
+            description: 'Some description...',
+            schema: {
+                '@enum': ['arc', 'desc']
+            }
+    } */
+   ...
+})
+```
+
+**Enums example (reusable):** 
+
+```js
+const doc = {
+  // { ... },
+  definitions: {
+    Color: {
+        '@enum': [
+            "black",
+            "white",
+            "red",
+            "green"
+        ]
+    }
+  }
+};
+```
+
+```js
+app.get('/path', (req, res) => {
+    ...
+    /*  #swagger.parameters['some_param'] = {
+            in: 'query',
+            description: 'Some description...',
+            schema: {
+                '$ref': '#/components/schemas/Color'
+            }
+    } */
+   ...
+})
+```
 
 ## Response Language
 
@@ -1319,6 +1404,11 @@ Some tutorials with examples:
 - Version 2.13.x:
   - Recognizes 'sendStatus' function
   - Bug fix
+- Version 2.14.x:
+  - Enums OpenAPI 3.x feature
+  - Improvements
+  - Bug fix
+
 
 **TODO:**
 
