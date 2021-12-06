@@ -76,7 +76,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.14.0
+$ npm install --save-dev swagger-autogen@2.14.1
 ```
 
 ## Usage
@@ -1265,7 +1265,7 @@ app.get('/path', (req, res) => {
             in: 'query',
             description: 'Some description...',
             schema: {
-                '$ref': '#/components/schemas/Color'
+                '$ref': '#/definitions/Color'
             }
     } */
    ...
