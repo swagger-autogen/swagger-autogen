@@ -1125,8 +1125,10 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 objInBody.name = 'obj'; // By default, the name of object recognized automatically in the body will be 'obj' if no parameter are found to be concatenate with it.
                                 if (objEndpoint[path][method].parameters && objEndpoint[path][method].parameters.length > 0 && objEndpoint[path][method].parameters.find(e => e.in === 'body')) {
                                     let body = objEndpoint[path][method].parameters.find(e => e.in === 'body');
+                                    if (objInBody && objInBody.schema && body && body.schema && body.schema.properties && Object.keys(body.schema.properties).length == 0) {
+                                        delete body.schema;
+                                    }
                                     if (body && !body.schema && (!body.type || (body.type && body.type.toLowerCase() == 'object'))) {
-                                        body.type = 'object';
                                         objEndpoint[path][method].parameters[0] = {
                                             ...objInBody,
                                             ...body

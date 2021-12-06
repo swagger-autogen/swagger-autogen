@@ -335,7 +335,7 @@ function getDeprecatedTag(data, reference) {
 async function getParametersTag(data, objParameters, reference) {
     const origObjParameters = objParameters;
     try {
-        data = data.replaceAll('"', "'").replaceAll('`', "'").replaceAll('`', "'").replaceAll('\n', ' ');
+        data = data.replaceAll('"', "'").replaceAll('`', "'").replaceAll('`', "'").replaceAll('\n', ' ').replaceAll('#definitions', '#/definitions');
         data = data.replaceAll("'@enum'", '@enum').replaceAll('"@enum"', '@enum').replaceAll('`@enum`', '@enum').replaceAll('@enum', '"@enum"');
 
         if (getOpenAPI() && data.includes('#/definitions')) {
@@ -359,6 +359,9 @@ async function getParametersTag(data, objParameters, reference) {
                 return origObjParameters;
             }
 
+            /**
+             * Specification rules
+             */
             if (objParameters[name].in && objParameters[name].in.toLowerCase() === 'path' && !objParameters[name].required) {
                 objParameters[name].required = true;
             }
@@ -367,6 +370,11 @@ async function getParametersTag(data, objParameters, reference) {
                 // by default: 'in' is 'query'
                 objParameters[name].in = 'query';
             }
+
+            if (objParameters[name].in.toLowerCase() === 'query' && objParameters[name].schema) {
+                delete objParameters[name].schema;
+            }
+
             if (!objParameters[name].type && !objParameters[name].schema && objParameters[name].in != 'body') {
                 // by default: 'type' is 'string' when 'schema' is missing
                 if (getOpenAPI()) {
@@ -375,6 +383,23 @@ async function getParametersTag(data, objParameters, reference) {
                     objParameters[name].type = 'string';
                 }
             }
+
+            if (objParameters[name].type && objParameters[name].in && objParameters[name].in.toLowerCase() === 'body') {
+                delete objParameters[name].type;
+            }
+
+            if (objParameters[name].required && typeof objParameters[name].required === 'string') {
+                if (objParameters[name].required.toLowerCase() === 'true') {
+                    objParameters[name].required = true;
+                } else {
+                    objParameters[name].required = false;
+                }
+            }
+
+            if (objParameters[name].in && objParameters[name].in.toLowerCase() === 'body' && !objParameters[name].schema) {
+                objParameters[name].schema = {};
+            }
+
             if (objParameters[name].schema && objParameters[name] && objParameters[name].schema && !objParameters[name].schema.$ref) {
                 if (objParameters[name].schema['@enum']) {
                     /**
@@ -391,6 +416,7 @@ async function getParametersTag(data, objParameters, reference) {
                     objParameters[name].schema = formatDefinitions(objParameters[name].schema);
                 }
             }
+            
             /**
              * Forcing convertion to OpenAPI 3.x
              */

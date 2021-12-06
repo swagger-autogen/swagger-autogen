@@ -596,24 +596,24 @@ function getStatus(elem, response, objResponses) {
                             auxStatus.forEach(sts => {
                                 if (utils.isNumeric(sts) && !!objResponses[sts] === false) {
                                     objResponses[sts] = {
-                                        description: tables.getHttpStatusDescription(sts, swaggerTags.getLanguage())
+                                        description: tables.getHttpStatusDescription(sts, swaggerTags.getLanguage()) || ''
                                     };
                                 } else if (utils.isNumeric(sts) && !!objResponses[sts] === true) {
                                     // concatenated with existing information
                                     objResponses[sts] = {
-                                        description: tables.getHttpStatusDescription(sts, swaggerTags.getLanguage()),
+                                        description: tables.getHttpStatusDescription(sts, swaggerTags.getLanguage()) || '',
                                         ...objResponses[sts]
                                     };
                                 }
                             });
                         } else if (utils.isNumeric(status) && !!objResponses[status] === false) {
                             objResponses[status] = {
-                                description: tables.getHttpStatusDescription(status, swaggerTags.getLanguage())
+                                description: tables.getHttpStatusDescription(status, swaggerTags.getLanguage()) || ''
                             };
                         } else if (utils.isNumeric(status) && !!objResponses[status] === true) {
                             // concatenated with existing information
                             objResponses[status] = {
-                                description: tables.getHttpStatusDescription(status, swaggerTags.getLanguage()),
+                                description: tables.getHttpStatusDescription(status, swaggerTags.getLanguage()) || '',
                                 ...objResponses[status]
                             };
                         }
