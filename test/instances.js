@@ -299,7 +299,6 @@ const expectedPaths = {
                     "in": "body",
                     "description": "User information.",
                     "required": true,
-                    "type": "object",
                     "schema": {
                         "$ref": "#/definitions/AddUser"
                     }
@@ -393,6 +392,9 @@ const expectedPaths = {
         "put": {
             "tags": [],
             "description": "Forced endpoint.",
+            "produces": [
+                "application/json"
+            ],
             "parameters": [
                 {
                     "name": "id",
@@ -405,7 +407,6 @@ const expectedPaths = {
                     "name": "obj",
                     "in": "body",
                     "description": "User information.",
-                    "type": "object",
                     "schema": {
                         "type": "object",
                         "properties": {
@@ -436,10 +437,7 @@ const expectedPaths = {
                 "404": {
                     "description": "Not Found"
                 }
-            },
-            "produces": [
-                "application/json"
-            ]
+            }
         }
     }
 }

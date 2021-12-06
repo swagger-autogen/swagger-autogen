@@ -14,8 +14,6 @@ test('endpoints/easy.js:', async (t) => {
   await swaggerAutogen('./swagger_output.json', ['./test/endpoints/easy.js'], inst.cloneObj(inst.doc)).then(() => {
     fs.readFile('./swagger_output.json', 'utf8', function (err, data) {
       let output = JSON.parse(data)
-      // console.log('output.definitions:\n\n', output.definitions.User)
-      // console.log('expectedDoc.definitions:\n\n',expectedDoc.definitions.User)
 
       t.deepEqual(output.info, expectedDoc.info, "doc.info: OK")
       t.assert(output.host === expectedDoc.host, "doc.host: OK")
