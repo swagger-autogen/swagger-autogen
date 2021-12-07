@@ -219,6 +219,75 @@ const tableStatusCodes_ko = {
     599: '네트워크 연결 시간초과 오류'
 };
 
+const tableStatusCodes_frFR = {
+    100: 'Continuer',
+    101: 'Changement de Protocole',
+    102: 'Traitement en Cours',
+    103: 'Early Hints', //todo
+    200: 'OK',
+    201: 'Créé',
+    202: 'Accepté',
+    203: 'Non-Authoritative Information',
+    204: 'Aucun Contenu',
+    205: 'Réinitialiser le Contenu',
+    206: 'Contenu Partiel',
+    207: 'Multi-statuts',
+    208: 'Déjà Signalé',
+    226: 'IM Used', //todo
+    300: 'Choix Multiples',
+    301: 'Déplacé Définitivement',
+    302: 'Trouvé',
+    303: 'Voir Autre',
+    304: 'Non Modifié',
+    305: 'Utiliser Proxy',
+    306: 'Changer Proxy',
+    307: 'Redirection Temporaire',
+    308: 'Redirection Permanente',
+    400: 'Mauvaise Requête',
+    401: 'Non Autorisé',
+    402: 'Paiement Requis',
+    403: 'Interdit',
+    404: 'Non Trouvé',
+    405: 'Méthode Non Autorisée',
+    406: 'Non Acceptable',
+    407: 'Authentification Proxy Requise',
+    408: 'Requête Expiré',
+    409: 'Conflit',
+    410: 'Parti',
+    411: 'Longueur Exigée',
+    412: 'Précondition Échouée',
+    413: 'Entité de la Requête Trop Grande',
+    414: 'URI Trop Long',
+    415: 'Type de Média Non Supporté',
+    416: 'Plage Demandée Invalide',
+    417: 'Comportement Erroné',
+    418: 'Je Suis Une Théière',
+    421: 'Requête Mal Dirigé',
+    422: 'Entité Non Traitable',
+    423: 'Verrouillé',
+    424: 'Dépendance échouée',
+    425: 'Trop Tôt',
+    426: 'Mise à Niveau Requise',
+    428: 'Condition Préalable Requise',
+    429: 'Trop de Requêtes',
+    431: 'Entêtes requête HTTP émises Trop Grande',
+    444: 'Connexion fermée Sans réponse',
+    451: 'Indisponible pour des Raisons Légales',
+    499: 'Le Client a Fermé la Connexion',
+    500: 'Erreur Interne du Serveur',
+    501: 'Non Implémenté',
+    502: 'Passerelle Invalide',
+    503: 'Service Non Disponible',
+    504: 'Délai Passerelle Expirée',
+    505: 'Version HTTP Non Prise en Charge',
+    506: 'Variant Also Negotiates',
+    507: 'Espace Insuffisant',
+    508: 'Boucle Détectée',
+    510: 'Non Étendu',
+    511: 'Authentification Réseau Requise',
+    599: 'Erreur Délai de Connexion au Réseau'
+};
+
 // TODO: add other languages
 function getHttpStatusDescription(statusCode, lang) {
     lang = lang.toLowerCase();
@@ -231,6 +300,9 @@ function getHttpStatusDescription(statusCode, lang) {
     } else if (lang == 'ko') {
         // Korean
         return tableStatusCodes_ko[statusCode];
+    } else if (lang == 'fr') {
+        // French
+        return tableStatusCodes_frFR[statusCode];
     } else {
         return tableStatusCodes_enUS[statusCode]; // English by default
     }
