@@ -916,7 +916,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 return p;
                             });
                             path = path.join('/');
-                            path = path.replaceAll('\n', '').replaceAll('\\n', '');
+                            path = path.replaceAll('\n', '').replaceAll('\\n', '').replaceAll('\r', '').replaceAll('\\r', '');
                         }
 
                         while (path.includes('//')) {
@@ -1125,9 +1125,14 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 objInBody.name = 'obj'; // By default, the name of object recognized automatically in the body will be 'obj' if no parameter are found to be concatenate with it.
                                 if (objEndpoint[path][method].parameters && objEndpoint[path][method].parameters.length > 0 && objEndpoint[path][method].parameters.find(e => e.in === 'body')) {
                                     let body = objEndpoint[path][method].parameters.find(e => e.in === 'body');
-                                    if (objInBody && objInBody.schema && body && body.schema && body.schema.properties && Object.keys(body.schema.properties).length == 0) {
+                                    if (objInBody && objInBody.schema && body && body.schema && body.schema.properties && body.schema.properties['__AUTO_GENERATE__'] && Object.keys(body.schema.properties).length == 0) {
                                         delete body.schema;
                                     }
+
+                                    if (body && body.schema && body.schema.properties && body.schema.properties['__AUTO_GENERATE__']) {
+                                        delete body.schema;
+                                    }
+
                                     if (body && !body.schema && (!body.type || (body.type && body.type.toLowerCase() == 'object'))) {
                                         objEndpoint[path][method].parameters[0] = {
                                             ...objInBody,
@@ -1137,6 +1142,16 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 } else if (objEndpoint[path][method] && !objEndpoint[path][method].requestBody) {
                                     objEndpoint[path][method].parameters.push(objInBody);
                                 }
+                            }
+
+                            let parameters = objEndpoint[path][method].parameters;
+                            if (parameters && parameters.length > 0) {
+                                objEndpoint[path][method].parameters = parameters.map(p => {
+                                    if (p.schema && p.schema.properties && p.schema.properties['__AUTO_GENERATE__']) {
+                                        p.schema.properties = {};
+                                    }
+                                    return p;
+                                });
                             }
 
                             delete objEndpoint[path][method].path;
@@ -1554,6 +1569,27 @@ async function getImportedFiles(data, relativePath) {
                     exports: []
                 };
                 let varFileName = imp.split(new RegExp(`from`, 'i'))[0].trim();
+
+                if (tsconfig && varFileName) {
+                    const origVarFileName = varFileName;
+                    try {
+                        let instancesRegex = `\\s*\\n*\\t*\\=\\s*\\n*\\t*new\\s+${varFileName}\\s*\\n*\\t*\\(`;
+                        let instances = data.split(new RegExp(instancesRegex));
+                        if (instances.length > 1) {
+                            instances.pop();
+                            let newVarFileName = '{ ';
+                            instances.forEach(inst => {
+                                let instance = inst.split(' ').slice(-1)[0];
+                                newVarFileName += instance + ', ';
+                            });
+                            newVarFileName += varFileName + ' }';
+                            varFileName = newVarFileName;
+                        }
+                    } catch (err) {
+                        varFileName = origVarFileName;
+                    }
+                }
+
                 if (varFileName.includes('{')) {
                     if (varFileName.split(new RegExp(',\\s*\\n*\\t*{')).length > 1) {
                         // such as: import foo, { Foo } from './foo'

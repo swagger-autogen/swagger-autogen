@@ -371,10 +371,6 @@ async function getParametersTag(data, objParameters, reference) {
                 objParameters[name].in = 'query';
             }
 
-            if (objParameters[name].in.toLowerCase() === 'query' && objParameters[name].schema) {
-                delete objParameters[name].schema;
-            }
-
             if (!objParameters[name].type && !objParameters[name].schema && objParameters[name].in != 'body') {
                 // by default: 'type' is 'string' when 'schema' is missing
                 if (getOpenAPI()) {
@@ -397,7 +393,7 @@ async function getParametersTag(data, objParameters, reference) {
             }
 
             if (objParameters[name].in && objParameters[name].in.toLowerCase() === 'body' && !objParameters[name].schema) {
-                objParameters[name].schema = {};
+                objParameters[name].schema = { __AUTO_GENERATE__: true };
             }
 
             if (objParameters[name].schema && objParameters[name] && objParameters[name].schema && !objParameters[name].schema.$ref) {
@@ -416,7 +412,7 @@ async function getParametersTag(data, objParameters, reference) {
                     objParameters[name].schema = formatDefinitions(objParameters[name].schema);
                 }
             }
-            
+
             /**
              * Forcing convertion to OpenAPI 3.x
              */
