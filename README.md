@@ -76,7 +76,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.14.1
+$ npm install --save-dev swagger-autogen@2.15.0
 ```
 
 ## Usage
@@ -1314,6 +1314,16 @@ const swaggerAutogen = require('swagger-autogen')({ language: 'ko' });
 // '찾을 수 없음'
 ```
 
+OR
+
+**French**
+
+```js
+const swaggerAutogen = require('swagger-autogen')({ language: 'fr' });
+// In this case, for example, the description of status code 404 will be:
+// 'Non Trouvé'
+```
+
 For now, the module only has the above languages.
 
 ### Examples
@@ -1408,6 +1418,10 @@ Some tutorials with examples:
   - Enums OpenAPI 3.x feature
   - Improvements
   - Bug fix
+- Version 2.15.x:
+  - New language
+  - TypeScript bug fix
+  - Enums bug fix
 
 
 **TODO:**
