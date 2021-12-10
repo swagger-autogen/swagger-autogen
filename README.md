@@ -76,7 +76,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.15.0
+$ npm install --save-dev swagger-autogen@2.16.0
 ```
 
 ## Usage
@@ -559,7 +559,7 @@ Unlike how Swagger writes, the answers in this module are added more simply, tha
 
 **NOTE:** To configure a parameter as **required**, just add the symbol **$** before the parameter, for example: `$name = "Jhon Doe"`.
 
-For example:
+**For example:**  
 
 ```js
 const doc = {
@@ -597,8 +597,8 @@ const doc = {
 };
 ```
 
-`Endpoint file:`
 
+In the parameters using definition:
 ```js
     app.post('/users', (req, res) => {
         ...
@@ -628,6 +628,35 @@ or inserting directly, without using definitions:
         ...
     })
 ```
+
+In the responses using definition:
+```js
+    app.get('/path', (req, res) => {
+        ...
+         /* #swagger.responses[200] = {
+                description: 'Some description...',
+                schema: { $ref: '#/definitions/someDefinition' }
+        } */
+        ...
+    })
+```
+
+In the responses inserting directly:
+```js
+    app.get('/path', (req, res) => {
+        ...
+         /* #swagger.responses[200] = {
+                description: 'Some description...',
+                schema: {
+                    $name: 'Jhon Doe',
+                    $age: 29,
+                    about: ''
+                }
+        } */
+        ...
+    })
+```
+
 
 #### Adding examples (only OpenAPI 3.x)
 
@@ -671,6 +700,32 @@ It doesn't allow insert directly without reference on `openapi 3.x`. To enable O
               }
           }
         */
+        ...
+    })
+```
+
+#### @schema
+
+Use the `@schema` instead of `schema` if you don't want swagger-autogen to do schema processing. In this case you must build the schema according to Swagger's specs. The result in the _.json_ will be the same in `@schema`.
+
+**For example:** 
+```js
+    app.get('/path', (req, res) => {
+        ...
+         /* #swagger.parameters['obj'] = { 
+            in: 'body', 
+            '@schema': { 
+                "required": ["name"], 
+                "properties": { 
+                    "name": { 
+                        "type": "string", 
+                        "minLength": 2, 
+                        "maxLength": 250, 
+                        "example": "Blah Blah" 
+                    } 
+                } 
+            } 
+        } */
         ...
     })
 ```
@@ -999,6 +1054,7 @@ swaggerAutogen({openapi: '3.0.0'})(outputFile, endpointsFiles, doc).then(async (
 ```
 
 ### Request Body
+_To use this feature, enable OpenAPI [[see here](#options)]._
 
 Use the `#swagger.requestBody` tag to impletent [Request Body](https://swagger.io/docs/specification/describing-request-body/).
 
@@ -1163,6 +1219,7 @@ At the endpoint, add the `#swagger.security` tag, for example:
 ```
 
 ### oneOf and anyOf
+_To use this feature, enable OpenAPI [[see here](#options)]._
 
 This section show how to use oneOf and anyOf features of OpenAPI 3. [See more about it here](https://swagger.io/docs/specification/data-models/oneof-anyof-allof-not)
 
@@ -1221,6 +1278,7 @@ app.get('/path', (req, res) => {
 
 
 ### Enums
+_To use this feature, enable OpenAPI [[see here](#options)]._
 
 You can use the `'@enum'` reserved keyword to specify possible values of a request parameter or a model property.  [See more about it here](https://swagger.io/docs/specification/data-models/enums).
 
@@ -1422,6 +1480,10 @@ Some tutorials with examples:
   - New language
   - TypeScript bug fix
   - Enums bug fix
+- Version 2.16.x:
+  - New property: @schema
+  - Identification of referenced variables (partially)
+  - Bug fix
 
 
 **TODO:**
