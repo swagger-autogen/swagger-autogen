@@ -49,10 +49,10 @@ function formatDefinitions(def, resp = {}, constainXML) {
             def.$ref = def.$ref.replaceAll('#/definitions/', '#/components/schemas/');
         }
 
+        /**
+         * Enum (OpenAPI v3)
+         */
         if (def['@enum']) {
-            /**
-             * Enum (OpenAPI v3)
-             */
             let enumType = 'string';
             if (def['@enum'][0]) {
                 enumType = typeof def['@enum'][0];
@@ -396,7 +396,10 @@ async function getParametersTag(data, objParameters, reference) {
                 objParameters[name].schema = { __AUTO_GENERATE__: true };
             }
 
-            if (objParameters[name].schema && objParameters[name] && objParameters[name].schema && !objParameters[name].schema.$ref) {
+            if (objParameters[name] && objParameters[name]['@schema']) {
+                objParameters[name].schema = objParameters[name]['@schema'];
+                delete objParameters[name]['@schema'];
+            } else if (objParameters[name].schema && objParameters[name] && objParameters[name].schema && !objParameters[name].schema.$ref) {
                 if (objParameters[name].schema['@enum']) {
                     /**
                      * Enum (OpenAPI v3)
@@ -545,7 +548,7 @@ async function getConsumesTag(data, reference) {
 async function getResponsesTag(data, objResponses, reference) {
     const origObjResponses = objResponses;
     try {
-        data = data.replaceAll('\n', ' ');
+        data = data.replaceAll('\n', ' ').replaceAll('#definitions', '#/definitions');
         let swaggerResponses = data.split(new RegExp(`${statics.SWAGGER_TAG}.responses`));
         swaggerResponses.shift();
         for (let idx = 0; idx < swaggerResponses.length; ++idx) {

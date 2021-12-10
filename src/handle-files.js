@@ -835,6 +835,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                  * Referenced in the same file
                                  */
                                 let refFunction = await handleData.functionRecognizerInData(aDataRaw, varFileName);
+                                if (refFunction && refFunction.slice(0, 4) == '([_[') {
+                                    refFunction = null;
+                                }
                                 if (predefMethod == 'use' && refFunction) {
                                     if (refFunction.split(')')[0].split(',').length > 2) {
                                         let isLocalRouteMiddleware = false;
@@ -1570,7 +1573,7 @@ async function getImportedFiles(data, relativePath) {
                 };
                 let varFileName = imp.split(new RegExp(`from`, 'i'))[0].trim();
 
-                if (tsconfig && varFileName) {
+                if (varFileName) {
                     const origVarFileName = varFileName;
                     try {
                         let instancesRegex = `\\s*\\n*\\t*\\=\\s*\\n*\\t*new\\s+${varFileName}\\s*\\n*\\t*\\(`;
@@ -1584,6 +1587,40 @@ async function getImportedFiles(data, relativePath) {
                             });
                             newVarFileName += varFileName + ' }';
                             varFileName = newVarFileName;
+                        }
+                    } catch (err) {
+                        varFileName = origVarFileName;
+                    }
+
+                    try {
+                        let instancesRegex = `\\s*\\n*\\t*\\}\\s*\\n*\\t*\\=\\s*${origVarFileName}\\;?\\s+`;
+                        let instances = data.replaceAll('\n', ' ').split(new RegExp(instancesRegex));
+                        if (instances.length > 1) {
+                            instances.pop();
+                            let newVarFileName = '{ ';
+                            instances.forEach(inst => {
+                                let vars = inst.split('{').slice(-1)[0];
+                                newVarFileName += vars + ', ';
+                            });
+                            newVarFileName += varFileName + ' }';
+                            varFileName = newVarFileName;
+                        }
+
+                        instancesRegex = `\\s*\\n*\\t*\\s*\\n*\\t*\\=\\s*${origVarFileName}\\;?\\s+`;
+                        instances = data.replaceAll('\n', ' ').split(new RegExp(instancesRegex));
+                        if (instances.length > 1) {
+                            instances.pop();
+                            let newVarFileName = '{ ';
+                            instances.forEach(inst => {
+                                if (inst.trim().slice(-1)[0] == '}') {
+                                    return;
+                                }
+                                let varsName = inst.split(' ').slice(-1)[0];
+                                newVarFileName += varsName + ', ';
+                            });
+                            newVarFileName += varFileName + ' }';
+                            varFileName = newVarFileName;
+                            varFileName = varFileName.replaceAll(' ', '').replaceAll(',{', ',').replaceAll('{{', '{').replaceAll('}}', '}');
                         }
                     } catch (err) {
                         varFileName = origVarFileName;
@@ -1637,12 +1674,6 @@ async function getImportedFiles(data, relativePath) {
 
                 let pathPattern = fileName.split('/').slice(0, -1).join('/');
                 let found = tsPaths.find(p => p[0] && p[0].split('/*')[0] == pathPattern);
-
-                // TO TEST
-                // if (!found) {
-                //     pathPattern = fileName.split('/')[0]
-                //     found = tsPaths.find(p => p[0] && p[0].split('/*')[0] == pathPattern);
-                // }
 
                 if (found) {
                     let refFileName = found[0].split('/*')[0];
@@ -1769,6 +1800,43 @@ async function getImportedFiles(data, relativePath) {
                 };
                 let varFileName = req.split(new RegExp(`=\\s*\\t*require\\s*\\t*\\(`, 'i'))[0].trim();
 
+                if (varFileName) {
+                    // Issue: #18
+                    const origVarFileName = varFileName;
+                    try {
+                        let instancesRegex = `\\s*\\n*\\t*\\}\\s*\\n*\\t*\\=\\s*${origVarFileName}\\;?\\s+`;
+                        let instances = data.replaceAll('\n', ' ').split(new RegExp(instancesRegex));
+                        if (instances.length > 1) {
+                            instances.pop();
+                            let newVarFileName = '{ ';
+                            instances.forEach(inst => {
+                                let vars = inst.split('{').slice(-1)[0];
+                                newVarFileName += vars + ', ';
+                            });
+                            newVarFileName += varFileName + ' }';
+                            varFileName = newVarFileName;
+                        }
+
+                        instancesRegex = `\\s*\\n*\\t*\\s*\\n*\\t*\\=\\s*${origVarFileName}\\;?\\s+`;
+                        instances = data.replaceAll('\n', ' ').split(new RegExp(instancesRegex));
+                        if (instances.length > 1) {
+                            instances.pop();
+                            let newVarFileName = '{ ';
+                            instances.forEach(inst => {
+                                if (inst.trim().slice(-1)[0] == '}') {
+                                    return;
+                                }
+                                let varsName = inst.split(' ').slice(-1)[0];
+                                newVarFileName += varsName + ', ';
+                            });
+                            newVarFileName += varFileName + ' }';
+                            varFileName = newVarFileName;
+                            varFileName = varFileName.replaceAll(' ', '').replaceAll(',{', ',').replaceAll('{{', '{').replaceAll('}}', '}');
+                        }
+                    } catch (err) {
+                        varFileName = origVarFileName;
+                    }
+                }
                 if (varFileName.includes('{')) {
                     if (varFileName.split(new RegExp(',\\s*\\t*{')).length > 1) {
                         // such as: import foo, { Foo } from './foo'
