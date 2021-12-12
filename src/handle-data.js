@@ -69,6 +69,28 @@ function clearData(data) {
         const origData = data;
         try {
             // Change "// ..." comment to "/* ... */"
+            const origData = data;
+            try {
+                data = data.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*headers\\s*\\n*\\t*\\[\\s*\\n*\\t*')).join('.headers[');
+                if (data.split('.headers[').length > 1) {
+                    data = data.split('.headers[');
+                    for (let idxHeaders = 1; idxHeaders < data.length; ++idxHeaders) {
+                        let d = data[idxHeaders];
+                        if (d[0] === "'" || d[0] === '"' || d[0] === '`') {
+                            let str = popString(d);
+                            d = d.replace(new RegExp(`.${str}.`), `${statics.STRING_QUOTE}${str}${statics.STRING_QUOTE}`);
+                            data[idxHeaders] = d;
+                        }
+                    }
+                    data = data.join('.headers[');
+                }
+            } catch (err) {
+                data = origData;
+            }
+
+            data = data.replaceAll('\r', '\n');
+            data = data.replaceAll('\\r', '\n');
+            data = data.replaceAll('*//*', '*/\n/*');
             data = data.replaceAll('*//*', '*/\n/*');
             data = data.replaceAll('*///', '*/\n//');
             data = data.replaceAll('///', '//');
@@ -579,9 +601,9 @@ function getStatus(elem, response, objResponses) {
     try {
         for (let idx = 0; idx < response.length; ++idx) {
             let res = response[idx];
-            if (res && elem && elem.replaceAll(' ', '').split(new RegExp(res + '\\s*\\.\\s*status\\s*\\(|' + res + '\\s*\\.\\s*sendStatus\\s*\\(')).length > 1) {
+            if (res && elem && elem.replaceAll(' ', '').split(new RegExp(res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*status\\s*\\(|' + res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*sendStatus\\s*\\(')).length > 1) {
                 elem.replaceAll(' ', '')
-                    .split(new RegExp(res + '\\s*\\.\\s*status\\s*\\(|\\s*\\.\\s*sendStatus\\s*\\('))
+                    .split(new RegExp(res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*status\\s*\\(|' + res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*sendStatus\\s*\\('))
                     .splice(1)
                     .forEach(async s => {
                         let status = await utils.stackSymbolRecognizer(s, '(', ')');
@@ -623,7 +645,7 @@ function getStatus(elem, response, objResponses) {
             /**
              * Catching status code 200 when res.send(...) or res.json(...)
              */
-            if (res && elem && elem.replaceAll(' ', '').split(new RegExp(res + '\\s*\\.\\s*send\\s*\\(|' + res + '\\s*\\.\\s*json\\s*\\(')).length > 1) {
+            if (res && elem && elem.replaceAll(' ', '').split(new RegExp(res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*send\\s*\\(|' + res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*json\\s*\\(')).length > 1) {
                 if (!!objResponses[200] === false) {
                     objResponses[200] = {
                         description: tables.getHttpStatusDescription(200, swaggerTags.getLanguage())
@@ -679,8 +701,18 @@ function getHeader(elem, path, method, response, objEndpoint) {
  * @param {array} request array containing variables of response.
  * @param {object} objParameters
  */
-function getQueryAndBody(elem, request, objParameters) {
+function getHeaderQueryBody(elem, request, objParameters) {
     const origObjParameters = objParameters;
+
+    if (elem) {
+        elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*query\\s*\\n*\\t*\\.\\s*\\n*\\t*')).join('.query.');
+        elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*body\\s*\\n*\\t*\\.\\s*\\n*\\t*')).join('.body.');
+        elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*headers\\s*\\n*\\t*\\.\\s*\\n*\\t*')).join('.headers.');
+        elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*query\\s*\\n*\\t*[\\;|\\,|\\}|\\]|\\)]')).join('.query ');
+        elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*body\\s*\\n*\\t*[\\;|\\,|\\}|\\]|\\)]')).join('.body ');
+        elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*headers\\s*\\n*\\t*[\\;|\\,|\\}|\\]|\\)]')).join('.headers ');
+    }
+
     try {
         for (let idx = 0; idx < request.length; ++idx) {
             let req = request[idx];
@@ -689,31 +721,183 @@ function getQueryAndBody(elem, request, objParameters) {
                 continue;
             }
 
+            /**
+             * Headers
+             */
+            if (req && elem && elem.split(req + '.headers.').length > 1) {
+                elem.split(req + '.headers.')
+                    .splice(1)
+                    .forEach(p => {
+                        p = p.trim();
+                        let name = p
+                            .split(/\(|\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
+                            .replaceAll(' ', '')
+                            .replaceAll('\r', '');
+                        if (name.includes('.')) {
+                            name = name.split('.')[0];
+                        }
+
+                        if (!!objParameters[name] === false || (objParameters[name] && objParameters[name].name !== name) || (objParameters[name] && objParameters[name].name === name && objParameters[name].in !== 'header')) {
+                            name += `__[__[__header__]__]`;
+
+                            if (!!objParameters[name] === false) {
+                                // Checks if the parameter name already exists
+                                objParameters[name] = {
+                                    name,
+                                    in: 'header'
+                                };
+                            }
+                            if (!objParameters[name].in) {
+                                objParameters[name].in = 'header';
+                            }
+                            if (!objParameters[name].type && !objParameters[name].schema) {
+                                // by default: 'type' is 'string' when 'schema' is missing
+                                if (swaggerTags.getOpenAPI()) {
+                                    objParameters[name].schema = { type: 'string' };
+                                } else {
+                                    objParameters[name].type = 'string';
+                                }
+                            }
+                        }
+                    });
+            }
+
+            /**
+             * Headers
+             * Destructuring in body, such as: {a, b} = req.headers
+             */
+            if (req && elem && elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.headers\\s+')).length > 1) {
+                let elems = elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.headers\\s+'));
+                for (let idxHeader = 0; idxHeader < elems.length - 1; ++idxHeader) {
+                    let header = elems[idxHeader]; //objBody
+
+                    if (header.split(new RegExp('\\:\\s*\\n*\\t*\\{')).length > 1) {
+                        let subObjs = header.split(new RegExp('\\:\\s*\\n*\\t*\\{'));
+                        for (let idxObj = 1; idxObj < subObjs.length; ++idxObj) {
+                            subObjs[idxObj] = subObjs[idxObj].split('}')[1];
+                        }
+                        header = subObjs.join('');
+                    }
+
+                    header = header.split('{').slice(-1)[0];
+                    header = header.split(',');
+                    header.map(name => {
+                        name = name.trim();
+                        name = name
+                            .split(/\(|\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
+                            .replaceAll(' ', '')
+                            .replaceAll('\r', '');
+                        if (name == '') {
+                            return;
+                        }
+
+                        if (!!objParameters[name] === false || (objParameters[name] && objParameters[name].name !== name) || (objParameters[name] && objParameters[name].name === name && objParameters[name].in !== 'header')) {
+                            name += `__[__[__header__]__]`;
+
+                            if (!!objParameters[name] === false) {
+                                // Checks if the parameter name already exists
+                                objParameters[name] = {
+                                    name,
+                                    in: 'header'
+                                };
+                            }
+                            if (!objParameters[name].in) {
+                                objParameters[name].in = 'header';
+                            }
+                            if (!objParameters[name].type && !objParameters[name].schema) {
+                                // by default: 'type' is 'string' when 'schema' is missing
+                                if (swaggerTags.getOpenAPI()) {
+                                    objParameters[name].schema = { type: 'string' };
+                                } else {
+                                    objParameters[name].type = 'string';
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            /**
+             * Headers
+             * E.g: let someHeader = req.headers['x-token']
+             */
+            if (req && elem && elem.split(req + '.headers[').length > 1) {
+                let elems = elem.split(req + '.headers[');
+                for (let idxHeader = 1; idxHeader < elems.length; ++idxHeader) {
+                    let header = elems[idxHeader];
+                    if (header.split(statics.STRING_QUOTE).length > 2) {
+                        let name = header.split(statics.STRING_QUOTE)[1];
+                        name = name.trim();
+                        name = name
+                            .split(/\(|\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
+                            .replaceAll(' ', '')
+                            .replaceAll('\r', '');
+                        if (name == '') {
+                            break;
+                        }
+
+                        if (!!objParameters[name] === false || (objParameters[name] && objParameters[name].name !== name) || (objParameters[name] && objParameters[name].name === name && objParameters[name].in !== 'header')) {
+                            name += `__[__[__header__]__]`;
+
+                            if (!!objParameters[name] === false) {
+                                // Checks if the parameter name already exists
+                                objParameters[name] = {
+                                    name,
+                                    in: 'header'
+                                };
+                            }
+                            if (!objParameters[name].in) {
+                                objParameters[name].in = 'header';
+                            }
+                            if (!objParameters[name].type && !objParameters[name].schema) {
+                                // by default: 'type' is 'string' when 'schema' is missing
+                                if (swaggerTags.getOpenAPI()) {
+                                    objParameters[name].schema = { type: 'string' };
+                                } else {
+                                    objParameters[name].type = 'string';
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            /**
+             * query
+             */
             if (req && elem && elem.split(req + '.query.').length > 1) {
                 elem.split(req + '.query.')
                     .splice(1)
                     .forEach(p => {
                         p = p.trim();
-                        let name = p.split(/\(|\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0].replaceAll(' ', '');
+                        let name = p
+                            .split(/\(|\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
+                            .replaceAll(' ', '')
+                            .replaceAll('\r', '');
                         if (name.includes('.')) {
                             name = name.split('.')[0];
                         }
-                        if (!!objParameters[name] === false) {
-                            // Checks if the parameter name already exists
-                            objParameters[name] = {
-                                name,
-                                in: 'query'
-                            };
-                        }
-                        if (!objParameters[name].in) {
-                            objParameters[name].in = 'query';
-                        }
-                        if (!objParameters[name].type && !objParameters[name].schema) {
-                            // by default: 'type' is 'string' when 'schema' is missing
-                            if (swaggerTags.getOpenAPI()) {
-                                objParameters[name].schema = { type: 'string' };
-                            } else {
-                                objParameters[name].type = 'string';
+
+                        if (!!objParameters[name] === false || (objParameters[name] && objParameters[name].name !== name) || (objParameters[name] && objParameters[name].name === name && objParameters[name].in !== 'query')) {
+                            name += `__[__[__query__]__]`;
+
+                            if (!!objParameters[name] === false) {
+                                // Checks if the parameter name already exists
+                                objParameters[name] = {
+                                    name,
+                                    in: 'query'
+                                };
+                            }
+                            if (!objParameters[name].in) {
+                                objParameters[name].in = 'query';
+                            }
+                            if (!objParameters[name].type && !objParameters[name].schema) {
+                                // by default: 'type' is 'string' when 'schema' is missing
+                                if (swaggerTags.getOpenAPI()) {
+                                    objParameters[name].schema = { type: 'string' };
+                                } else {
+                                    objParameters[name].type = 'string';
+                                }
                             }
                         }
                     });
@@ -725,10 +909,8 @@ function getQueryAndBody(elem, request, objParameters) {
              * Created by: WHL
              * Modified by: Davi Baltar
              */
-            elem = elem.split(new RegExp('\\s*\\.\\s*query\\s*[\\;|\\,|\\}|\\]|\\)]'));
-            elem = elem.join('.query ');
-            if (req && elem && elem.split(new RegExp('\\}\\s*\\=\\s*' + req + '.query\\s+')).length > 1) {
-                let elems = elem.split(new RegExp('\\}\\s*\\=\\s*' + req + '.query\\s+'));
+            if (req && elem && elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.query\\s+')).length > 1) {
+                let elems = elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.query\\s+'));
                 for (let idxQuery = 0; idxQuery < elems.length - 1; ++idxQuery) {
                     let query = elems[idxQuery]; //objBody
 
@@ -737,8 +919,8 @@ function getQueryAndBody(elem, request, objParameters) {
                      * Solution: Eliminate sub-items for now
                      * TODO: In the furute, handle sub-items
                      */
-                    if (query.split(new RegExp('\\:\\s*\\{')).length > 1) {
-                        let subObjs = query.split(new RegExp('\\:\\s*\\{'));
+                    if (query.split(new RegExp('\\:\\s*\\n*\\t*\\{')).length > 1) {
+                        let subObjs = query.split(new RegExp('\\:\\s*\\n*\\t*\\{'));
                         for (let idxObj = 1; idxObj < subObjs.length; ++idxObj) {
                             subObjs[idxObj] = subObjs[idxObj].split('}')[1];
                         }
@@ -750,26 +932,34 @@ function getQueryAndBody(elem, request, objParameters) {
                     query = query.split(',');
                     query.map(name => {
                         name = name.trim();
-                        name = name.split(/\(|\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0].replaceAll(' ', '');
+                        name = name
+                            .split(/\(|\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
+                            .replaceAll(' ', '')
+                            .replaceAll('\r', '');
                         if (name == '') {
                             return;
                         }
 
-                        if (!!objParameters[name] === false)
-                            // Checks if the parameter name already exists
-                            objParameters[name] = {
-                                name,
-                                in: 'query'
-                            };
-                        if (!objParameters[name].in) {
-                            objParameters[name].in = 'query';
-                        }
-                        if (!objParameters[name].type && !objParameters[name].schema) {
-                            // by default: 'type' is 'string' when 'schema' is missing
-                            if (swaggerTags.getOpenAPI()) {
-                                objParameters[name].schema = { type: 'string' };
-                            } else {
-                                objParameters[name].type = 'string';
+                        if (!!objParameters[name] === false || (objParameters[name] && objParameters[name].name !== name) || (objParameters[name] && objParameters[name].name === name && objParameters[name].in !== 'query')) {
+                            name += `__[__[__query__]__]`;
+
+                            if (!!objParameters[name] === false) {
+                                // Checks if the parameter name already exists
+                                objParameters[name] = {
+                                    name,
+                                    in: 'query'
+                                };
+                            }
+                            if (!objParameters[name].in) {
+                                objParameters[name].in = 'query';
+                            }
+                            if (!objParameters[name].type && !objParameters[name].schema) {
+                                // by default: 'type' is 'string' when 'schema' is missing
+                                if (swaggerTags.getOpenAPI()) {
+                                    objParameters[name].schema = { type: 'string' };
+                                } else {
+                                    objParameters[name].type = 'string';
+                                }
                             }
                         }
                     });
@@ -787,7 +977,10 @@ function getQueryAndBody(elem, request, objParameters) {
                     .splice(1)
                     .forEach(p => {
                         p = p.trim();
-                        let name = p.split(/\(|\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0].replaceAll(' ', '');
+                        let name = p
+                            .split(/\(|\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
+                            .replaceAll(' ', '')
+                            .replaceAll('\r', '');
                         if (name.includes('.')) {
                             name = name.split('.')[0];
                         }
@@ -810,18 +1003,14 @@ function getQueryAndBody(elem, request, objParameters) {
                     });
             }
 
-            // Replace ".body..." to ".body ..."
-            elem = elem.split(new RegExp('\\s*\\.\\s*body\\s*[\\;|\\,|\\}|\\]|\\)]'));
-            elem = elem.join('.body ');
-
             /**
              * Pull Request (#30)
              * CASE: Destructuring in body, such as: {a, b} = req.body
              * Created by: WHL
              * Modified by: Davi Baltar
              */
-            if (req && elem && elem.split(new RegExp('\\}\\s*\\=\\s*' + req + '.body\\s+')).length > 1) {
-                let elems = elem.split(new RegExp('\\}\\s*\\=\\s*' + req + '.body\\s+'));
+            if (req && elem && elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.body\\s+')).length > 1) {
+                let elems = elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.body\\s+'));
                 for (let idxBody = 0; idxBody < elems.length - 1; ++idxBody) {
                     let objBody = elems[idxBody];
 
@@ -830,8 +1019,8 @@ function getQueryAndBody(elem, request, objParameters) {
                      * Solution: Eliminate sub-items for now
                      * TODO: In the future, handle sub-items
                      */
-                    if (objBody.split(new RegExp('\\:\\s*\\{')).length > 1) {
-                        let subObjs = objBody.split(new RegExp('\\:\\s*\\{'));
+                    if (objBody.split(new RegExp('\\:\\s*\\n*\\t*\\{')).length > 1) {
+                        let subObjs = objBody.split(new RegExp('\\:\\s*\\n*\\t*\\{'));
                         for (let idxObj = 1; idxObj < subObjs.length; ++idxObj) {
                             subObjs[idxObj] = subObjs[idxObj].split('}')[1];
                         }
@@ -843,7 +1032,10 @@ function getQueryAndBody(elem, request, objParameters) {
                     objBody = objBody.split(',');
                     objBody.map(name => {
                         name = name.trim();
-                        name = name.split(/\(|\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0].replaceAll(' ', '');
+                        name = name
+                            .split(/\(|\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
+                            .replaceAll(' ', '')
+                            .replaceAll('\r', '');
                         if (name == '') {
                             return;
                         }
@@ -1109,8 +1301,23 @@ async function functionRecognizerInData(data, functionName) {
         }
 
         if (data.split(new RegExp(`\\w+${functionName}|${functionName}\\w+|\\w+${functionName}\\w+`)).length > 1) {
+            data = data.replaceAll(`.headers.${functionName}`, '____HEADERS____');
+            data = data.replaceAll(new RegExp(`var\\s+\\n*\\t*\\{\\s*\\n*\\t*${functionName}`), '____VARIABLE_DEST____');
+            data = data.replaceAll(new RegExp(`let\\s+\\n*\\t*\\{\\s*\\n*\\t*${functionName}`), '____VARIABLE_DEST____');
+            data = data.replaceAll(new RegExp(`const\\s+\\n*\\t*\\{\\s*\\n*\\t*${functionName}`), '____VARIABLE_DEST____');
+            data = data.replaceAll(new RegExp(`\\,\\s*\\n*\\t*${functionName}`), '____VARIABLE____');
+            data = data.replaceAll(new RegExp(`body\\s*\\n*\\t*\\.\\s*\\n*\\t*${functionName}`), '____VARIABLE_BODY____');
+            data = data.replaceAll(new RegExp(`query\\s*\\n*\\t*\\.\\s*\\n*\\t*${functionName}`), '____VARIABLE_QUERY____');
+            data = data.replaceAll(new RegExp(`headers\\s*\\n*\\t*\\.\\s*\\n*\\t*${functionName}`), '____VARIABLE_HEADERS____');
             data = data.split(new RegExp(`\\w+${functionName}|${functionName}\\w+|\\w+${functionName}\\w+`));
+
             data = data.join('____FUNC____');
+            data = data.replaceAll('____HEADERS____', `.headers.${functionName}`);
+            data = data.replaceAll('____VARIABLE_DEST____', `let { ${functionName}`);
+            data = data.replaceAll('____VARIABLE____', `, ${functionName}`);
+            data = data.replaceAll('____VARIABLE_BODY____', `body.${functionName}`);
+            data = data.replaceAll('____VARIABLE_QUERY____', `query.${functionName}`);
+            data = data.replaceAll('____VARIABLE_HEADERS____', `headers.${functionName}`);
         }
 
         data = data.replaceAll(' function ', ' ');
@@ -1287,7 +1494,7 @@ async function popFunction(data) {
  * Get the first string in a string.
  * @param {string} data content.
  */
-async function popString(data) {
+function popString(data) {
     if (!data) {
         return null;
     }
@@ -1321,7 +1528,7 @@ module.exports = {
     getQueryIndirectly,
     getStatus,
     getHeader,
-    getQueryAndBody,
+    getHeaderQueryBody,
     getCallbackParameters,
     getPathParameters,
     functionRecognizerInData,

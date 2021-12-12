@@ -434,6 +434,11 @@ async function getParametersTag(data, objParameters, reference) {
                     }
                 }
             }
+
+            // prioritizes #swagger.parameters
+            if (objParameters[`${name}__[__[__${objParameters[name].in}__]__]`]) {
+                delete objParameters[`${name}__[__[__${objParameters[name].in}__]__]`];
+            }
         }
         return objParameters;
     } catch (err) {
@@ -566,11 +571,25 @@ async function getResponsesTag(data, objResponses, reference) {
                     objResp = objResp.replaceAll('#/definitions/', '#/components/schemas/');
                 }
 
-                objResp = {
-                    ...eval(`(${'{' + objResp + '}'})`)
-                };
+                try {
+                    objResp = {
+                        ...eval(`(${'{' + objResp + '}'})`)
+                    };
+                } catch (err) {
+                    console.error('[swagger-autogen]: Syntax error: ' + objResp);
+                    console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.responses' out of structure in '${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
+                    return origObjResponses;
+                }
 
-                if (objResp && objResp.schema && !objResp.schema.$ref) {
+                if (objResp && objResp['@schema']) {
+                    objResp.schema = objResp['@schema'];
+                    delete objResp['@schema'];
+                    objResponses[statusCode] = {
+                        ...objResponses[statusCode],
+                        ...objResp,
+                        schema: objResp.schema
+                    };
+                } else if (objResp && objResp.schema && !objResp.schema.$ref) {
                     objResponses[statusCode] = {
                         ...objResponses[statusCode],
                         ...objResp,

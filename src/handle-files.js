@@ -1064,7 +1064,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 endpoint = await handleData.removeStrings(endpoint); // Avoiding .status(...) in string
                                 endpoint = endpoint.replaceAll('__¬¬¬__', '"');
                                 if (req) {
-                                    objParameters = handleData.getQueryAndBody(endpoint, req, objParameters); // Search for parameters in the query and body
+                                    objParameters = handleData.getHeaderQueryBody(endpoint, req, objParameters); // Search for parameters in the query and body
                                     if (method === 'get' && objParameters['__obj__in__body__']) {
                                         delete objParameters['__obj__in__body__'];
                                     }
@@ -1089,7 +1089,10 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                             Object.values(objParameters).forEach(objParam => {
                                 if (objEndpoint[path][method].parameters) {
-                                    let idxFound = objEndpoint[path][method].parameters.findIndex(e => e.name === objParam.name);
+                                    let idxFound = objEndpoint[path][method].parameters.findIndex(e => e.name === objParam.name && e.in === objParam.in);
+                                    if (objParam.name) {
+                                        objParam.name = objParam.name.split('__[__[__')[0];
+                                    }
                                     if (idxFound > -1) {
                                         objEndpoint[path][method].parameters[idxFound] = objParam;
                                     } else {
