@@ -76,7 +76,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.16.0
+$ npm install --save-dev swagger-autogen@2.17.0
 ```
 
 ## Usage
@@ -706,7 +706,7 @@ It doesn't allow insert directly without reference on `openapi 3.x`. To enable O
 
 #### @schema
 
-Use the `@schema` instead of `schema` if you don't want swagger-autogen to do schema processing. In this case you must build the schema according to Swagger's specs. The result in the _.json_ will be the same in `@schema`.
+Use the `'@schema'` instead of `schema` if you don't want swagger-autogen to do schema processing. In this case you must build the schema according to Swagger's specs. The result in the _.json_ will be the same in `'@schema'`.
 
 **For example:** 
 ```js
@@ -721,7 +721,7 @@ Use the `@schema` instead of `schema` if you don't want swagger-autogen to do sc
                         "type": "string", 
                         "minLength": 2, 
                         "maxLength": 250, 
-                        "example": "Blah Blah" 
+                        "example": "Some example..." 
                     } 
                 } 
             } 
@@ -1484,7 +1484,9 @@ Some tutorials with examples:
   - New property: @schema
   - Identification of referenced variables (partially)
   - Bug fix
-
+- Version 2.17.x:
+  - Recognizes 'header' parameters automatically 
+  - Bug fix
 
 **TODO:**
 
