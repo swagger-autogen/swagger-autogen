@@ -72,6 +72,16 @@ function clearData(data) {
             const origData = data;
             try {
                 data = data.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*headers\\s*\\n*\\t*\\[\\s*\\n*\\t*')).join('.headers[');
+                data = data.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*header\\s*\\n*\\t*\\(\\s*\\n*\\t*'));
+                if (data.length > 1) {
+                    for (let idxHeader = 1; idxHeader < data.length; ++idxHeader) {
+                        data[idxHeader] = data[idxHeader].replace(')', ']');
+                    }
+                    data = data.join('.headers[');
+                } else {
+                    data = data[0];
+                }
+                data = data.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*header\\s*\\n*\\t*\\(\\s*\\n*\\t*')).join('.headers(');
                 if (data.split('.headers[').length > 1) {
                     data = data.split('.headers[');
                     for (let idxHeaders = 1; idxHeaders < data.length; ++idxHeaders) {
@@ -645,7 +655,7 @@ function getStatus(elem, response, objResponses) {
             /**
              * Catching status code 200 when res.send(...) or res.json(...)
              */
-            if (res && elem && elem.replaceAll(' ', '').split(new RegExp(res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*send\\s*\\(|' + res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*json\\s*\\(')).length > 1) {
+            if (res && elem && elem.replaceAll(' ', '').split(new RegExp(res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*send\\s*\\(|' + res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*json\\s*\\(|' + res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*sendFile\\s*\\(')).length > 1) {
                 if (!!objResponses[200] === false) {
                     objResponses[200] = {
                         description: tables.getHttpStatusDescription(200, swaggerTags.getLanguage())
