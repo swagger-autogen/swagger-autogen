@@ -1485,7 +1485,7 @@ Some tutorials with examples:
   - Identification of referenced variables (partially)
   - Bug fix
 - Version 2.17.x:
-  - Recognizes 'header' parameters automatically 
+  - Recognizes 'headers' parameters automatically 
   - Bug fix
 
 **TODO:**
