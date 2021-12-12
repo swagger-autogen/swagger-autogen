@@ -747,6 +747,8 @@ function getHeaderQueryBody(elem, request, objParameters) {
                             name = name.split('.')[0];
                         }
 
+                        name = name.replaceAll('...', '');
+
                         if (!!objParameters[name] === false || (objParameters[name] && objParameters[name].name !== name) || (objParameters[name] && objParameters[name].name === name && objParameters[name].in !== 'header')) {
                             name += `__[__[__header__]__]`;
 
@@ -793,6 +795,7 @@ function getHeaderQueryBody(elem, request, objParameters) {
                     header = header.split(',');
                     header.map(name => {
                         name = name.trim();
+                        name = name.replaceAll('...', '');
                         name = name
                             .split(/\(|\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
                             .replaceAll(' ', '')
@@ -838,6 +841,7 @@ function getHeaderQueryBody(elem, request, objParameters) {
                     if (header.split(statics.STRING_QUOTE).length > 2) {
                         let name = header.split(statics.STRING_QUOTE)[1];
                         name = name.trim();
+                        name = name.replaceAll('...', '');
                         name = name
                             .split(/\(|\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
                             .replaceAll(' ', '')
@@ -887,6 +891,8 @@ function getHeaderQueryBody(elem, request, objParameters) {
                         if (name.includes('.')) {
                             name = name.split('.')[0];
                         }
+
+                        name = name.replaceAll('...', '');
 
                         if (!!objParameters[name] === false || (objParameters[name] && objParameters[name].name !== name) || (objParameters[name] && objParameters[name].name === name && objParameters[name].in !== 'query')) {
                             name += `__[__[__query__]__]`;
@@ -942,6 +948,7 @@ function getHeaderQueryBody(elem, request, objParameters) {
                     query = query.split(',');
                     query.map(name => {
                         name = name.trim();
+                        name = name.replaceAll('...', '');
                         name = name
                             .split(/\(|\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
                             .replaceAll(' ', '')
@@ -994,6 +1001,9 @@ function getHeaderQueryBody(elem, request, objParameters) {
                         if (name.includes('.')) {
                             name = name.split('.')[0];
                         }
+
+                        name = name.replaceAll('...', '');
+
                         if (!!objParameters['__obj__in__body__'] === false) {
                             objParameters['__obj__in__body__'] = {
                                 name: '__obj__in__body__',
@@ -1042,6 +1052,7 @@ function getHeaderQueryBody(elem, request, objParameters) {
                     objBody = objBody.split(',');
                     objBody.map(name => {
                         name = name.trim();
+                        name = name.replaceAll('...', '');
                         name = name
                             .split(/\(|\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
                             .replaceAll(' ', '')
@@ -1319,9 +1330,27 @@ async function functionRecognizerInData(data, functionName) {
             data = data.replaceAll(new RegExp(`body\\s*\\n*\\t*\\.\\s*\\n*\\t*${functionName}`), '____VARIABLE_BODY____');
             data = data.replaceAll(new RegExp(`query\\s*\\n*\\t*\\.\\s*\\n*\\t*${functionName}`), '____VARIABLE_QUERY____');
             data = data.replaceAll(new RegExp(`headers\\s*\\n*\\t*\\.\\s*\\n*\\t*${functionName}`), '____VARIABLE_HEADERS____');
-            data = data.split(new RegExp(`\\w+${functionName}|${functionName}\\w+|\\w+${functionName}\\w+`));
 
+            data = data.split(new RegExp(`${functionName}`));
+            if (data.length > 1) {
+                for (let idxHeader = 1; idxHeader < data.length; ++idxHeader) {
+                    let startComment = utils.getFirstPosition('/*', data[idxHeader].split('//')[0]);
+                    let endComment = utils.getFirstPosition('*/', data[idxHeader].split('//')[0]);
+                    if ((endComment && !startComment) || startComment > endComment) {
+                        // keep in comment
+                        data[idxHeader] = '____KEEP_NAME____' + data[idxHeader];
+                    } else {
+                        data[idxHeader] = `${functionName}` + data[idxHeader];
+                    }
+                }
+                data = data.join('');
+            } else {
+                data = data[0];
+            }
+            data = data.split(new RegExp(`\\w+${functionName}|${functionName}\\w+|\\w+${functionName}\\w+`));
             data = data.join('____FUNC____');
+
+            data = data.replaceAll('____KEEP_NAME____', `${functionName}`);
             data = data.replaceAll('____HEADERS____', `.headers.${functionName}`);
             data = data.replaceAll('____VARIABLE_DEST____', `let { ${functionName}`);
             data = data.replaceAll('____VARIABLE____', `, ${functionName}`);
@@ -1420,6 +1449,14 @@ async function functionRecognizerInData(data, functionName) {
                     funcStr = funcStr.split('{')[0];
                 }
                 funcStr = '(' + funcStr + (isArrowFunction ? ' { ' : ' => { '); // TODO: Verify case 'funcStr' with '=> =>'
+                let cleanedParams = funcStr.split(')')[0];
+                cleanedParams = cleanedParams
+                    .split(',')
+                    .map(p => {
+                        return p.split('=')[0];
+                    })
+                    .join(',');
+                funcStr = cleanedParams + ')' + funcStr.split(')')[1];
                 let finalFunc = await utils.stackSymbolRecognizer(func, '{', '}');
                 return funcStr + finalFunc;
             } else {

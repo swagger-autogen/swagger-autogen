@@ -167,6 +167,17 @@ function resolvePatternPath(path) {
     });
 }
 
+function getFirstPosition(param, data) {
+    if (data && param) {
+        let position = data.split(param).shift();
+        if (position.length == data.length) {
+            return null;
+        }
+        return position.length;
+    }
+    return null;
+}
+
 module.exports = {
     fileOrDirectoryExist,
     getExtension,
@@ -174,5 +185,6 @@ module.exports = {
     isNumeric,
     resolvePatternPath,
     stackSymbolRecognizer,
-    stack0SymbolRecognizer
+    stack0SymbolRecognizer,
+    getFirstPosition
 };
