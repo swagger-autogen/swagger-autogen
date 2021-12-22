@@ -41,7 +41,7 @@ module.exports = function (args) {
                             let extension = await utils.getExtension(file);
 
                             if (!fs.existsSync(file + extension)) {
-                                throw console.error("\nError: File not found: '" + file + "'");
+                                throw console.error("[swagger-autogen]: Error! File not found: '" + file + "'");
                             } else {
                                 patternPath[idxFile] = file + extension;
                             }
@@ -53,7 +53,7 @@ module.exports = function (args) {
                     let extension = await utils.getExtension(file);
                     allFiles = [...allFiles, file + extension];
                     if (!fs.existsSync(file + extension)) {
-                        throw console.error("\nError: File not found: '" + file + "'");
+                        throw console.error("[swagger-autogen]: Error! File not found: '" + file + "'");
                     }
                 }
             }
@@ -87,7 +87,7 @@ module.exports = function (args) {
                 const filePath = allFiles[file];
                 const resp = await fs.existsSync(filePath);
                 if (!resp) {
-                    console.error('\nError: Endpoint file not found => ' + "'" + filePath + "'");
+                    console.error('[swagger-autogen]: Error! Endpoint file not found => ' + "'" + filePath + "'");
                     if (!options.disableLogs) {
                         console.log('Swagger-autogen:', '\x1b[31m', 'Failed ' + symbols.failed, '\x1b[0m');
                     }
