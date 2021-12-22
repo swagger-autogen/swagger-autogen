@@ -23,11 +23,12 @@ This module performs the automatic construction of the Swagger documentation. Th
   - [Description](#description)
   - [Operation ID](#operation-id)
   - [Parameters](#parameters)
+  - [Responses](#responses)
   - [Schema and Definitions](#schema-and-definitions)
       - [Examples of Definitions](#examples-of-definitions)
   - [Endpoint as deprecated](#endpoint-as-deprecated)
   - [Ignoring endpoint](#ignoring-endpoint)
-  - [Responses](#responses)
+  - [Properties Inheritance](#properties-inheritance)
   - [Manual capture](#manual-capture)
   - [Forced endpoint creation](#forced-endpoint-creation)
   - [Swagger 2.0](#swagger-20)
@@ -76,7 +77,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.17.2
+$ npm install --save-dev swagger-autogen@2.18.0
 ```
 
 ## Usage
@@ -529,8 +530,8 @@ app.get('/path', (req, res, next) => {
     /* #swagger.responses[200] = {
             description: 'User successfully obtained.',
             schema: {
-                $name: 'Jhon Doe',
-                $age: 29,
+                name: 'Jhon Doe',
+                age: 29,
                 about: ''
             }
     } */
@@ -648,8 +649,8 @@ In the responses inserting directly:
          /* #swagger.responses[200] = {
                 description: 'Some description...',
                 schema: {
-                    $name: 'Jhon Doe',
-                    $age: 29,
+                    name: 'Jhon Doe',
+                    age: 29,
                     about: ''
                 }
         } */
@@ -840,6 +841,39 @@ Use the `#swagger.ignore = true` tag to ignore a given endpoint. Thus, it will n
     })
 ```
 
+### Properties Inheritance
+If you want to pass properties in common to all endpoints belonging to the same route, you can specify those properties in the routes root middleware.
+
+**For example:**  
+
+file: routes.js
+```js
+...
+app.use('/v1', routesV1
+    // #swagger.tags = ['SomeTag']
+
+    /* #swagger.security = [{
+        "apiKeyAuth": []
+    }] */
+
+    /* #swagger.responses[500] = {
+            schema: { $ref: '#/definitions/someSchema' }
+    } */
+
+    /* #swagger.responses[501] = {
+            ifStatusPresent: true,
+            schema: { $ref: '#/definitions/someSchema' }
+    } */
+);
+...
+```
+
+For the case above, all the enpoints belonging to '/v1' route will received the 'SomeTag' tag, the security property and status code 500. But only endpoints that contain the 501 status code will receive the description and schema declared in `#swagger.responses[501] = ...`.
+
+NOTE: By default, the `ifStatusPresent` parameter is `false`. If true, only endpoints that contain any 501 status code will receive the properties. Otherwise, 501 status code will not be shown.
+
+NOTE: To disable security for some endpoint belonging to route '/v1', declare `// #swagger.security = null `.
+
 ### Manual capture
 
 Use the `#swagger.auto = false` tag to disable automatic recognition. With that, all parameters of the endpoint must be informed manually, for example:
@@ -972,8 +1006,8 @@ const doc = {
       in: 'header', // can be 'header', 'query' or 'cookie'
       name: 'X-API-KEY', // name of the header, query parameter or cookie
       description: 'Some description...'
-    },
-  },
+    }
+  }
 };
 ```
 
@@ -1127,8 +1161,8 @@ app.get('/path', (req, res, next) => {
             content: {
                 "application/json": {
                     schema: {
-                        $name: 'Jhon Doe',
-                        $age: 29,
+                        name: 'Jhon Doe',
+                        age: 29,
                         about: ''
                     }
                 }           
@@ -1486,6 +1520,9 @@ Some tutorials with examples:
   - Bug fix
 - Version 2.17.x:
   - Recognizes 'headers' parameters automatically 
+  - Bug fix
+- Version 2.18.x:
+  - Allow swagger properties to be passed to whole route. (properties inheritance)
   - Bug fix
 
 **TODO:**
