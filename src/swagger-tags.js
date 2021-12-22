@@ -791,6 +791,10 @@ async function getSecurityTag(data, reference) {
         let swaggerSecurity = data.split(new RegExp(`${statics.SWAGGER_TAG}.security\\s*\\=\\s*`))[1];
         let securityParameters = await utils.stack0SymbolRecognizer(swaggerSecurity, '[', ']');
 
+        if (securityParameters === undefined || securityParameters === null || securityParameters === false) {
+            return undefined;
+        }
+
         security = eval(`(${'[' + securityParameters + ']'})`);
         return security;
     } catch (err) {

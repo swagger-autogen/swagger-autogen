@@ -539,9 +539,16 @@ function addReferenceToMethods(data, patterns) {
                     auxData = auxData.split(']_])([_[');
                     let bytePosition = auxData[0].split('([_[')[0].length;
                     for (let idxPtn = 1; idxPtn < auxData.length; ++idxPtn) {
-                        let auxBytePosition = auxData[idxPtn].split(']_])(')[1].split('([_[')[0].length;
-                        auxData[idxPtn] = auxData[idxPtn].replace(']_])(', `]_])([_[${bytePosition}]_])(`);
-                        bytePosition += auxBytePosition;
+                        try {
+                            let auxBytePosition = auxData[idxPtn].split(']_])(')[1].split('([_[')[0].length;
+                            auxData[idxPtn] = auxData[idxPtn].replace(']_])(', `]_])([_[${bytePosition}]_])(`);
+                            bytePosition += auxBytePosition;
+                        } catch (err) {
+                            if (auxData[idxPtn]) {
+                                auxData[idxPtn] = auxData[idxPtn].replace(']_])(', `]_])([_[${999999999999}]_])(`);
+                            }
+                            continue;
+                        }
                     }
                     auxData = auxData.join(']_])([_[');
 
@@ -606,7 +613,7 @@ function getQueryIndirectly(elem, request, objParameters) {
  * @param {array} response array containing variables of response.
  * @param {object} objResponses
  */
-function getStatus(elem, response, objResponses) {
+async function getStatus(elem, response, objResponses) {
     const origObjResponses = objResponses;
     try {
         for (let idx = 0; idx < response.length; ++idx) {
@@ -1541,25 +1548,33 @@ async function popFunction(data) {
  * Get the first string in a string.
  * @param {string} data content.
  */
-function popString(data) {
+function popString(data, keepQuote = false) {
     if (!data) {
         return null;
     }
 
     try {
-        data = data.replaceAll('\\"', statics.STRING_BREAKER + '_quote1_' + statics.STRING_BREAKER);
-        data = data.replaceAll("\\'", statics.STRING_BREAKER + '_quote2_' + statics.STRING_BREAKER);
-        data = data.replaceAll('\\`', statics.STRING_BREAKER + '_quote3_' + statics.STRING_BREAKER);
-        data = data.replaceAll("'", '"');
-        data = data.replaceAll('`', '"');
-        data = data.split('"');
+        let quote = null;
+        let onString = false;
+        let string = '';
+        for (let i = 0; i < data.length; ++i) {
+            let c = data[i];
 
-        if (data.length > 1) {
-            let str = data[1];
-            str = str.replaceAll(statics.STRING_BREAKER + '_quote1_' + statics.STRING_BREAKER, '\\"');
-            str = str.replaceAll(statics.STRING_BREAKER + '_quote2_' + statics.STRING_BREAKER, "\\'");
-            str = str.replaceAll(statics.STRING_BREAKER + '_quote3_' + statics.STRING_BREAKER, '\\`');
-            return str;
+            if (quote) {
+                string += c;
+            }
+
+            if (onString && c == quote && data[i - 1] !== '\\') {
+                if (!keepQuote) {
+                    return string.slice(0, -1);
+                }
+                return c + string;
+            }
+
+            if (!onString && /'|"|`/.test(c) && data[i - 1] !== '\\') {
+                quote = c;
+                onString = true;
+            }
         }
         return null;
     } catch (err) {

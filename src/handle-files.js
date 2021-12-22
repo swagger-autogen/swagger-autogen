@@ -18,7 +18,7 @@ const overwriteMerge = (destinationArray, sourceArray, options) => {
  * @param {string} relativePath Relative file's path.
  * @param {array} receivedRouteMiddlewares Array containing middleware to be applied in the endpoint's file.
  */
-function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteMiddlewares = [], restrictedContent) {
+function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteMiddlewares = [], restrictedContent, globalSwaggerProperties) {
     return new Promise(resolve => {
         let paths = {};
         fs.readFile(filePath, 'utf8', async function (err, data) {
@@ -47,6 +47,12 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
              * patterns before of method, such as: app, route, etc.
              */
             let dataToGetPatterns = data; // dataToGetPatterns = 'data' without strings, comments and inside parentheses
+            if (dataToGetPatterns) {
+                dataToGetPatterns = dataToGetPatterns.split(new RegExp('\\)\\s*\\n*\\t*\\;\\/\\/')).join('); //');
+                dataToGetPatterns = dataToGetPatterns.split(new RegExp('\\)\\/\\/')).join(') //');
+                dataToGetPatterns = dataToGetPatterns.split(new RegExp('\\)\\s*\\n*\\t*\\;\\/\\*')).join('); /*');
+                dataToGetPatterns = dataToGetPatterns.split(new RegExp('\\)\\/\\*')).join(') /*');
+            }
             dataToGetPatterns = await handleData.removeComments(dataToGetPatterns, false);
             dataToGetPatterns = await handleData.removeStrings(dataToGetPatterns);
             dataToGetPatterns = await handleData.removeInsideParentheses(dataToGetPatterns, true);
@@ -206,9 +212,13 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     serverVars.forEach(pattern => {
                         let auxPattern = pattern
                             .split(new RegExp(regex))[0]
-                            .split(/\n|\s|\t|';'|\{|\}|\(|\)|\[|\]/)
+                            .split(/\n|\s|\t|;|\{|\}|\(|\)|\[|\]/)
                             .splice(-1)[0]; // e.g.: app, route, server, etc.
-                        if (auxPattern && auxPattern != '') patterns.add(auxPattern);
+
+                        if (auxPattern && auxPattern != '') {
+                            auxPattern = auxPattern.split(/;|,|\{|\}|\(|\)|\[|\]| /).join('');
+                            patterns.add(auxPattern);
+                        }
                     });
 
                 if (patterns.size > 0) patterns.add('____CHAINED____'); // CASE: router.get(...).post(...).put(...)...
@@ -422,6 +432,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     }
 
                     if (swaggerTags.getIgnoreTag(elem)) {
+                        continue;
+                    } else if (swaggerTags.getIgnoreTag(globalSwaggerProperties) && elem && elem.split(new RegExp(`${statics.SWAGGER_TAG}.ignore\\s*\\=`)).length == 1) {
                         continue;
                     }
 
@@ -973,8 +985,11 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         let objInBody = null;
                         for (let _idxEF = 0; _idxEF < endpointFunctions.length; ++_idxEF) {
                             let endpoint = endpointFunctions[_idxEF].func;
-
+                            let globalObjResponses = null;
+                            let objResponsesTag = null;
                             if (swaggerTags.getIgnoreTag(endpoint)) {
+                                continue;
+                            } else if (swaggerTags.getIgnoreTag(globalSwaggerProperties) && endpoint && endpoint.split(new RegExp(`${statics.SWAGGER_TAG}.ignore\\s*\\=`)).length == 1) {
                                 continue;
                             }
 
@@ -983,6 +998,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 .replaceAll('/*', '\n')
                                 .replaceAll('*/', '\n')
                                 .replaceAll(statics.SWAGGER_TAG, '\n' + statics.SWAGGER_TAG);
+
+                            //const rawEndpoint = endpoint;
 
                             req = null;
                             res = null;
@@ -1007,45 +1024,81 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                             if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.auto')) {
                                 autoMode = swaggerTags.getAutoTag(endpoint);
+                            } else if (globalSwaggerProperties && globalSwaggerProperties.includes(statics.SWAGGER_TAG + '.auto')) {
+                                autoMode = swaggerTags.getAutoTag(globalSwaggerProperties);
                             }
+
                             if (autoMode && Object.entries(objParameters).length == 0) {
                                 // Checking parameters in the path
                                 objParameters = await handleData.getPathParameters(path, objParameters);
                             }
+
                             if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.operationId')) {
                                 objEndpoint[path][method]['operationId'] = swaggerTags.getOperationId(endpoint, reference);
                             }
+
                             if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.summary')) {
                                 objEndpoint[path][method]['summary'] = swaggerTags.getSummary(endpoint, reference);
+                            } else if (globalSwaggerProperties && globalSwaggerProperties.includes(statics.SWAGGER_TAG + '.summary')) {
+                                objEndpoint[path][method]['summary'] = swaggerTags.getSummary(globalSwaggerProperties, reference);
                             }
+
                             if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.parameters') && endpoint.includes('[') && endpoint.includes(']')) {
                                 objParameters = await swaggerTags.getParametersTag(endpoint, objParameters, reference);
+                            } else if (globalSwaggerProperties && globalSwaggerProperties.includes(statics.SWAGGER_TAG + '.parameters') && globalSwaggerProperties.includes('[') && endpoint.includes(']')) {
+                                objParameters = await swaggerTags.getParametersTag(globalSwaggerProperties, objParameters, reference);
                             }
+
                             if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.requestBody')) {
                                 objEndpoint[path][method].requestBody = await swaggerTags.getRequestBodyTag(endpoint, reference);
+                            } else if (globalSwaggerProperties && globalSwaggerProperties.includes(statics.SWAGGER_TAG + '.requestBody')) {
+                                objEndpoint[path][method].requestBody = await swaggerTags.getRequestBodyTag(globalSwaggerProperties, reference);
                             }
+
                             if (!swaggerTags.getOpenAPI()) {
                                 if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.produces')) {
                                     objEndpoint[path][method].produces = await swaggerTags.getProducesTag(endpoint, reference);
+                                } else if (globalSwaggerProperties && globalSwaggerProperties.includes(statics.SWAGGER_TAG + '.produces')) {
+                                    objEndpoint[path][method].produces = await swaggerTags.getProducesTag(globalSwaggerProperties, reference);
                                 }
+
                                 if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.consumes')) {
                                     objEndpoint[path][method].consumes = await swaggerTags.getConsumesTag(endpoint, reference);
+                                } else if (globalSwaggerProperties && globalSwaggerProperties.includes(statics.SWAGGER_TAG + '.consumes')) {
+                                    objEndpoint[path][method].consumes = await swaggerTags.getConsumesTag(globalSwaggerProperties, reference);
                                 }
+                            }
+
+                            if (globalSwaggerProperties && globalSwaggerProperties.includes(statics.SWAGGER_TAG + '.responses')) {
+                                globalObjResponses = await swaggerTags.getResponsesTag(globalSwaggerProperties, {}, reference);
                             }
                             if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.responses')) {
                                 objResponses = await swaggerTags.getResponsesTag(endpoint, objResponses, reference);
+                                objResponsesTag = objResponses;
                             }
+
                             if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.description')) {
                                 objEndpoint[path][method]['description'] = swaggerTags.getDescription(endpoint, reference);
+                            } else if (globalSwaggerProperties && globalSwaggerProperties.includes(statics.SWAGGER_TAG + '.description')) {
+                                objEndpoint[path][method]['description'] = swaggerTags.getDescription(globalSwaggerProperties, reference);
                             }
+
                             if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.tags')) {
                                 objEndpoint[path][method]['tags'] = swaggerTags.getTags(endpoint, reference);
+                            } else if (globalSwaggerProperties && globalSwaggerProperties.includes(statics.SWAGGER_TAG + '.tags')) {
+                                objEndpoint[path][method]['tags'] = swaggerTags.getTags(globalSwaggerProperties, reference);
                             }
+
                             if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.security')) {
                                 objEndpoint[path][method]['security'] = await swaggerTags.getSecurityTag(endpoint, reference);
+                            } else if (globalSwaggerProperties && globalSwaggerProperties.includes(statics.SWAGGER_TAG + '.security')) {
+                                objEndpoint[path][method]['security'] = await swaggerTags.getSecurityTag(globalSwaggerProperties, reference);
                             }
+
                             if (endpoint && endpoint.includes(statics.SWAGGER_TAG + '.deprecated')) {
                                 objEndpoint[path][method]['deprecated'] = swaggerTags.getDeprecatedTag(endpoint, reference);
+                            } else if (globalSwaggerProperties && globalSwaggerProperties.includes(statics.SWAGGER_TAG + '.deprecated')) {
+                                objEndpoint[path][method]['deprecated'] = swaggerTags.getDeprecatedTag(globalSwaggerProperties, reference);
                             }
 
                             if (objResponses === false || objParameters === false || objEndpoint === false) return resolve(false);
@@ -1081,10 +1134,33 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                         delete objParameters['__obj__in__body__'];
                                     }
                                 }
+
                                 if (res) {
-                                    objResponses = handleData.getStatus(endpoint, res, objResponses); // Search for response status
+                                    objResponses = await handleData.getStatus(endpoint, res, objResponses); // Search for response status
+                                    //objResponses = handleData.getResponses(rawEndpoint, res, objResponses);
                                     objEndpoint = handleData.getHeader(endpoint, path, method, res, objEndpoint); // Search for resonse header
                                 }
+                            }
+
+                            /**
+                             * Global swagger properties
+                             */
+                            if (globalObjResponses) {
+                                Object.keys(globalObjResponses).forEach(r => {
+                                    if (objResponses[r] && globalObjResponses[r].ifStatusPresent === true) {
+                                        objResponses[r] = { ...globalObjResponses[r], ...objResponses[r] };
+                                        delete objResponses[r].ifStatusPresent;
+                                        if (globalObjResponses[r].description && (!objResponsesTag || (globalObjResponses[r].description && objResponsesTag[r] && objResponses[r] && objResponsesTag[r].description != objResponses[r].description))) {
+                                            objResponses[r].description = globalObjResponses[r].description;
+                                        }
+                                    } else if (!objResponses[r] && globalObjResponses[r] && !globalObjResponses[r].ifStatusPresent) {
+                                        objResponses[r] = globalObjResponses[r];
+                                    }
+
+                                    if (objResponses[r] && !objResponses[r].schema) {
+                                        delete objResponses[r].schema;
+                                    }
+                                });
                             }
 
                             Object.values(objParameters).forEach(objParam => {
@@ -1202,6 +1278,12 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     let bytePosition = parseInt(data[2].split('[_[')[1]);
 
                     data = await utils.stackSymbolRecognizer(data[3], '(', ')');
+
+                    // Passing global swagger properties to sub-routes
+                    let routeSwaggerProperties = await handleData.getSwaggerComments(data);
+                    if ((!routeSwaggerProperties || routeSwaggerProperties == '') && globalSwaggerProperties && globalSwaggerProperties.replaceAll(' ', '') != '') {
+                        routeSwaggerProperties = globalSwaggerProperties;
+                    }
 
                     let routeFound = propRoutes.find(r => r.routeName === routeName);
                     if (routeFound) {
@@ -1473,7 +1555,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                             if (idx > -1 && importedFiles[idx] && importedFiles[idx].isDirectory && !exportPath) {
                                 let extension = await utils.getExtension(obj.fileName + '/index');
-                                let auxPaths = await readEndpointFile(obj.fileName + '/index' + extension, obj.path || '', obj.fileName, obj.routeMiddlewares, null);
+                                let auxPaths = await readEndpointFile(obj.fileName + '/index' + extension, obj.path || '', obj.fileName, obj.routeMiddlewares, null, routeSwaggerProperties);
                                 if (auxPaths) {
                                     allPaths = {
                                         ...paths,
@@ -1494,7 +1576,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                     refFunction = await functionRecognizerInFile(obj.fileName + extension, refFunc);
                                 }
 
-                                let auxPaths = await readEndpointFile(obj.fileName + extension, routePrefix + (obj.path || ''), auxRelativePath, obj.routeMiddlewares, refFunction);
+                                let auxPaths = await readEndpointFile(obj.fileName + extension, routePrefix + (obj.path || ''), auxRelativePath, obj.routeMiddlewares, refFunction, routeSwaggerProperties);
                                 if (auxPaths) {
                                     allPaths = merge(paths, allPaths, {
                                         arrayMerge: overwriteMerge
