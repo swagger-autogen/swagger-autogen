@@ -150,7 +150,8 @@ async function jsParserEsModule(data, onlyPrimitiveTypes = true) {
                 } else if (varValue.split(/^"|^'|^`/).length > 1) {
                     // string
                     let symbol = varValue[0];
-                    let str = await handleData.popString(varValue, true);
+                    varValue = handleData.removeComments(varValue);
+                    let str = utils.popString(varValue, true);
                     varValue = `${symbol + str + symbol}\n/*` + varValue.split(symbol + str + symbol)[1] + '*/\n';
                     dataAux[idx] = varValue;
                 } else if (varValue.split(/^\[|^\{|^\[/).length > 1) {

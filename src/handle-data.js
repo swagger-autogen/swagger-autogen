@@ -3,6 +3,11 @@ const statics = require('./statics');
 const tables = require('./tables');
 const utils = require('./utils');
 
+let globalOptions = {};
+function setOptions(options) {
+    globalOptions = options;
+}
+
 /**
  * Convert statements such as: "require('./path')(foo)" in "foo.use(require('./path'))"
  * Useful, because the statement "foo.use(require('./path'))" is already handled successfully.
@@ -87,7 +92,7 @@ function clearData(data) {
                     for (let idxHeaders = 1; idxHeaders < data.length; ++idxHeaders) {
                         let d = data[idxHeaders];
                         if (d[0] === "'" || d[0] === '"' || d[0] === '`') {
-                            let str = popString(d);
+                            let str = utils.popString(d);
                             d = d.replace(new RegExp(`.${str}.`), `${statics.STRING_QUOTE}${str}${statics.STRING_QUOTE}`);
                             data[idxHeaders] = d;
                         }
@@ -135,8 +140,10 @@ function clearData(data) {
             aData = aData.split(new RegExp('axios\\s*\\n*\\t*\\.\\w*', 'i'));
             aData = aData.join('axios.method');
 
-            aData = aData.split(new RegExp('\\s*\\=\\s*asyncHandler\\s*\\('));
+            aData = aData.split(new RegExp('\\s*\\=\\s*\\n*\\t*asyncHandler\\s*\\n*\\t*\\('));
             aData = aData.join(' = ');
+            aData = aData.split(new RegExp('\\,\\s*\\n*\\t*expressAsyncHandler\\s*\\n*\\t*\\('));
+            aData = aData.join(' , ');
 
             return resolve(aData);
         } catch (err) {
@@ -156,6 +163,7 @@ function removeComments(data, keepSwaggerTags = false) {
             return resolve(data);
         }
 
+        let storedRegexs = [];
         let strToReturn = '';
         let stackComment1 = 0; // For type  //
         let stackComment2 = 0; // For type  /* */
@@ -173,29 +181,98 @@ function removeComments(data, keepSwaggerTags = false) {
 
                 if (stackComment1 == 0 && stackComment2 == 0) {
                     // Type '
-                    if (c == "'" && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 1) isStr1 = 2;
-                    if (c == "'" && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) isStr1 = 1;
+                    if (c == "'" && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 1) {
+                        isStr1 = 2;
+                    } else if (c == "'" && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) {
+                        isStr1 = 1;
+                    }
 
                     // Type  "
-                    if (c == '"' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr2 == 1) isStr2 = 2;
-                    if (c == '"' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) isStr2 = 1;
+                    else if (c == '"' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr2 == 1) {
+                        isStr2 = 2;
+                    } else if (c == '"' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) {
+                        isStr2 = 1;
+                    }
 
                     // Type  `
-                    if (c == '`' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr3 == 1) isStr3 = 2;
-                    if (c == '`' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) isStr3 = 1;
+                    else if (c == '`' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr3 == 1) {
+                        isStr3 = 2;
+                    } else if (c == '`' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) {
+                        isStr3 = 1;
+                    }
                 }
 
                 // Type //
-                if (c == '/' && data[idx + 1] == '/' && data[idx - 1] != ':' && stackComment1 == 0 && stackComment2 == 0)
+                if (c == '/' && data[idx + 1] == '/' && data[idx - 1] != '\\' && data[idx - 1] != ':' && stackComment1 == 0 && stackComment2 == 0) {
                     // REFACTOR: improve this. Avoiding cases such as: ... http://... be handled as a comment
                     stackComment1 = 1;
-                if (c == '\n' && stackComment1 == 1) stackComment1 = 2;
+                } else if (c == '\n' && stackComment1 == 1) {
+                    stackComment1 = 2;
+                }
 
                 // Type  /* */
-                if (c == '/' && data[idx + 1] == '*' && stackComment1 == 0 && stackComment2 == 0 && isStr1 == 0 && isStr2 == 0) stackComment2 = 1;
-                if (c == '/' && data[idx - 1] == '*' && stackComment2 == 1 && isStr1 == 0 && isStr2 == 0) stackComment2 = 2;
+                else if (c == '/' && data[idx + 1] == '*' && data[idx - 1] != '\\' && stackComment1 == 0 && stackComment2 == 0 && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) {
+                    stackComment2 = 1;
+                } else if (c == '/' && data[idx - 1] == '*' && stackComment2 == 1 && isStr1 == 0 && isStr2 == 0 && isStr3 == 0 && buffer2 != '/*') {
+                    stackComment2 = 2;
+                }
 
-                if (isStr1 > 0 || isStr2 > 0 || (stackComment1 == 0 && stackComment2 == 0)) {
+                /**
+                 * REGEX START
+                 */
+                if (c == '/' && data[idx - 1] != '\\' && data[idx + 1] != '/' && isStr1 == 0 && isStr2 == 0 && isStr3 == 0 && stackComment1 == 0 && stackComment2 == 0) {
+                    // Checking if it is valid regex
+                    let lidx = idx + 1;
+                    let lstr = '';
+                    let regexStackParenthesis = 0;
+                    let regexStackSquareBracket = 0;
+
+                    while (lidx < data.length) {
+                        // prevent loop
+
+                        let lc = data[lidx];
+
+                        if (lc == '(') {
+                            regexStackParenthesis += 1;
+                        } else if (lc == ')') {
+                            regexStackParenthesis -= 1;
+                        } else if (lc == '[') {
+                            regexStackSquareBracket += 1;
+                        } else if (lc == ']') {
+                            regexStackSquareBracket -= 1;
+                        }
+
+                        lstr += lc;
+                        lidx += 1;
+
+                        if (data[lidx] == '/' && data[idx - 1] != '\\' && regexStackParenthesis < 1 && regexStackSquareBracket < 1) {
+                            if (regexStackParenthesis < 0) {
+                                regexStackParenthesis = 0;
+                            }
+                            if (regexStackSquareBracket < 0) {
+                                regexStackSquareBracket = 0;
+                            }
+                            break;
+                        }
+                    }
+
+                    try {
+                        if (''.split(new RegExp(lstr)).length > -1) {
+                            // Valid regex
+                            const ref = `__¬¬¬__${idx}__¬¬¬__`;
+                            data = utils.replaceRange(data, idx, lidx + 1, ref);
+                            c = data[idx];
+
+                            // Storing regex apart
+                            storedRegexs.push({ ref, regex: `/${lstr}/` });
+                        }
+                    } catch (err) {
+                        // Invalid regex
+                    }
+                }
+                /* REGEX END */
+
+                if (isStr1 > 0 || isStr2 > 0 || isStr3 > 0 || (stackComment1 == 0 && stackComment2 == 0)) {
                     strToReturn += c;
                 } else if (stackComment1 == 1 || stackComment1 == 2) {
                     // Keeps the comment being ignored. Like: //
@@ -226,11 +303,21 @@ function removeComments(data, keepSwaggerTags = false) {
                 if (isStr3 == 2) isStr3 = 0;
 
                 if (idx == data.length - 1) {
+                    if (storedRegexs.length > 0) {
+                        storedRegexs.forEach(r => {
+                            strToReturn = strToReturn.replace(r.ref, r.regex);
+                        });
+                    }
                     strToReturn = strToReturn.replaceAll('  ', ' ').replaceAll('  ', ' ').replaceAll('  ', ' ').replaceAll('  ', ' ');
                     return resolve(strToReturn);
                 }
             }
         } catch (err) {
+            if (storedRegexs.length > 0) {
+                storedRegexs.forEach(r => {
+                    strToReturn = strToReturn.replace(r.ref, r.regex);
+                });
+            }
             return resolve(strToReturn);
         }
     });
@@ -337,41 +424,147 @@ function removeStrings(data) {
             return resolve(data);
         }
 
+        let storedRegexs = [];
         let strToReturn = '';
-        let stackStr1 = 0; // For type  '
-        let stackStr2 = 0; // For type  "
-        let stackStr3 = 0; // For type  `
+        let stackComment1 = 0; // For type  //
+        let stackComment2 = 0; // For type  /* */
 
+        let buffer = ''; // For type   /* */
+
+        // Won't remove comments in strings
+        let isStr1 = 0; // "
+        let isStr2 = 0; // '
+        let isStr3 = 0; // `
         try {
             for (let idx = 0; idx < data.length; ++idx) {
                 let c = data[idx];
 
-                // Type '
-                if (c == "'" && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && stackStr1 == 1) stackStr1 = 2;
-                if (c == "'" && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && stackStr1 == 0 && stackStr2 == 0 && stackStr3 == 0) stackStr1 = 1;
+                // If in comments or regex, ignore strings
+                if (stackComment1 == 0 && stackComment2 == 0) {
+                    // Type '
+                    if (c == "'" && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 1) {
+                        isStr1 = 2;
+                    } else if (c == "'" && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) {
+                        isStr1 = 1;
+                    }
 
-                // Type  "
-                if (c == '"' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && stackStr2 == 1) stackStr2 = 2;
-                if (c == '"' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && stackStr1 == 0 && stackStr2 == 0 && stackStr3 == 0) stackStr2 = 1;
+                    // Type  "
+                    else if (c == '"' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr2 == 1) {
+                        isStr2 = 2;
+                    } else if (c == '"' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) {
+                        isStr2 = 1;
+                    }
 
-                // Type  `
-                if (c == '`' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && stackStr3 == 1) stackStr3 = 2;
-                if (c == '`' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && stackStr1 == 0 && stackStr2 == 0 && stackStr3 == 0) stackStr3 = 1;
-
-                if (stackStr1 == 0 && stackStr2 == 0 && stackStr3 == 0) {
-                    strToReturn += c;
+                    // Type  `
+                    else if (c == '`' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr3 == 1) {
+                        isStr3 = 2;
+                    } else if (c == '`' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) {
+                        isStr3 = 1;
+                    }
                 }
 
-                if (stackStr1 == 2) stackStr1 = 0;
-                if (stackStr2 == 2) stackStr2 = 0;
-                if (stackStr3 == 2) stackStr3 = 0;
+                // Type //
+                if (c == '/' && data[idx + 1] == '/' && data[idx - 1] != '\\' && data[idx - 1] != ':' && stackComment1 == 0 && stackComment2 == 0) {
+                    // REFACTOR: improve this. Avoiding cases such as: ... http://... be handled as a comment
+                    stackComment1 = 1;
+                } else if (c == '\n' && stackComment1 == 1) {
+                    stackComment1 = 2;
+                }
+
+                // Type  /* */
+                else if (c == '/' && data[idx + 1] == '*' && data[idx - 1] != '\\' && stackComment1 == 0 && stackComment2 == 0 && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) {
+                    stackComment2 = 1;
+                } else if (c == '/' && data[idx - 1] == '*' && stackComment2 == 1 && isStr1 == 0 && isStr2 == 0 && isStr3 == 0 && buffer != '/*') {
+                    stackComment2 = 2;
+                }
+
+                /**
+                 * REGEX START
+                 */
+                if (c == '/' && data[idx - 1] != '\\' && data[idx + 1] != '/' && isStr1 == 0 && isStr2 == 0 && isStr3 == 0 && stackComment1 == 0 && stackComment2 == 0) {
+                    // Checking if it is valid regex
+                    let lidx = idx + 1;
+                    let lstr = '';
+                    let regexStackParenthesis = 0;
+                    let regexStackSquareBracket = 0;
+
+                    while (lidx < data.length) {
+                        let lc = data[lidx];
+
+                        if (lc == '(') {
+                            regexStackParenthesis += 1;
+                        } else if (lc == ')') {
+                            regexStackParenthesis -= 1;
+                        } else if (lc == '[') {
+                            regexStackSquareBracket += 1;
+                        } else if (lc == ']') {
+                            regexStackSquareBracket -= 1;
+                        }
+
+                        lstr += lc;
+                        lidx += 1;
+
+                        if (data[lidx] == '/' && data[idx - 1] != '\\' && regexStackParenthesis < 1 && regexStackSquareBracket < 1) {
+                            if (regexStackParenthesis < 0) {
+                                regexStackParenthesis = 0;
+                            }
+                            if (regexStackSquareBracket < 0) {
+                                regexStackSquareBracket = 0;
+                            }
+                            break;
+                        }
+                    }
+
+                    try {
+                        if (''.split(new RegExp(lstr)).length > -1) {
+                            // Valid regex
+                            const ref = `__¬¬¬__${idx}__¬¬¬__`;
+                            data = utils.replaceRange(data, idx, lidx + 1, ref);
+                            c = data[idx];
+
+                            // Storing regex apart
+                            storedRegexs.push({ ref, regex: `/${lstr}/` });
+                        }
+                    } catch (err) {
+                        // Invalid regex
+                    }
+                }
+                /* REGEX END */
+
+                if (isStr1 == 0 && isStr2 == 0 && isStr3 == 0) {
+                    strToReturn += c;
+                } else if (stackComment2 == 1 || stackComment2 == 2) {
+                    buffer += c;
+                }
+
+                if (stackComment1 == 2) {
+                    stackComment1 = 0;
+                }
+
+                if (stackComment2 == 2) {
+                    stackComment2 = 0;
+                }
+
+                if (isStr1 == 2) isStr1 = 0;
+                if (isStr2 == 2) isStr2 = 0;
+                if (isStr3 == 2) isStr3 = 0;
 
                 if (idx == data.length - 1) {
-                    strToReturn = strToReturn.replaceAll('  ', ' ').replaceAll('  ', ' ').replaceAll('  ', ' ').replaceAll('  ', ' ');
+                    if (storedRegexs.length > 0) {
+                        storedRegexs.forEach(r => {
+                            strToReturn = strToReturn.replace(r.ref, r.regex);
+                        });
+                    }
+                    strToReturn = strToReturn.replaceAll('  ', ' ').replaceAll('  ', ' ').replaceAll('  ', ' ').replaceAll('  ', ' '); // TODO: Verifiy
                     return resolve(strToReturn);
                 }
             }
         } catch (err) {
+            if (storedRegexs.length > 0) {
+                storedRegexs.forEach(r => {
+                    strToReturn = strToReturn.replace(r.ref, r.regex);
+                });
+            }
             return resolve(strToReturn);
         }
     });
@@ -389,6 +582,7 @@ function removeInsideParentheses(data, keepParentheses = false, level = 0) {
             return resolve(data);
         }
 
+        let storedRegexs = [];
         let strToReturn = '';
         let stack = 0;
         let buffer = '';
@@ -397,7 +591,62 @@ function removeInsideParentheses(data, keepParentheses = false, level = 0) {
             for (let idx = 0; idx < data.length; ++idx) {
                 let c = data[idx];
 
-                if (c == '(') {
+                /**
+                 * REGEX START
+                 */
+                if (c == '/' && data[idx - 1] != '\\' && data[idx + 1] != '/' && stack < 1) {
+                    // Checking if it is valid regex
+                    let lidx = idx + 1;
+                    let lstr = '';
+                    let regexStackParenthesis = 0;
+                    let regexStackSquareBracket = 0;
+
+                    while (lidx < data.length) {
+                        // prevent loop
+
+                        let lc = data[lidx];
+
+                        if (lc == '(') {
+                            regexStackParenthesis += 1;
+                        } else if (lc == ')') {
+                            regexStackParenthesis -= 1;
+                        } else if (lc == '[') {
+                            regexStackSquareBracket += 1;
+                        } else if (lc == ']') {
+                            regexStackSquareBracket -= 1;
+                        }
+
+                        lstr += lc;
+                        lidx += 1;
+
+                        if (data[lidx] == '/' && data[idx - 1] != '\\' && regexStackParenthesis < 1 && regexStackSquareBracket < 1) {
+                            if (regexStackParenthesis < 0) {
+                                regexStackParenthesis = 0;
+                            }
+                            if (regexStackSquareBracket < 0) {
+                                regexStackSquareBracket = 0;
+                            }
+                            break;
+                        }
+                    }
+
+                    try {
+                        if (''.split(new RegExp(lstr)).length > -1) {
+                            // Valid regex
+                            const ref = `__¬¬¬__${idx}__¬¬¬__`;
+                            data = utils.replaceRange(data, idx, lidx + 1, ref);
+                            c = data[idx];
+
+                            // Storing regex apart
+                            storedRegexs.push({ ref, regex: `/${lstr}/` });
+                        }
+                    } catch (err) {
+                        // Invalid regex
+                    }
+                }
+                /* REGEX END */
+
+                if (c == '(' && data[idx - 1] != '\\') {
                     stack += 1;
                     if (keepParentheses) {
                         buffer += '(';
@@ -411,8 +660,11 @@ function removeInsideParentheses(data, keepParentheses = false, level = 0) {
                     buffer += c;
                 }
 
-                if (c == ')') {
+                if (c == ')' && data[idx - 1] != '\\') {
                     stack -= 1;
+                    if (stack < 0) {
+                        stack = 0;
+                    }
                     if (keepParentheses) {
                         buffer += ')';
                     }
@@ -442,10 +694,20 @@ function removeInsideParentheses(data, keepParentheses = false, level = 0) {
                 }
 
                 if (idx == data.length - 1) {
+                    if (storedRegexs.length > 0) {
+                        storedRegexs.forEach(r => {
+                            strToReturn = strToReturn.replace(r.ref, r.regex);
+                        });
+                    }
                     return resolve(strToReturn);
                 }
             }
         } catch (err) {
+            if (storedRegexs.length > 0) {
+                storedRegexs.forEach(r => {
+                    strToReturn = strToReturn.replace(r.ref, r.regex);
+                });
+            }
             return resolve(strToReturn);
         }
     });
@@ -741,7 +1003,7 @@ function getHeaderQueryBody(elem, request, objParameters) {
             /**
              * Headers
              */
-            if (req && elem && elem.split(req + '.headers.').length > 1) {
+            if (globalOptions.autoHeaders && req && elem && elem.split(req + '.headers.').length > 1) {
                 elem.split(req + '.headers.')
                     .splice(1)
                     .forEach(p => {
@@ -785,7 +1047,7 @@ function getHeaderQueryBody(elem, request, objParameters) {
              * Headers
              * Destructuring in body, such as: {a, b} = req.headers
              */
-            if (req && elem && elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.headers\\s+')).length > 1) {
+            if (globalOptions.autoHeaders && req && elem && elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.headers\\s+')).length > 1) {
                 let elems = elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.headers\\s+'));
                 for (let idxHeader = 0; idxHeader < elems.length - 1; ++idxHeader) {
                     let header = elems[idxHeader]; //objBody
@@ -841,7 +1103,7 @@ function getHeaderQueryBody(elem, request, objParameters) {
              * Headers
              * E.g: let someHeader = req.headers['x-token']
              */
-            if (req && elem && elem.split(req + '.headers[').length > 1) {
+            if (globalOptions.autoHeaders && req && elem && elem.split(req + '.headers[').length > 1) {
                 let elems = elem.split(req + '.headers[');
                 for (let idxHeader = 1; idxHeader < elems.length; ++idxHeader) {
                     let header = elems[idxHeader];
@@ -886,7 +1148,7 @@ function getHeaderQueryBody(elem, request, objParameters) {
             /**
              * query
              */
-            if (req && elem && elem.split(req + '.query.').length > 1) {
+            if (globalOptions.autoQuery && req && elem && elem.split(req + '.query.').length > 1) {
                 elem.split(req + '.query.')
                     .splice(1)
                     .forEach(p => {
@@ -932,7 +1194,7 @@ function getHeaderQueryBody(elem, request, objParameters) {
              * Created by: WHL
              * Modified by: Davi Baltar
              */
-            if (req && elem && elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.query\\s+')).length > 1) {
+            if (globalOptions.autoQuery && req && elem && elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.query\\s+')).length > 1) {
                 let elems = elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.query\\s+'));
                 for (let idxQuery = 0; idxQuery < elems.length - 1; ++idxQuery) {
                     let query = elems[idxQuery]; //objBody
@@ -996,7 +1258,7 @@ function getHeaderQueryBody(elem, request, objParameters) {
              * Created by: WHL
              * Modified by: Davi Baltar
              */
-            if (req && elem && elem.split(req + '.body.').length > 1) {
+            if (globalOptions.autoBody && req && elem && elem.split(req + '.body.').length > 1) {
                 elem.split(req + '.body.')
                     .splice(1)
                     .forEach(p => {
@@ -1036,7 +1298,7 @@ function getHeaderQueryBody(elem, request, objParameters) {
              * Created by: WHL
              * Modified by: Davi Baltar
              */
-            if (req && elem && elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.body\\s+')).length > 1) {
+            if (globalOptions.autoBody && req && elem && elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.body\\s+')).length > 1) {
                 let elems = elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.body\\s+'));
                 for (let idxBody = 0; idxBody < elems.length - 1; ++idxBody) {
                     let objBody = elems[idxBody];
@@ -1544,45 +1806,8 @@ async function popFunction(data) {
     }
 }
 
-/**
- * Get the first string in a string.
- * @param {string} data content.
- */
-function popString(data, keepQuote = false) {
-    if (!data) {
-        return null;
-    }
-
-    try {
-        let quote = null;
-        let onString = false;
-        let string = '';
-        for (let i = 0; i < data.length; ++i) {
-            let c = data[i];
-
-            if (quote) {
-                string += c;
-            }
-
-            if (onString && c == quote && data[i - 1] !== '\\') {
-                if (!keepQuote) {
-                    return string.slice(0, -1);
-                }
-                return c + string;
-            }
-
-            if (!onString && /'|"|`/.test(c) && data[i - 1] !== '\\') {
-                quote = c;
-                onString = true;
-            }
-        }
-        return null;
-    } catch (err) {
-        return null;
-    }
-}
-
 module.exports = {
+    setOptions,
     clearData,
     removeComments,
     removeStrings,
@@ -1596,7 +1821,6 @@ module.exports = {
     functionRecognizerInData,
     popFunction,
     getSwaggerComments,
-    popString,
     removeInsideParentheses,
     dataConverter
 };

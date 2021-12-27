@@ -181,9 +181,7 @@ function getPath(elem, autoMode) {
         if (autoMode && !elem.includes(statics.SWAGGER_TAG + '.path')) {
             const quotMark = line[0];
             if ((quotMark == '"' || quotMark == "'" || quotMark == '`') && line.split(quotMark).length > 2) {
-                line = line.replaceAll(`\\${quotMark}`, statics.STRING_BREAKER + 'quotMark' + statics.STRING_BREAKER); // avoiding problemas caused by: " ... \" ... ", ' ... \' ... ', etc
-                path = line.split(quotMark)[1];
-                path = path.replaceAll(statics.STRING_BREAKER + 'quotMark' + statics.STRING_BREAKER, `\\${quotMark}`); // avoiding problemas caused by: " ... \" ... ", ' ... \' ... ', etc
+                path = utils.popString(line);
                 path = path.split('/').map(p => {
                     if (p.includes(':')) p = '{' + p.replace(':', '') + '}';
                     return p;
@@ -192,16 +190,11 @@ function getPath(elem, autoMode) {
             } else {
                 path = '/_undefined_path_0x' + elem.length.toString(16);
             }
-        } else if (elem.includes(statics.SWAGGER_TAG + '.path'))
+        } else if (elem.includes(statics.SWAGGER_TAG + '.path')) {
             // Search for #swagger.path
-            path = elem
-                .split(statics.SWAGGER_TAG + '.path')[1]
-                .replaceAll(' ', '')
-                .replaceAll("'", '"')
-                .replaceAll('`', '"')
-                .split('=')[1]
-                .getBetweenStrs('"', '"');
-        else {
+            path = elem.split(new RegExp(statics.SWAGGER_TAG + '.path\\s*\\='))[1];
+            path = utils.popString(path);
+        } else {
             path = '/_undefined_path_0x' + elem.length.toString(16);
         }
         return path;
@@ -219,7 +212,7 @@ function getMethodTag(data, reference) {
     try {
         if (data.includes(statics.SWAGGER_TAG + '.method')) {
             let method = data.split(new RegExp(statics.SWAGGER_TAG + '.method' + '\\s*\\=\\s*'))[1];
-            method = popString(method);
+            method = utils.popString(method);
             if (method && statics.METHODS.includes(method.toLowerCase())) {
                 return method.toLowerCase();
             }
@@ -270,14 +263,8 @@ function getForcedEndpoints(aData, reference) {
  */
 function getIgnoreTag(elem) {
     try {
-        if (elem.includes(statics.SWAGGER_TAG + '.ignore'))
-            if (
-                elem
-                    .split(statics.SWAGGER_TAG + '.ignore')[1]
-                    .replaceAll(' ', '')
-                    .split('=')[1]
-                    .slice(0, 4) == 'true'
-            ) {
+        if (elem && elem.includes(statics.SWAGGER_TAG + '.ignore'))
+            if (elem.split(new RegExp(statics.SWAGGER_TAG + '.ignore\\s*\\=\\s*'))[1].slice(0, 4) == 'true') {
                 return true;
             }
         return false;
@@ -649,36 +636,6 @@ async function getResponsesTag(data, objResponses, reference) {
  * TODO: fill
  * @param {*} data
  */
-function popString(data) {
-    try {
-        let dataAux = data.split('');
-        for (let idx = 0; idx < dataAux.length; ++idx) {
-            if (dataAux[idx] == '"' || dataAux[idx] == "'" || dataAux[idx] == '`') {
-                data = data.slice(idx);
-                break;
-            }
-        }
-        const quotMark = data[0];
-        if ((quotMark == '"' || quotMark == "'" || quotMark == '`') && data.split(quotMark).length > 2) {
-            let aux = data.replaceAll(`\\${quotMark}`, statics.STRING_BREAKER + 'quotMark' + statics.STRING_BREAKER);
-            aux = aux.split(quotMark);
-            data = aux[1];
-            data = data.replaceAll(statics.STRING_BREAKER + 'quotMark' + statics.STRING_BREAKER, `\\${quotMark}`);
-            if (data === '') {
-                return null;
-            }
-            return data;
-        }
-        return null;
-    } catch (err) {
-        return null;
-    }
-}
-
-/**
- * TODO: fill
- * @param {*} data
- */
 function getDescription(data, reference) {
     try {
         let swaggerDescription = data.split(new RegExp(`${statics.SWAGGER_TAG}.description\\s*\\=\\s*`))[1];
@@ -760,9 +717,9 @@ function getTags(data, reference) {
         if (symbol == '[' && swaggerTags.split(new RegExp('\\[|\\]')).length > 2) {
             let aux = swaggerTags.split(new RegExp('\\[|\\]'));
             swaggerTags = aux[1];
-            for (let idx = 0; idx < 100; ++idx) {
-                // max limit of tags = 100
-                let str = popString(swaggerTags);
+            for (let idx = 0; idx < 300; ++idx) {
+                // max limit of tags = 300
+                let str = utils.popString(swaggerTags);
                 if (!str) {
                     break;
                 }
