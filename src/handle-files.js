@@ -701,6 +701,18 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                             imp.isDirectory ? (exportPath = found.path) : (exportPath = imp.fileName); // TODO: change variable name
                                         }
                                     });
+
+                                    if (exportPath) {
+                                        // REFACTOR: pass to function
+                                        if (exportPath.includes('../')) {
+                                            let foldersToBack = exportPath.split('../').length - 1;
+                                            let RelativePathBacked = relativePath.split('/');
+                                            RelativePathBacked = RelativePathBacked.slice(0, -1 * foldersToBack);
+                                            RelativePathBacked = RelativePathBacked.join('/');
+
+                                            exportPath = RelativePathBacked + '/' + exportPath.replaceAll('../', '');
+                                        }
+                                    }
                                 } else {
                                     if (importedFiles[idx].isDirectory && !importedFiles[idx].isRequireDirLib) {
                                         exportPath = importedFiles[idx].fileName + '/index';
