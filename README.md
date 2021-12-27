@@ -77,7 +77,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.18.0
+$ npm install --save-dev swagger-autogen@2.18.1
 ```
 
 ## Usage
@@ -233,10 +233,12 @@ It is possible to change some options of the module by passing an object as a pa
 
 ```js
 const options = {
-    openapi: <string>,          // By default is null
-    language: <string>,         // By default is 'en-US'
-    disableLogs: <boolean>,     // By default is false
-    disableWarnings: <boolean>  // By default is false
+    openapi: <string>,          // Enable/Disable OpenAPI. By default is null
+    language: <string>,         // Change response language. By default is 'en-US'
+    disableLogs: <boolean>,     // Enable/Disable logs. By default is false
+    autoHeaders: <boolean>,     // Enable/Disable automatic headers capture. By default is true
+    autoQuery: <boolean>,       // Enable/Disable automatic query capture. By default is true
+    autoBody: <boolean>         // Enable/Disable automatic body capture. By default is true
 }
 ```
 
