@@ -288,7 +288,6 @@ const tableStatusCodes_frFR = {
     599: 'Erreur Délai de Connexion au Réseau'
 };
 
-// TODO: add other languages
 function getHttpStatusDescription(statusCode, lang) {
     lang = lang.toLowerCase();
     if (lang == 'pt-br') {
@@ -304,7 +303,8 @@ function getHttpStatusDescription(statusCode, lang) {
         // French
         return tableStatusCodes_frFR[statusCode];
     } else {
-        return tableStatusCodes_enUS[statusCode]; // English by default
+        // English by default
+        return tableStatusCodes_enUS[statusCode];
     }
 }
 
