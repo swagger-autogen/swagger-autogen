@@ -7,6 +7,11 @@ const statics = require('./statics');
 const utils = require('./utils');
 const codeParser = require('./code-parser');
 
+let globalOptions = {};
+function setOptions(options) {
+    globalOptions = options;
+}
+
 const overwriteMerge = (destinationArray, sourceArray, options) => {
     if (destinationArray || sourceArray || options) return sourceArray;
 };
@@ -47,12 +52,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
              * patterns before of method, such as: app, route, etc.
              */
             let dataToGetPatterns = data; // dataToGetPatterns = 'data' without strings, comments and inside parentheses
-            if (dataToGetPatterns) {
-                dataToGetPatterns = dataToGetPatterns.split(new RegExp('\\)\\s*\\n*\\t*\\;\\/\\/')).join('); //');
-                dataToGetPatterns = dataToGetPatterns.split(new RegExp('\\)\\/\\/')).join(') //');
-                dataToGetPatterns = dataToGetPatterns.split(new RegExp('\\)\\s*\\n*\\t*\\;\\/\\*')).join('); /*');
-                dataToGetPatterns = dataToGetPatterns.split(new RegExp('\\)\\/\\*')).join(') /*');
-            }
+
             dataToGetPatterns = await handleData.removeComments(dataToGetPatterns, false);
             dataToGetPatterns = await handleData.removeStrings(dataToGetPatterns);
             dataToGetPatterns = await handleData.removeInsideParentheses(dataToGetPatterns, true);
@@ -607,7 +607,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             let idx = null;
                             let functionName = null;
                             let varFileName = null;
-                            let refFuncInParam = null;
+                            let refFuncInParamStr = null;
+                            // let refFuncInParam = [];
                             const rexRequire = /\s*require\s*\n*\t*\(/;
                             if (rexRequire.test(func)) {
                                 if (func && func.split(new RegExp('\\(\\s*__dirname\\s*\\+\\s*\\"?\\\'?\\`?')).length > 1) {
@@ -646,10 +647,22 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 if (func.includes('(') && func.includes(')')) {
                                     let params = await utils.stack0SymbolRecognizer(func, '(', ')'); // TODO: get array with all strings and try to find with each one
                                     if (params && (params[0] == '"' || params[0] == "'" || params[0] == '`')) {
-                                        refFuncInParam = params.replaceAll('"', '').replaceAll("'", '').replaceAll('`', '');
+                                        refFuncInParamStr = params.replaceAll('"', '').replaceAll("'", '').replaceAll('`', '');
                                     }
                                 }
                                 /* END CASE */
+
+                                /*
+                                // TODO: Verify this case
+                                if (func.includes('(') && func.includes(')')) {
+                                    let params = await utils.stack0SymbolRecognizer(func, '(', ')'); // TODO: get array with all functions and try to find with each one
+                                    if (params) {
+                                        params.split(',').forEach( p => {
+                                            refFuncInParam.push(p.replaceAll('"', '').replaceAll("'", '').replaceAll('`', '').replaceAll(' ', ''));
+                                        })
+                                    }
+                                }
+                                */
 
                                 func = func.split(new RegExp('\\(|\\)'))[0];
                                 if (func.split(new RegExp('\\(|\\)|\\[|\\]|\\{|\\}|\\!|\\=|\\>|\\<')).length > 1 || func.trim() == '') {
@@ -751,9 +764,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                     }
                                 }
 
-                                if (!refFunction && refFuncInParam) {
+                                if (!refFunction && refFuncInParamStr) {
                                     let fileContent = await utils.getFileContent(pathFile + extension);
-                                    if (fileContent && fileContent.includes('awilix-express')) refFunction = await functionRecognizerInFile(pathFile + extension, refFuncInParam);
+                                    if (fileContent && fileContent.includes('awilix-express')) refFunction = await functionRecognizerInFile(pathFile + extension, refFuncInParamStr);
                                 }
 
                                 /**
@@ -999,7 +1012,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 .replaceAll('*/', '\n')
                                 .replaceAll(statics.SWAGGER_TAG, '\n' + statics.SWAGGER_TAG);
 
-                            //const rawEndpoint = endpoint;
+                            // const rawEndpoint = endpoint;
 
                             req = null;
                             res = null;
@@ -1137,7 +1150,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                                 if (res) {
                                     objResponses = await handleData.getStatus(endpoint, res, objResponses); // Search for response status
-                                    //objResponses = handleData.getResponses(rawEndpoint, res, objResponses);
+                                    if (globalOptions.autoResponse) {
+                                        //     objResponses = await handleData.getResponses(rawEndpoint, res, objResponses);
+                                    }
                                     objEndpoint = handleData.getHeader(endpoint, path, method, res, objEndpoint); // Search for resonse header
                                 }
                             }
@@ -2200,5 +2215,6 @@ function functionRecognizerInFile(filePath, functionName, isRecursive = true) {
 }
 
 module.exports = {
-    readEndpointFile
+    readEndpointFile,
+    setOptions
 };

@@ -4,13 +4,14 @@ const swaggerTags = require('./src/swagger-tags');
 const handleFiles = require('./src/handle-files');
 const statics = require('./src/statics');
 const utils = require('./src/utils');
+const handleData = require('./src/handle-data');
 
 const { platform } = process;
 const symbols = platform === 'win32' ? { success: '', failed: '' } : { success: '✔', failed: '✖' };
 
 
 module.exports = function (args) {
-    let options = { language: null, disableLogs: false, disableWarnings: false, openapi: null };
+    let options = { language: null, disableLogs: false, disableWarnings: false, openapi: null, autoHeaders: true, autoQuery: true, autoBody: true, autoResponse: true };
     let recLang = null;
     if (args && typeof args === 'string') {
         // will be deprecated in a future version
@@ -18,6 +19,11 @@ module.exports = function (args) {
     } else if (args && typeof args === 'object') {
         options = { ...options, ...args };
     }
+
+    // REFACTOR: 
+    options.language = recLang || options.language || 'en-US';
+    handleFiles.setOptions(options);
+    handleData.setOptions(options);
 
     swaggerTags.setLanguage(recLang || options.language || 'en-US');
     swaggerTags.setOpenAPI(options.openapi);
