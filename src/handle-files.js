@@ -1334,7 +1334,13 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 exportPath = relativePath + exportPath.replaceAll("'", '').replaceAll('"', '').replaceAll('`', '').replaceAll(' ', '').replaceAll('\n', '').replaceAll('./', '/');
                             }
                             obj.hasRequire = true;
-                            const isDirectory = fs.existsSync(exportPath) && fs.lstatSync(exportPath).isDirectory() ? true : false;
+
+                            let isDirectory = false;
+                            let fileExtension = await utils.getExtension(exportPath);
+                            if (fileExtension === '') {
+                                isDirectory = fs.existsSync(exportPath) && fs.lstatSync(exportPath).isDirectory() ? true : false;
+                            }
+
                             if (isDirectory) {
                                 obj.isDirectory = true;
                                 // TODO: Verify other cases
@@ -1838,7 +1844,11 @@ async function getImportedFiles(data, relativePath) {
                     }
 
                     obj.fileName = pathFile;
-                    obj.isDirectory = fs.existsSync(pathFile) && fs.lstatSync(pathFile).isDirectory() ? true : false;
+                    obj.isDirectory = false;
+                    let fileExtension = await utils.getExtension(pathFile);
+                    if (fileExtension === '') {
+                        obj.isDirectory = fs.existsSync(pathFile) && fs.lstatSync(pathFile).isDirectory() ? true : false;
+                    }
 
                     // Checking if reference is to file
                     if (obj.isDirectory && obj.exports.length > 0) {
@@ -2013,7 +2023,11 @@ async function getImportedFiles(data, relativePath) {
                         }
 
                         obj.fileName = pathFile;
-                        obj.isDirectory = fs.existsSync(pathFile) && fs.lstatSync(pathFile).isDirectory() ? true : false;
+                        obj.isDirectory = false;
+                        let fileExtension = await utils.getExtension(pathFile);
+                        if (fileExtension === '') {
+                            obj.isDirectory = fs.existsSync(pathFile) && fs.lstatSync(pathFile).isDirectory() ? true : false;
+                        }
 
                         // Checking if reference is to file
                         if (obj.isDirectory) {
