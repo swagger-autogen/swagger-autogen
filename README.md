@@ -77,7 +77,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.18.3
+$ npm install --save-dev swagger-autogen@2.18.4
 ```
 
 ## Usage
@@ -1455,63 +1455,63 @@ Some tutorials with examples:
   - Partial TypeScript recognition
   - Recognizes middleware and middleware array
   - Code refactoring
-  - Bug fix
+  - Bug fixes
 - Version 2.1.x:
   - Recognizes different file import patterns
   - Recognizes some more features of TypeScript
-  - Bug fix
+  - Bug fixes
 - Version 2.2.x:
   - Recognizes some more features of TypeScript
   - Performance improvement
   - Recognizes regex in endpoint's path
   - Recognizes middlewares of routes (partially)
   - Options to disable logs
-  - Bug fix
+  - Bug fixes
 - Version 2.3.x:
   - Recognizes 'require-dir' lib (partially)
   - Recognizes some more features of TypeScript
-  - Bug fix
+  - Bug fixes
 - Version 2.4.x:
   - Recognizes direct import, such as: router.use(..., require('./routes.js'))
   - Recognizes new Router({ prefix: '...' })
   - Added some default parameters values
   - Code refactoring
-  - Bug fix
+  - Bug fixes
 - Version 2.5.x:
   - New tags: #swagger.summary and #swagger.operationId
-  - Bug fix
+  - Bug fixes
 - Version 2.6.x:
   - Recognition of more patterns
-  - Bug fix
+  - Bug fixes
 - Version 2.7.x:
   - Automatic body recognition
   - Automatic 'destructuring' recognition (query and body)
-  - Bug fix
+  - Bug fixes
 - Version 2.8.x:
   - OpenAPI option
   - Code refactoring
-  - Bug fix
+  - Bug fixes
 - Version 2.9.x:
   - Recognizes path with variables
   - Recognizes regex in middlewares
-  - Bug fix
+  - Bug fixes
 - Version 2.10.x:
   - Recognizes 'alias' in the import files
   - New language
-  - Bug fix
+  - Bug fixes
 - Version 2.11.x:
   - New tag: #swagger.requestBody
-  - Bug fix
+  - Bug fixes
 - Version 2.12.x:
   - Some OpenAPI 3.x features
-  - Bug fix
+  - Bug fixes
 - Version 2.13.x:
   - Recognizes 'sendStatus' function
-  - Bug fix
+  - Bug fixes
 - Version 2.14.x:
   - Enums OpenAPI 3.x feature
   - Improvements
-  - Bug fix
+  - Bug fixes
 - Version 2.15.x:
   - New language
   - TypeScript bug fix
@@ -1519,13 +1519,14 @@ Some tutorials with examples:
 - Version 2.16.x:
   - New property: @schema
   - Identification of referenced variables (partially)
-  - Bug fix
+  - Bug fixes
 - Version 2.17.x:
   - Recognizes 'headers' parameters automatically 
-  - Bug fix
+  - Bug fixes
 - Version 2.18.x:
   - Allow swagger properties to be passed to whole route. (properties inheritance)
-  - Bug fix
+  - Improvements
+  - Bug fixes
 
 **TODO:**
 
