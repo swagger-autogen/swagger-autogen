@@ -1563,6 +1563,7 @@ async function getPathParameters(path, objParameters) {
 }
 
 /**
+ * TODO: REFACTOR THIS FUNCTION
  * Recognize function in a string data.
  * @param {string} data content.
  * @param {string} functionName
@@ -1590,8 +1591,13 @@ async function functionRecognizerInData(data, functionName) {
             return null;
         }
 
+        // TO REFACTOR
         if (data.split(new RegExp(`\\w+${functionName}|${functionName}\\w+|\\w+${functionName}\\w+`)).length > 1) {
-            data = data.replaceAll(`.headers.${functionName}`, '____HEADERS____');
+            data = data.replaceAll(new RegExp(`\\s*\\n*\\t*\\.\\s*\\n*\\t*headers\\s*\\n*\\t*\\.\\s*\\n*\\t*${functionName}`), '____HEADERS____');
+            data = data.replaceAll(new RegExp(`\\s*\\n*\\t*\\.\\s*\\n*\\t*headers\\s*\\n*\\t*\\[\\s*\\n*\\t*"${functionName}`), '____HEADERS1____');
+            data = data.replaceAll(new RegExp(`\\s*\\n*\\t*\\.\\s*\\n*\\t*headers\\s*\\n*\\t*\\[\\s*\\n*\\t*'${functionName}`), '____HEADERS2____');
+            data = data.replaceAll(new RegExp(`\\s*\\n*\\t*\\.\\s*\\n*\\t*headers\\s*\\n*\\t*\\[\\s*\\n*\\t*\`${functionName}`), '____HEADERS3____');
+
             data = data.replaceAll(new RegExp(`var\\s+\\n*\\t*\\{\\s*\\n*\\t*${functionName}`), '____VARIABLE_DEST____');
             data = data.replaceAll(new RegExp(`let\\s+\\n*\\t*\\{\\s*\\n*\\t*${functionName}`), '____VARIABLE_DEST____');
             data = data.replaceAll(new RegExp(`const\\s+\\n*\\t*\\{\\s*\\n*\\t*${functionName}`), '____VARIABLE_DEST____');
@@ -1617,10 +1623,13 @@ async function functionRecognizerInData(data, functionName) {
                 data = data[0];
             }
             data = data.split(new RegExp(`\\w+${functionName}|${functionName}\\w+|\\w+${functionName}\\w+`));
-            data = data.join('____FUNC____');
+            data = data.join(' ');
 
             data = data.replaceAll('____KEEP_NAME____', `${functionName}`);
             data = data.replaceAll('____HEADERS____', `.headers.${functionName}`);
+            data = data.replaceAll('____HEADERS1____', `.headers["${functionName}`);
+            data = data.replaceAll('____HEADERS2____', `.headers['${functionName}`);
+            data = data.replaceAll('____HEADERS3____', `.headers[\`${functionName}`);
             data = data.replaceAll('____VARIABLE_DEST____', `let { ${functionName}`);
             data = data.replaceAll('____VARIABLE____', `, ${functionName}`);
             data = data.replaceAll('____VARIABLE_BODY____', `body.${functionName}`);

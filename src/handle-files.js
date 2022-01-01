@@ -623,18 +623,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 exportPath = func.split(rexRequire);
                                 exportPath = exportPath.slice(-1)[0];
                                 exportPath = exportPath.split(')')[0];
-                                if (exportPath && exportPath.includes('./')) {
-                                    if (exportPath.includes('../')) {
-                                        let foldersToBack = exportPath.split('../').length - 1;
-                                        let RelativePathBacked = relativePath.split('/');
-                                        RelativePathBacked = RelativePathBacked.slice(0, -1 * foldersToBack);
-                                        RelativePathBacked = RelativePathBacked.join('/');
-
-                                        exportPath = RelativePathBacked + '/' + exportPath.replaceAll("'", '').replaceAll('"', '').replaceAll('`', '').replaceAll(' ', '').replaceAll('\n', '').replaceAll('../', '');
-                                    } else {
-                                        exportPath = relativePath + exportPath.replaceAll("'", '').replaceAll('"', '').replaceAll('`', '').replaceAll(' ', '').replaceAll('\n', '').replaceAll('./', '/');
-                                    }
-                                }
+                                exportPath = await resolvePathFile(exportPath, relativePath);
                             } else {
                                 func = func.replaceAll('\n', '').replaceAll('\t', '').replaceAll(' ', '').replaceAll('[', '').replaceAll(']', '');
 
@@ -703,14 +692,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                     });
 
                                     if (exportPath) {
-                                        // REFACTOR: pass to function
                                         if (exportPath.includes('../')) {
-                                            let foldersToBack = exportPath.split('../').length - 1;
-                                            let RelativePathBacked = relativePath.split('/');
-                                            RelativePathBacked = RelativePathBacked.slice(0, -1 * foldersToBack);
-                                            RelativePathBacked = RelativePathBacked.join('/');
-
-                                            exportPath = RelativePathBacked + '/' + exportPath.replaceAll('../', '');
+                                            exportPath = await resolvePathFile(exportPath, relativePath);
                                         }
                                     }
                                 } else {
@@ -975,7 +958,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                         // Order
                         objEndpoint[path][method] = {};
-                        objEndpoint[path][method].tags = [];
+                        objEndpoint[path][method].tags = undefined;
                         objEndpoint[path][method].summary = undefined;
                         objEndpoint[path][method].description = '';
                         objEndpoint[path][method].operationId = undefined;
@@ -1217,21 +1200,12 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 if (objEndpoint[path][method].parameters && objEndpoint[path][method].parameters.length > 0) {
                                     objEndpoint[path][method].parameters = objEndpoint[path][method].parameters.filter(p => p.in && p.in.toLowerCase() !== 'body');
                                 }
-                                if (objEndpoint[path][method].parameters.length === 0) {
-                                    delete objEndpoint[path][method].parameters;
-                                }
-                                if (objEndpoint[path][method].tags && objEndpoint[path][method].tags.length == 0) {
-                                    delete objEndpoint[path][method].tags;
-                                }
-                                if (objEndpoint[path][method].description == '') {
-                                    delete objEndpoint[path][method].description;
-                                }
                             } else if (objInBody && _idxEF == endpointFunctions.length - 1) {
                                 /**
                                  * If #swagger.parameter or #swagger.requestBody is present
                                  * the automatic body recognition will be ignored.
                                  */
-                                objInBody.name = 'obj'; // By default, the name of object recognized automatically in the body will be 'obj' if no parameter are found to be concatenate with it.
+                                objInBody.name = 'body'; // By default, the name of object recognized automatically in the body will be 'body' if no parameter are found to be concatenate with it.
                                 if (objEndpoint[path][method].parameters && objEndpoint[path][method].parameters.length > 0 && objEndpoint[path][method].parameters.find(e => e.in === 'body')) {
                                     let body = objEndpoint[path][method].parameters.find(e => e.in === 'body');
                                     if (objInBody && objInBody.schema && body && body.schema && body.schema.properties && body.schema.properties['__AUTO_GENERATE__'] && Object.keys(body.schema.properties).length == 0) {
@@ -1335,16 +1309,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         exportPath = exportPath.slice(-1)[0];
                         exportPath = exportPath.split(')')[0];
                         if (exportPath && exportPath.includes('./')) {
-                            if (exportPath.includes('../')) {
-                                let foldersToBack = exportPath.split('../').length - 1;
-                                let RelativePathBacked = relativePath.split('/');
-                                RelativePathBacked = RelativePathBacked.slice(0, -1 * foldersToBack);
-                                RelativePathBacked = RelativePathBacked.join('/');
-
-                                exportPath = RelativePathBacked + '/' + exportPath.replaceAll("'", '').replaceAll('"', '').replaceAll('`', '').replaceAll(' ', '').replaceAll('\n', '').replaceAll('../', '');
-                            } else {
-                                exportPath = relativePath + exportPath.replaceAll("'", '').replaceAll('"', '').replaceAll('`', '').replaceAll(' ', '').replaceAll('\n', '').replaceAll('./', '/');
-                            }
+                            exportPath = await resolvePathFile(exportPath, relativePath);
                             obj.hasRequire = true;
 
                             let isDirectory = false;
@@ -1840,17 +1805,7 @@ async function getImportedFiles(data, relativePath) {
                 if (fileName.includes('./')) {
                     let pathFile = null;
                     if (relativePath) {
-                        // REFACTOR: pass to function
-                        if (fileName.includes('../')) {
-                            let foldersToBack = fileName.split('../').length - 1;
-                            let RelativePathBacked = relativePath.split('/');
-                            RelativePathBacked = RelativePathBacked.slice(0, -1 * foldersToBack);
-                            RelativePathBacked = RelativePathBacked.join('/');
-
-                            pathFile = RelativePathBacked + '/' + fileName.replaceAll('../', ''); //.replaceAll('//', '/')
-                        } else {
-                            pathFile = relativePath + fileName.replaceAll('./', '/');
-                        }
+                        pathFile = await resolvePathFile(fileName, relativePath);
                     } else {
                         pathFile = fileName;
                     }
@@ -2015,21 +1970,11 @@ async function getImportedFiles(data, relativePath) {
                 /* END CASE */
 
                 if (fileName.includes('./')) {
-                    if (fileName.split(new RegExp(`.json`, 'i')).length == 1) {
+                    if (fileName.split(new RegExp(`.json$`, 'i')).length == 1) {
                         // Will not recognize files with .json extension
                         let pathFile = null;
                         if (relativePath) {
-                            // REFACTOR: pass to function
-                            if (fileName.includes('../')) {
-                                let foldersToBack = fileName.split('../').length - 1;
-                                let RelativePathBacked = relativePath.split('/');
-                                RelativePathBacked = RelativePathBacked.slice(0, -1 * foldersToBack);
-                                RelativePathBacked = RelativePathBacked.join('/');
-
-                                pathFile = RelativePathBacked + '/' + fileName.replaceAll('../', '');
-                            } else {
-                                pathFile = relativePath + fileName.replaceAll('./', '/');
-                            }
+                            pathFile = await resolvePathFile(fileName, relativePath);
                         } else {
                             pathFile = fileName;
                         }
@@ -2056,24 +2001,15 @@ async function getImportedFiles(data, relativePath) {
                                     // TODO: Verify other cases
 
                                     let relativePath = obj.fileName;
-                                    obj.exports.map(oExp => {
+                                    for (let pathIdx = 0; pathIdx < obj.exports.length; ++pathIdx) {
+                                        let oExp = obj.exports[pathIdx];
+
                                         if (dataFile.split(new RegExp(`${oExp}\\s*\\n*\\t*\\=\\s*\\n*\\t*require\\s*\\n*\\t*\\(`)).length > 1) {
                                             let addPath = dataFile.split(new RegExp(`${oExp}\\s*\\n*\\t*\\=\\s*\\n*\\t*require\\s*\\n*\\t*\\(\\s*\\n*\\t*`));
                                             addPath = addPath[1].split(')')[0].replaceAll("'", '').replaceAll('"', '').replaceAll('`', '');
-
-                                            if (addPath.includes('../')) {
-                                                // REFACTOR: pass to funcion
-                                                let foldersToBack = addPath.split('../').length - 1;
-                                                let RelativePathBacked = relativePath.split('/');
-                                                RelativePathBacked = RelativePathBacked.slice(0, -1 * foldersToBack);
-                                                RelativePathBacked = RelativePathBacked.join('/');
-
-                                                oExp.path = RelativePathBacked + '/' + addPath.replaceAll('../', '');
-                                            } else {
-                                                oExp.path = relativePath + addPath.replaceAll('./', '/');
-                                            }
+                                            oExp.path = await resolvePathFile(addPath, relativePath);
                                         }
-                                    });
+                                    }
                                 }
                             }
                         }
@@ -2162,20 +2098,7 @@ function functionRecognizerInFile(filePath, functionName, isRecursive = true) {
                             }
 
                             let relativePath = filePath.split('/').slice(0, -1).join('/');
-                            // REFACTOR: Pass to function
-                            if (path && path.includes('./')) {
-                                if (path.includes('../')) {
-                                    let foldersToBack = path.split('../').length - 1;
-                                    let RelativePathBacked = relativePath.split('/');
-                                    RelativePathBacked = RelativePathBacked.slice(0, -1 * foldersToBack);
-                                    RelativePathBacked = RelativePathBacked.join('/');
-
-                                    path = RelativePathBacked + '/' + path.replaceAll("'", '').replaceAll('"', '').replaceAll('`', '').replaceAll(' ', '').replaceAll('\n', '').replaceAll('../', '');
-                                } else {
-                                    path = relativePath + path.replaceAll("'", '').replaceAll('"', '').replaceAll('`', '').replaceAll(' ', '').replaceAll('\n', '').replaceAll('./', '/');
-                                }
-                            }
-
+                            path = await resolvePathFile(path, relativePath);
                             if (path) {
                                 let extension = await utils.getExtension(path);
                                 funcStr = await functionRecognizerInFile(path + extension, functionName, false);
@@ -2238,6 +2161,29 @@ function functionRecognizerInFile(filePath, functionName, isRecursive = true) {
             }
         });
     });
+}
+
+async function resolvePathFile(path, relativePath) {
+    let solvedPath = path;
+    if (path && path.includes('./')) {
+        if (path.includes('../')) {
+            let foldersToBack = path.split('../').length - 1;
+            let RelativePathBacked = relativePath.split('/');
+            RelativePathBacked = RelativePathBacked.slice(0, -1 * foldersToBack);
+            RelativePathBacked = RelativePathBacked.join('/');
+
+            solvedPath = RelativePathBacked + '/' + path.replaceAll("'", '').replaceAll('"', '').replaceAll('`', '').replaceAll(' ', '').replaceAll('\n', '').replaceAll('../', '');
+            if ((await utils.getExtension(solvedPath)) === '' && (await utils.getExtension('.' + solvedPath)) != '') {
+                solvedPath = '.' + solvedPath;
+            }
+        } else {
+            solvedPath = relativePath + path.replaceAll("'", '').replaceAll('"', '').replaceAll('`', '').replaceAll(' ', '').replaceAll('\n', '').replaceAll('./', '/');
+            if ((await utils.getExtension(solvedPath)) === '' && (await utils.getExtension('.' + solvedPath)) != '') {
+                solvedPath = '.' + solvedPath;
+            }
+        }
+    }
+    return solvedPath;
 }
 
 module.exports = {

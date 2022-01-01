@@ -236,13 +236,24 @@ module.exports = function (args) {
             /**
              * Removing unused parameters
              */
-            if (Object.keys(objDoc.components).length == 0) {
+            if (objDoc.components && Object.keys(objDoc.components).length == 0) {
                 delete objDoc.components;
             }
-            if (Object.keys(objDoc.servers).length == 0) {
+            if (objDoc.servers && Object.keys(objDoc.servers).length == 0) {
                 delete objDoc.servers;
             }
-
+            if(objDoc.tags && objDoc.tags.length == 0){
+                delete objDoc.tags;
+            }
+            if(objDoc.consumes && objDoc.consumes.length == 0){
+                delete objDoc.consumes;
+            }
+            if(objDoc.produces && objDoc.produces.length == 0){
+                delete objDoc.produces;
+            }
+            if(objDoc.definitions && Object.keys(objDoc.definitions).length == 0){
+                delete objDoc.definitions;
+            }
 
             let dataJSON = JSON.stringify(objDoc, null, 2);
             fs.writeFileSync(outputFile, dataJSON);
