@@ -1015,11 +1015,23 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             // Geting callback parameters: 'request', 'response' and 'next'
                             if (autoMode && !req && !res) {
                                 if (forced) {
-                                    res = elemOrig.split(/([a-zA-Z]*|[0-9]|_|-)*\.status\(/);
-                                    if (res[1] && res[1] != '') {
-                                        res = res[1];
-                                    } else {
-                                        res = null;
+                                    let elem = await handleData.removeStrings(elemOrig);
+                                    elem = await handleData.removeComments(elem);
+                                    if (elem) {
+                                        try {
+                                            let setRes = new Set();
+                                            elem = elem.split(new RegExp(`\\.\\s*\\n*\\t*status\\s*\\n*\\t*\\(`));
+                                            if (elem && elem.length > 1) {
+                                                elem.pop();
+                                                elem.forEach(e => {
+                                                    let resAux = e.split(new RegExp(`\\s|\\n|\\t|;|:|,|\\(|\\)|\\[|\\]|\\{|\\}`)).slice(-1)[0].trim();
+                                                    if (resAux && resAux != '') setRes.add(resAux);
+                                                });
+                                            }
+                                            res = [...setRes];
+                                        } catch (err) {
+                                            res = null;
+                                        }
                                     }
                                 } else {
                                     const callbackParameters = endpointFunctions[_idxEF].callbackParameters;
