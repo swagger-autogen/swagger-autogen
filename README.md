@@ -1519,7 +1519,7 @@ Some tutorials with examples:
   - Bug fixes
 - Version 2.18.x:
   - Allow swagger properties to be passed to whole route. (properties inheritance)
-  - Improvements
+  - Automatic recognition improvements
   - Bug fixes
 
 **TODO:**
