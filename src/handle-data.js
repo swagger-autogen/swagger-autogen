@@ -986,6 +986,9 @@ function getHeaderQueryBody(elem, request, objParameters) {
     if (elem) {
         elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*query\\s*\\n*\\t*\\.\\s*\\n*\\t*')).join('.query.');
         elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*body\\s*\\n*\\t*\\.\\s*\\n*\\t*')).join('.body.');
+        elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*headers')).join('.headers');
+        elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*query')).join('.query');
+        elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*body')).join('.body');
         elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*headers\\s*\\n*\\t*\\.\\s*\\n*\\t*')).join('.headers.');
         elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*query\\s*\\n*\\t*[\\;|\\,|\\}|\\]|\\)]')).join('.query ');
         elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*body\\s*\\n*\\t*[\\;|\\,|\\}|\\]|\\)]')).join('.body ');
@@ -999,21 +1002,67 @@ function getHeaderQueryBody(elem, request, objParameters) {
             if (req && req.split(/\(|\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n|"|'|`|\*/).length > 1) {
                 continue;
             }
+            elem = elem.split(new RegExp(`[\\(|\\)|\\{|\\}|\\[|\\]|\\/|\\|;|:|!|@|\\$|#|\\?|\\+|,|\\||&|\\t|\\n|\\*]${req}`)).join(` ${req}`, 'gm');
+            const origElem = elem;
+
+            // storing strings
+            elem = elem.replaceAll(statics.STRING_QUOTE, '"');
+            let str = utils.popString(elem, true);
+            let count = 0;
+            let storedStrings = [];
+            while (str && count < 300) {
+                if (str) {
+                    let ref = `___STRING_REF___${count}___`;
+                    elem = elem.replace(str, ref);
+                    storedStrings.push({ ref: `___STRING_REF___${count}___`, str });
+                    str = utils.popString(elem, true);
+                }
+                count += 1;
+            }
+
+            try {
+                let inputTypes = ['headers', 'query', 'body'];
+                for (let idxInput = 0; idxInput < inputTypes.length; ++idxInput) {
+                    let inputType = inputTypes[idxInput];
+                    let splitedElem = elem.split(new RegExp(`(\\s+\\w+\\s*\\=\\s*${req}\\s*\\.\\s*${inputType}(?!\\.))`));
+                    for (let idxElem = 1; idxElem < splitedElem.length; idxElem += 2) {
+                        let e = splitedElem[idxElem];
+                        if (e && e.includes('=') && e.includes(`.${inputType}`)) {
+                            let varName = e.split('=')[0].trim();
+                            elem = elem.split(new RegExp(`[\\(|\\)|\\{|\\}|\\[|\\]|\\/|\\|;|:|!|@|\\$|#|\\?|\\+|,|\\||&|\\t|\\n|\\*]${varName}`)).join(` ${varName}`, 'gm');
+                            elem = elem.replaceAll(varName, `${req}.${inputType}`);
+                        }
+                    }
+                }
+            } catch (err) {
+                elem = origElem;
+            }
+
+            // Coming back with the strings
+            storedStrings.forEach(s => {
+                elem = elem.replace(s.ref, s.str);
+            });
+
+            elem = elem.replaceAll('"', statics.STRING_QUOTE);
 
             /**
              * Headers
              */
-            if (globalOptions.autoHeaders && req && elem && elem.split(req + '.headers.').length > 1) {
-                elem.split(req + '.headers.')
+            if (globalOptions.autoHeaders && req && elem && elem.split(' ' + req + '.headers.').length > 1) {
+                elem.split(' ' + req + '.headers.')
                     .splice(1)
                     .forEach(p => {
                         p = p.trim();
                         let name = p
-                            .split(/\(|\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
+                            .split(/\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
                             .replaceAll(' ', '')
                             .replaceAll('\r', '');
-                        if (name.includes('.')) {
+
+                        if (name && name.includes('.')) {
                             name = name.split('.')[0];
+                        }
+                        if (name && name.slice(-1)[0] == '(') {
+                            return;
                         }
 
                         name = name.replaceAll('...', '');
@@ -1050,7 +1099,7 @@ function getHeaderQueryBody(elem, request, objParameters) {
             if (globalOptions.autoHeaders && req && elem && elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.headers\\s+')).length > 1) {
                 let elems = elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.headers\\s+'));
                 for (let idxHeader = 0; idxHeader < elems.length - 1; ++idxHeader) {
-                    let header = elems[idxHeader]; //objBody
+                    let header = elems[idxHeader];
 
                     if (header.split(new RegExp('\\:\\s*\\n*\\t*\\{')).length > 1) {
                         let subObjs = header.split(new RegExp('\\:\\s*\\n*\\t*\\{'));
@@ -1066,9 +1115,12 @@ function getHeaderQueryBody(elem, request, objParameters) {
                         name = name.trim();
                         name = name.replaceAll('...', '');
                         name = name
-                            .split(/\(|\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
+                            .split(/\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
                             .replaceAll(' ', '')
                             .replaceAll('\r', '');
+                        if (name && name.slice(-1)[0] == '(') {
+                            return;
+                        }
                         if (name == '') {
                             return;
                         }
@@ -1103,8 +1155,8 @@ function getHeaderQueryBody(elem, request, objParameters) {
              * Headers
              * E.g: let someHeader = req.headers['x-token']
              */
-            if (globalOptions.autoHeaders && req && elem && elem.split(req + '.headers[').length > 1) {
-                let elems = elem.split(req + '.headers[');
+            if (globalOptions.autoHeaders && req && elem && elem.split(' ' + req + '.headers[').length > 1) {
+                let elems = elem.split(' ' + req + '.headers[');
                 for (let idxHeader = 1; idxHeader < elems.length; ++idxHeader) {
                     let header = elems[idxHeader];
                     if (header.split(statics.STRING_QUOTE).length > 2) {
@@ -1112,9 +1164,12 @@ function getHeaderQueryBody(elem, request, objParameters) {
                         name = name.trim();
                         name = name.replaceAll('...', '');
                         name = name
-                            .split(/\(|\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
+                            .split(/\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
                             .replaceAll(' ', '')
                             .replaceAll('\r', '');
+                        if (name && name.slice(-1)[0] == '(') {
+                            return;
+                        }
                         if (name == '') {
                             break;
                         }
@@ -1148,17 +1203,21 @@ function getHeaderQueryBody(elem, request, objParameters) {
             /**
              * query
              */
-            if (globalOptions.autoQuery && req && elem && elem.split(req + '.query.').length > 1) {
-                elem.split(req + '.query.')
+            if (globalOptions.autoQuery && req && elem && elem.split(' ' + req + '.query.').length > 1) {
+                elem.split(' ' + req + '.query.')
                     .splice(1)
                     .forEach(p => {
                         p = p.trim();
                         let name = p
-                            .split(/\(|\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
+                            .split(/\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
                             .replaceAll(' ', '')
                             .replaceAll('\r', '');
-                        if (name.includes('.')) {
+
+                        if (name && name.includes('.')) {
                             name = name.split('.')[0];
+                        }
+                        if (name && name.slice(-1)[0] == '(') {
+                            return;
                         }
 
                         name = name.replaceAll('...', '');
@@ -1219,9 +1278,12 @@ function getHeaderQueryBody(elem, request, objParameters) {
                         name = name.trim();
                         name = name.replaceAll('...', '');
                         name = name
-                            .split(/\(|\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
+                            .split(/\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
                             .replaceAll(' ', '')
                             .replaceAll('\r', '');
+                        if (name && name.slice(-1)[0] == '(') {
+                            return;
+                        }
                         if (name == '') {
                             return;
                         }
@@ -1258,17 +1320,21 @@ function getHeaderQueryBody(elem, request, objParameters) {
              * Created by: WHL
              * Modified by: Davi Baltar
              */
-            if (globalOptions.autoBody && req && elem && elem.split(req + '.body.').length > 1) {
-                elem.split(req + '.body.')
+            if (globalOptions.autoBody && req && elem && elem.split(' ' + req + '.body.').length > 1) {
+                elem.split(' ' + req + '.body.')
                     .splice(1)
                     .forEach(p => {
                         p = p.trim();
                         let name = p
-                            .split(/\(|\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
+                            .split(/\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
                             .replaceAll(' ', '')
                             .replaceAll('\r', '');
-                        if (name.includes('.')) {
+
+                        if (name && name.includes('.')) {
                             name = name.split('.')[0];
+                        }
+                        if (name && name.slice(-1)[0] == '(') {
+                            return;
                         }
 
                         name = name.replaceAll('...', '');
@@ -1323,9 +1389,12 @@ function getHeaderQueryBody(elem, request, objParameters) {
                         name = name.trim();
                         name = name.replaceAll('...', '');
                         name = name
-                            .split(/\(|\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
+                            .split(/\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
                             .replaceAll(' ', '')
                             .replaceAll('\r', '');
+                        if (name && name.slice(-1)[0] == '(') {
+                            return;
+                        }
                         if (name == '') {
                             return;
                         }

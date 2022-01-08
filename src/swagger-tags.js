@@ -576,7 +576,7 @@ async function getResponsesTag(data, objResponses, reference) {
                         ...objResp,
                         schema: objResp.schema
                     };
-                } else if (objResp && objResp.schema && !objResp.schema.$ref) {
+                } else if (objResp && (objResp.schema || objResp.schema === false) && !objResp.schema.$ref) {
                     objResponses[statusCode] = {
                         ...objResponses[statusCode],
                         ...objResp,
