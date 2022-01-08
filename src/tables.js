@@ -292,19 +292,19 @@ function getHttpStatusDescription(statusCode, lang) {
     lang = lang.toLowerCase();
     if (lang == 'pt-br') {
         // Portuguese - Brazil
-        return tableStatusCodes_ptBR[statusCode];
+        return tableStatusCodes_ptBR[statusCode] ? tableStatusCodes_ptBR[statusCode] : '';
     } else if (lang == 'zh-cn') {
         // Chinese (Simplified)
-        return tableStatusCodes_zhCN[statusCode];
+        return tableStatusCodes_zhCN[statusCode] ? tableStatusCodes_zhCN[statusCode] : '';
     } else if (lang == 'ko') {
         // Korean
-        return tableStatusCodes_ko[statusCode];
+        return tableStatusCodes_ko[statusCode] ? tableStatusCodes_ko[statusCode] : '';
     } else if (lang == 'fr') {
         // French
-        return tableStatusCodes_frFR[statusCode];
+        return tableStatusCodes_frFR[statusCode] ? tableStatusCodes_frFR[statusCode] : '';
     } else {
         // English by default
-        return tableStatusCodes_enUS[statusCode];
+        return tableStatusCodes_enUS[statusCode] ? tableStatusCodes_enUS[statusCode] : '';
     }
 }
 
