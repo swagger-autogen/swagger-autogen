@@ -878,15 +878,21 @@ function getQueryIndirectly(elem, request, objParameters) {
 async function getStatus(elem, response, objResponses) {
     const origObjResponses = objResponses;
     try {
+        elem = elem.replaceAll(new RegExp(`\\s*\\.\\s*json\\s*\\(\\s*`), `.json( `);
+        elem = elem.replaceAll(new RegExp(`\\s*\\.\\s*send\\s*\\(\\s*`), `.send( `);
+        elem = elem.replaceAll(new RegExp(`\\s*\\.\\s*status\\s*\\(\\s*`), `.status( `);
+        elem = elem.replaceAll(new RegExp(`\\s*\\.\\s*sendStatus\\s*\\(\\s*`), `.sendStatus( `);
+        elem = elem.replaceAll(new RegExp(`\\s*\\.\\s*sendFile\\s*\\(\\s*`), `.sendFile( `);
+
         for (let idx = 0; idx < response.length; ++idx) {
             let res = response[idx];
-            if (res && elem && elem.replaceAll(' ', '').split(new RegExp(res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*status\\s*\\(|' + res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*sendStatus\\s*\\(')).length > 1) {
-                elem.replaceAll(' ', '')
-                    .split(new RegExp(res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*status\\s*\\(|' + res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*sendStatus\\s*\\('))
+            elem = elem.split(new RegExp(`[\\(|\\)|\\{|\\}|\\[|\\]|\\/|\\|;|:|=|!|@|\\$|#|\\?|\\+|,|\\||&|\\t|\\n|\\*]${res}`)).join(` ${res}`, 'gm');
+            if (res && elem && elem.split(new RegExp(' ' + res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*status\\s*\\(| ' + res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*sendStatus\\s*\\(')).length > 1) {
+                elem.split(new RegExp('\\s+' + res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*status\\s*\\(|\\s+' + res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*sendStatus\\s*\\('))
                     .splice(1)
                     .forEach(async s => {
                         let status = await utils.stackSymbolRecognizer(s, '(', ')');
-                        status = status.replaceAll('(', '').replaceAll(')', '');
+                        status = status.replaceAll('(', '').replaceAll(')', '').replaceAll(' ', '');
 
                         if (status && !utils.isNumeric(status) && status.split(new RegExp('\\?|\\|\\||\\:')).length > 1) {
                             /**
@@ -924,7 +930,7 @@ async function getStatus(elem, response, objResponses) {
             /**
              * Catching status code 200 when res.send(...) or res.json(...)
              */
-            if (res && elem && elem.replaceAll(' ', '').split(new RegExp(res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*send\\s*\\(|' + res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*json\\s*\\(|' + res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*sendFile\\s*\\(')).length > 1) {
+            if (res && elem && elem.split(new RegExp('\\s+' + res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*send\\s*\\(|\\s+' + res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*json\\s*\\(|\\s+' + res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*sendFile\\s*\\(')).length > 1) {
                 if (!!objResponses[200] === false) {
                     objResponses[200] = {
                         description: tables.getHttpStatusDescription(200, swaggerTags.getLanguage())
@@ -975,7 +981,7 @@ function getHeader(elem, path, method, response, objEndpoint) {
 }
 
 /**
- * Recognize query and body content.
+ * Recognize header, query and body content automatically.
  * @param {string} elem content.
  * @param {array} request array containing variables of response.
  * @param {object} objParameters
@@ -990,9 +996,11 @@ function getHeaderQueryBody(elem, request, objParameters) {
         elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*query')).join('.query');
         elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*body')).join('.body');
         elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*headers\\s*\\n*\\t*\\.\\s*\\n*\\t*')).join('.headers.');
-        elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*query\\s*\\n*\\t*[\\;|\\,|\\}|\\]|\\)]')).join('.query ');
-        elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*body\\s*\\n*\\t*[\\;|\\,|\\}|\\]|\\)]')).join('.body ');
-        elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*headers\\s*\\n*\\t*[\\;|\\,|\\}|\\]|\\)]')).join('.headers ');
+        elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*query\\s*\\n*\\t*[\\;|\\,|\\}]')).join('.query ');
+        elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*body\\s*\\n*\\t*[\\;|\\,|\\}]')).join('.body ');
+        elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*headers\\s*\\n*\\t*[\\;|\\,|\\}]')).join('.headers ');
+        elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*')).join('.');
+        elem = elem.split(new RegExp('\\s*\\n*\\t*\\=\\s*\\n*\\t*')).join(' = ');
     }
 
     try {
@@ -1024,6 +1032,19 @@ function getHeaderQueryBody(elem, request, objParameters) {
                 let inputTypes = ['headers', 'query', 'body'];
                 for (let idxInput = 0; idxInput < inputTypes.length; ++idxInput) {
                     let inputType = inputTypes[idxInput];
+
+                    // ES Mudule/TypeScript variable
+                    let splitedElemTS = elem.split(new RegExp(`(\\s+\\w+\\s*\\:\\s*\\w+\\s*\\=\\s*${req}\\s*\\.\\s*${inputType}(?!\\.))`));
+                    for (let idxElem = 1; idxElem < splitedElemTS.length; idxElem += 2) {
+                        let e = splitedElemTS[idxElem];
+                        if (e && e.includes(':') && e.includes('=') && e.includes(`.${inputType}`)) {
+                            let varName = e.split(':')[0].trim();
+                            elem = elem.split(new RegExp(`[\\(|\\)|\\{|\\}|\\[|\\]|\\/|\\|;|:|!|@|\\$|#|\\?|\\+|,|\\||&|\\t|\\n|\\*]${varName}`)).join(` ${varName}`, 'gm');
+                            elem = elem.replaceAll(varName, `${req}.${inputType}`);
+                        }
+                    }
+
+                    // CommonJS variable
                     let splitedElem = elem.split(new RegExp(`(\\s+\\w+\\s*\\=\\s*${req}\\s*\\.\\s*${inputType}(?!\\.))`));
                     for (let idxElem = 1; idxElem < splitedElem.length; idxElem += 2) {
                         let e = splitedElem[idxElem];
