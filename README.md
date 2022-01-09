@@ -77,7 +77,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.18.5
+$ npm install --save-dev swagger-autogen@2.18.6
 ```
 
 ## Usage
@@ -1517,9 +1517,10 @@ Some tutorials with examples:
 - Version 2.17.x:
   - Recognizes 'headers' parameters automatically 
   - Bug fixes
-- Version 2.18.x:
+- Version 2.18.x (latest):
   - Allow swagger properties to be passed to whole route. (properties inheritance)
   - Automatic recognition improvements
+  - Fixes in file path solver
   - Bug fixes
 
 **TODO:**
@@ -1535,7 +1536,7 @@ Some tutorials with examples:
 
 ## Help us!
 
-Help us to improve this module. If you have any information that the module does not provide or provides incompletely or incorrectly, please use our [Github](https://github.com/davibaltar/swagger-autogen) repository.
+Help us improve this module. If you have any information that the module does not provide or provides incompletely or incorrectly, please use our [Github](https://github.com/davibaltar/swagger-autogen) repository.
 
 **pt-BR:**
 Ajude-nos a melhorar este módulo. Se você tiver alguma informação que o módulo não forneça ou forneça de maneira incompleta ou incorreta, use o nosso repositório do [Github](https://github.com/davibaltar/swagger-autogen). Pode enviar em português Brasil também! :)
