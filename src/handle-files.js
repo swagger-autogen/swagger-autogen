@@ -603,6 +603,21 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 continue;
                             }
 
+                            func = func.trim();
+                            if (func.slice(0, 4) === 'new ') {
+                                func = func.slice(4);
+                                if (func.slice(-1)[0] == ')') {
+                                    func = func.slice(0, -1);
+                                }
+                                if (func.includes('.')) {
+                                    if (func.includes('(') && func.includes(')')) {
+                                        func = func.split(new RegExp(`\\s*\\)\\s*\\.\\s*`)).join(`).`);
+                                        func = func.split(/\(|\)/);
+                                        func = func[0] + func.slice(-1)[0];
+                                    }
+                                }
+                            }
+
                             let exportPath = null;
                             let idx = null;
                             let functionName = null;
@@ -670,9 +685,11 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 idx = importedFiles.findIndex(e => e.varFileName && varFileName && e.varFileName == varFileName);
                                 if (idx == -1) {
                                     // Second, tries to find in the 'exports' of import/require, such as 'foo' in the: import { foo } from './fooFile'
-                                    importedFiles.forEach(imp => {
+                                    for (let idxImp = 0; idxImp < importedFiles.length; ++idxImp) {
+                                        let imp = importedFiles[idxImp];
+
                                         if (exportPath) {
-                                            return;
+                                            break;
                                         }
 
                                         // First, try to find the 'alias'
@@ -687,9 +704,13 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                             if (!functionName && !imp.isDirectory) {
                                                 functionName = found.varName;
                                             }
-                                            imp.isDirectory ? (exportPath = found.path) : (exportPath = imp.fileName); // TODO: change variable name
+                                            imp.isDirectory && found.path ? (exportPath = found.path) : (exportPath = imp.fileName); // TODO: change variable name
+
+                                            if (exportPath && imp.isDirectory && (await utils.getExtension(exportPath)) == '' && (await utils.getExtension(exportPath + '/index')) != '') {
+                                                exportPath = exportPath + '/index';
+                                            }
                                         }
-                                    });
+                                    }
 
                                     if (exportPath) {
                                         if (exportPath.includes('../')) {
@@ -729,6 +750,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                     let dataIndexFile = await utils.getFileContent(pathFile + extension);
                                     if (dataIndexFile) {
                                         pathFile = pathFile.split('/').slice(0, -1).join('/'); // removing '/index'
+                                        let auxPathFile = pathFile;
                                         let importsIndexFile = await getImportedFiles(dataIndexFile, pathFile);
                                         let idx = importsIndexFile.findIndex(e => e.varFileName && functionName && e.varFileName == functionName);
                                         pathFile = null;
@@ -751,6 +773,22 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                             });
                                         } else {
                                             pathFile = importsIndexFile[idx].fileName;
+                                        }
+                                        if (!pathFile) {
+                                            // Try to find in "export * from ... "
+                                            let exporteds = dataIndexFile.split(new RegExp(`export\\s*\\*\\s*from\\s*`));
+                                            if (exporteds.length > 1) {
+                                                let found = exporteds.find(e => e.includes(`/${varFileName}`));
+                                                if (found) {
+                                                    let indexPath = utils.popString(found);
+                                                    if (indexPath) {
+                                                        if (indexPath.slice(0, 2) == './') {
+                                                            indexPath = indexPath.slice(2);
+                                                        }
+                                                        pathFile = auxPathFile + '/' + indexPath;
+                                                    }
+                                                }
+                                            }
                                         }
                                         if (pathFile) {
                                             extension = await utils.getExtension(pathFile);
