@@ -398,7 +398,7 @@ async function getParametersTag(data, objParameters, reference) {
                     objParameters[name].schema.type = enumType;
                     objParameters[name].schema.enum = objParameters[name].schema['@enum'];
                     delete objParameters[name].schema['@enum'];
-                } else {
+                } else if (!objParameters[name].schema.properties || (!objParameters[name].schema.properties['__AUTO_GENERATE__'] && objParameters[name].schema.properties && Object.keys(objParameters[name].schema.properties).length > 0)) {
                     objParameters[name].schema = formatDefinitions(objParameters[name].schema);
                 }
             }
