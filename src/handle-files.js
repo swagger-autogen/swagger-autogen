@@ -1236,6 +1236,15 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                     }
                                 }
                             });
+
+                            // Remove duplicates
+                            if (objEndpoint[path][method] && objEndpoint[path][method].parameters && objEndpoint[path][method].parameters.length > 0) {
+                                objEndpoint[path][method].parameters = objEndpoint[path][method].parameters.filter((e, pIdx, a) => {
+                                    let idxFound = a.findIndex(i => i.in && e.in && i.name && e.name && i.in === e.in && i.name === e.name);
+                                    if (idxFound == -1 || idxFound === pIdx) return true;
+                                });
+                            }
+
                             objEndpoint[path][method].responses = objResponses;
 
                             /**
@@ -1335,6 +1344,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     if ((!routeSwaggerProperties || routeSwaggerProperties == '') && globalSwaggerProperties && globalSwaggerProperties.replaceAll(' ', '') != '') {
                         routeSwaggerProperties = globalSwaggerProperties;
                     }
+                    data = await handleData.removeComments(data);
 
                     let routeFound = propRoutes.find(r => r.routeName === routeName);
                     if (routeFound) {
