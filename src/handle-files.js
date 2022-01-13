@@ -294,10 +294,14 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                 importedFiles = await getImportedFiles(aDataRaw, relativePath);
             }
 
-            if (regex != '') {
-                // Some method was found like: .get, .post, etc.
-                aData = [...aData.split(new RegExp(regex)), ...aForcedsEndpoints];
-                aData[0] = undefined; // Delete 'header'
+            if (regex != '' || aForcedsEndpoints.length > 0) {
+                if (regex == '' && aForcedsEndpoints.length > 0) {
+                    aData = [...aForcedsEndpoints];
+                } else {
+                    aData = [...aData.split(new RegExp(regex)), ...aForcedsEndpoints];
+                    aData[0] = undefined; // Delete 'header'
+                }
+
                 aData = aData.filter(data => {
                     if (data && data.replaceAll('\n', '').replaceAll(' ', '').replaceAll('\t', '') != '') {
                         return true;
@@ -1006,11 +1010,18 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         objEndpoint[path][method].responses = {};
                         objEndpoint[path][method].security = undefined;
 
-                        if (path.includes('_undefined_path_0x'))
-                            // When the path is not found
+                        if (path.includes('_undefined_path_0x')) {
+                            continue;
+                            // When the path is not found (TO CHECK)
+                            /*
+                            if(!objEndpoint[path][method].tags){
+                                objEndpoint[path][method].tags = []
+                            }
                             objEndpoint[path][method].tags.push({
                                 name: 'Endpoints without path or method'
                             });
+                            */
+                        }
                     }
 
                     if (!path || !method) {
