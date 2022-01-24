@@ -332,25 +332,18 @@ async function getParametersTag(data, objParameters, reference) {
         swaggerParameters.shift();
         for (let idx = 0; idx < swaggerParameters.length; ++idx) {
             let name = swaggerParameters[idx].split(new RegExp('\\[|\\]'))[1].replaceAll("'", '');
-            if (getOpenAPI() && name === '$ref') {
-                let rest = swaggerParameters[idx].split('=')[1];
-                let parameter = rest.substring(rest.indexOf("'") + 1, rest.lastIndexOf("'"));
-                if (parameter) {
-                    objParameters[name] = { [name]: parameter };
-                } else {
-                    console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.parameters' out of structure in '${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
-                    return origObjParameters;
-                }
-                continue;
-            }
             let parameter = await utils.stack0SymbolRecognizer(swaggerParameters[idx], '{', '}');
 
             try {
+                let parameterObj = eval(`(${'{' + parameter + '}'})`);
                 objParameters[name] = {
                     name,
                     ...objParameters[name],
-                    ...eval(`(${'{' + parameter + '}'})`)
+                    ...parameterObj
                 };
+                if (Object.prototype.hasOwnProperty.call(parameterObj, '$ref')) {
+                    continue;
+                }
             } catch (err) {
                 console.error('[swagger-autogen]: Syntax error: ' + parameter);
                 console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.parameters' out of structure in '${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
