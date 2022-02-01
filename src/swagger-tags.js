@@ -331,15 +331,19 @@ async function getParametersTag(data, objParameters, reference) {
         let swaggerParameters = data.split(new RegExp(`${statics.SWAGGER_TAG}.parameters`));
         swaggerParameters.shift();
         for (let idx = 0; idx < swaggerParameters.length; ++idx) {
-            let parameter = await utils.stack0SymbolRecognizer(swaggerParameters[idx], '{', '}');
             let name = swaggerParameters[idx].split(new RegExp('\\[|\\]'))[1].replaceAll("'", '');
+            let parameter = await utils.stack0SymbolRecognizer(swaggerParameters[idx], '{', '}');
 
             try {
+                let parameterObj = eval(`(${'{' + parameter + '}'})`);
                 objParameters[name] = {
                     name,
                     ...objParameters[name],
-                    ...eval(`(${'{' + parameter + '}'})`)
+                    ...parameterObj
                 };
+                if (Object.prototype.hasOwnProperty.call(parameterObj, '$ref')) {
+                    continue;
+                }
             } catch (err) {
                 console.error('[swagger-autogen]: Syntax error: ' + parameter);
                 console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.parameters' out of structure in '${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);

@@ -1248,10 +1248,22 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 }
                             });
 
-                            // Remove duplicates
+
                             if (objEndpoint[path][method] && objEndpoint[path][method].parameters && objEndpoint[path][method].parameters.length > 0) {
-                                objEndpoint[path][method].parameters = objEndpoint[path][method].parameters.filter((e, pIdx, a) => {
-                                    let idxFound = a.findIndex(i => i.in && e.in && i.name && e.name && i.in === e.in && i.name === e.name);
+                                let currentParameters = objEndpoint[path][method].parameters;
+                                let ref = '$ref';
+
+                                // Remove all other properties from ref parameters
+                                currentParameters = currentParameters.map(x => {
+                                    if (Object.prototype.hasOwnProperty.call(x, ref)) {
+                                        return {[ref]: x[ref]}
+                                    }
+                                    return x;
+                                })
+
+                                // Remove duplicates
+                                objEndpoint[path][method].parameters = currentParameters.filter((e, pIdx, a) => {
+                                    let idxFound = a.findIndex(i => (i.in && e.in && i.name && e.name && i.in === e.in && i.name === e.name) || (i[ref] && e[ref] && i[ref] == e[ref]));
                                     if (idxFound == -1 || idxFound === pIdx) return true;
                                 });
                             }
