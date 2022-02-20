@@ -332,17 +332,30 @@ async function getParametersTag(data, objParameters, reference) {
         swaggerParameters.shift();
         for (let idx = 0; idx < swaggerParameters.length; ++idx) {
             let name = swaggerParameters[idx].split(new RegExp('\\[|\\]'))[1].replaceAll("'", '');
-            let parameter = await utils.stack0SymbolRecognizer(swaggerParameters[idx], '{', '}');
+            let parameter = null;
+            let parameterObj = null;
 
             try {
-                let parameterObj = eval(`(${'{' + parameter + '}'})`);
-                objParameters[name] = {
-                    name,
-                    ...objParameters[name],
-                    ...parameterObj
-                };
-                if (Object.prototype.hasOwnProperty.call(parameterObj, '$ref')) {
-                    continue;
+                if (getOpenAPI() && name && name === '$ref') {
+                    swaggerParameters[idx] = swaggerParameters[idx].split('=');
+                    swaggerParameters[idx].shift();
+                    swaggerParameters[idx] = swaggerParameters[idx].join('=');
+                    parameter = await utils.stack0SymbolRecognizer(swaggerParameters[idx], '[', ']');
+                    parameterObj = eval(`(${'[' + parameter + ']'})`);
+                    parameterObj.forEach((parameter, idx) => {
+                        objParameters[`$ref__¬¬__${idx}`] = {
+                            $ref: parameter
+                        };
+                    });
+                    return objParameters;
+                } else {
+                    parameter = await utils.stack0SymbolRecognizer(swaggerParameters[idx], '{', '}');
+                    parameterObj = eval(`(${'{' + parameter + '}'})`);
+                    objParameters[name] = {
+                        name,
+                        ...objParameters[name],
+                        ...parameterObj
+                    };
                 }
             } catch (err) {
                 console.error('[swagger-autogen]: Syntax error: ' + parameter);
@@ -402,7 +415,7 @@ async function getParametersTag(data, objParameters, reference) {
                     objParameters[name].schema.type = enumType;
                     objParameters[name].schema.enum = objParameters[name].schema['@enum'];
                     delete objParameters[name].schema['@enum'];
-                } else if (!objParameters[name].schema.properties || (!objParameters[name].schema.properties['__AUTO_GENERATE__'] && objParameters[name].schema.properties && Object.keys(objParameters[name].schema.properties).length > 0)) {
+                } else if (!(Object.keys(objParameters[name].schema).length == 1 && objParameters[name].schema.type) && (!objParameters[name].schema.properties || (!objParameters[name].schema.properties['__AUTO_GENERATE__'] && objParameters[name].schema.properties && Object.keys(objParameters[name].schema.properties).length > 0))) {
                     objParameters[name].schema = formatDefinitions(objParameters[name].schema);
                 }
             }

@@ -1236,6 +1236,10 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                             Object.values(objParameters).forEach(objParam => {
                                 if (objEndpoint[path][method].parameters) {
+                                    if (objParam.$ref) {
+                                        objEndpoint[path][method].parameters.push(objParam);
+                                        return;
+                                    }
                                     let idxFound = objEndpoint[path][method].parameters.findIndex(e => e.name === objParam.name && e.in === objParam.in);
                                     if (objParam.name) {
                                         objParam.name = objParam.name.split('__[__[__')[0];
@@ -1248,7 +1252,6 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 }
                             });
 
-
                             if (objEndpoint[path][method] && objEndpoint[path][method].parameters && objEndpoint[path][method].parameters.length > 0) {
                                 let currentParameters = objEndpoint[path][method].parameters;
                                 let ref = '$ref';
@@ -1256,10 +1259,10 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 // Remove all other properties from ref parameters
                                 currentParameters = currentParameters.map(x => {
                                     if (Object.prototype.hasOwnProperty.call(x, ref)) {
-                                        return {[ref]: x[ref]}
+                                        return { [ref]: x[ref] };
                                     }
                                     return x;
-                                })
+                                });
 
                                 // Remove duplicates
                                 objEndpoint[path][method].parameters = currentParameters.filter((e, pIdx, a) => {
