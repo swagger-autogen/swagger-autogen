@@ -974,6 +974,9 @@ function getHeader(elem, path, method, response, objEndpoint) {
                 objEndpoint[path][method].produces = [...aContentType];
             }
         }
+        if (objEndpoint[path][method].produces && objEndpoint[path][method].produces.length == 0) {
+            objEndpoint[path][method].produces = undefined;
+        }
         return objEndpoint;
     } catch (err) {
         return origObjEndpoint;
