@@ -77,7 +77,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.18.8
+$ npm install --save-dev swagger-autogen@2.19.0
 ```
 
 ## Usage
@@ -397,6 +397,17 @@ All optional parameters:
         ...
     })
 ```
+**Referenced parameters (OpenAPI v3 only)**  
+To reference one or more parameters, use the `parameters` tag passing the `$ref` value, such as:
+
+```js
+    app.post('/path', (req, res) => {
+        ...
+        /*  #swagger.parameters['$ref'] = ['#/components/parameters/someParameter1', '#/components/parameters/someParameter2']` */
+        ...
+    })
+```
+
 
 **Examples using upload (Swagger 2.0)**  
 ```js
@@ -1517,10 +1528,13 @@ Some tutorials with examples:
 - Version 2.17.x:
   - Recognizes 'headers' parameters automatically 
   - Bug fixes
-- Version 2.18.x (latest):
+- Version 2.18.x:
   - Allow swagger properties to be passed to whole route. (properties inheritance)
   - Automatic recognition improvements
   - Fixes in file path solver
+  - Bug fixes
+- Version 2.19.x (latest):
+  - Support '$ref' in parameters (OpenAPI)
   - Bug fixes
 
 **TODO:**
