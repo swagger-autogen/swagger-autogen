@@ -1742,11 +1742,26 @@ async function functionRecognizerInData(data, functionName) {
                 if (arrowFunction.length > 1) {
                     arrowFunctionType = 2;
                 } else {
-                    // Default: Traditional function
                     traditionalFunction = data.split(new RegExp(`(${functionName}\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\=?\\s*\\n*\\t*\\([\\s\\S]*\\)\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\<?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\>?\\s*\\n*\\t*\\{)`));
                     if (traditionalFunction.length == 1 && data.split(new RegExp(`${functionName}\\s*\\n*\\t*=\\s*\\n*\\t*\\[`)).length == 1) {
-                        // CASE: exports.validateUser = [ ]
-                        return null;
+                        let myRegexp = new RegExp('(\\=\\s*\\n*\\t*\\([\\s\\S]*?\\)\\s*:[\\s\\S]*?=>)');
+                        let matchFunctions = myRegexp.exec(data);
+
+                        if (matchFunctions.length > 0) {
+                            for (let idx = 0; idx < matchFunctions.length; idx++) {
+                                let match = matchFunctions[idx];
+                                if (match.includes('=>')) {
+                                    match = match.split(':');
+                                    match.pop();
+                                    match = match.join(':') + ' => ';
+                                    data = data.replace(matchFunctions[idx], match);
+                                }
+                                arrowFunction = data.split(new RegExp(`(${functionName}\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\=\\s*\\n*\\t*\\([\\s\\S]*\\)\\s*\\t*=>\\s*\\n*\\t*\\{)`));
+                            }
+                        } else {
+                            // CASE: exports.foo = [ ]
+                            return null;
+                        }
                     }
                 }
             }
