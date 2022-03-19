@@ -1237,10 +1237,15 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             Object.values(objParameters).forEach(objParam => {
                                 if (objEndpoint[path][method].parameters) {
                                     if (objParam.$ref) {
+                                        let paramName = objParam.$ref.split('/').slice(-1)[0];
+                                        let idxFound = objEndpoint[path][method].parameters.findIndex(e => e && e.name === paramName);
+                                        if (idxFound > -1) {
+                                            delete objEndpoint[path][method].parameters[idxFound];
+                                        }
                                         objEndpoint[path][method].parameters.push(objParam);
                                         return;
                                     }
-                                    let idxFound = objEndpoint[path][method].parameters.findIndex(e => e.name === objParam.name && e.in === objParam.in);
+                                    let idxFound = objEndpoint[path][method].parameters.findIndex(e => e && e.name === objParam.name && e.in === objParam.in);
                                     if (objParam.name) {
                                         objParam.name = objParam.name.split('__[__[__')[0];
                                     }
@@ -1266,7 +1271,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                                 // Remove duplicates
                                 objEndpoint[path][method].parameters = currentParameters.filter((e, pIdx, a) => {
-                                    let idxFound = a.findIndex(i => (i.in && e.in && i.name && e.name && i.in === e.in && i.name === e.name) || (i[ref] && e[ref] && i[ref] == e[ref]));
+                                    let idxFound = a.findIndex(i => i && ((i.in && e.in && i.name && e.name && i.in === e.in && i.name === e.name) || (i[ref] && e[ref] && i[ref] == e[ref])));
                                     if (idxFound == -1 || idxFound === pIdx) return true;
                                 });
                             }
@@ -1292,7 +1297,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                  */
                                 objInBody.name = 'body'; // By default, the name of object recognized automatically in the body will be 'body' if no parameter are found to be concatenate with it.
                                 if (objEndpoint[path][method].parameters && objEndpoint[path][method].parameters.length > 0 && objEndpoint[path][method].parameters.find(e => e.in === 'body')) {
-                                    let body = objEndpoint[path][method].parameters.find(e => e.in === 'body');
+                                    let idxFound = objEndpoint[path][method].parameters.findIndex(e => e.in === 'body');
+                                    let body = objEndpoint[path][method].parameters[idxFound];
                                     if (objInBody && objInBody.schema && body && body.schema && body.schema.properties && body.schema.properties['__AUTO_GENERATE__'] && Object.keys(body.schema.properties).length == 0) {
                                         delete body.schema;
                                     }
@@ -1302,7 +1308,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                     }
 
                                     if (body && !body.schema && (!body.type || (body.type && body.type.toLowerCase() == 'object'))) {
-                                        objEndpoint[path][method].parameters[0] = {
+                                        objEndpoint[path][method].parameters[idxFound] = {
                                             ...objInBody,
                                             ...body
                                         };
