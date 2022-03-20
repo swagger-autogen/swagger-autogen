@@ -306,6 +306,23 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     if (varRouteFound[2]) {
                         expressVarName = varRouteFound[2].split('=')[0].trim();
                     }
+
+                    let varExpressRouteFound = aData.replaceAll('\n', '').split(new RegExp(`(\\s+\\t*${varName}\\s*\\t*\\.\\s*\\t*Router\\s*\\t*\\(\\s*\\t*\\))`));
+                    if (varExpressRouteFound[1] && varExpressRouteFound[2] && varExpressRouteFound[2].split(/^____CHAINED____/).length > 1) {
+                        let routerVar = 'router';
+                        if (regex == '') {
+                            let keywords = [...statics.METHODS, 'route'];
+                            keywords.forEach(word => (regex += `(\\s|\\n|\\t|;|\\*\\/)${routerVar}\\s*\\n*\\t*\\.\\s*\\n*\\t*` + word + '\\s*\\n*\\t*\\(|'));
+                            keywords.forEach(word => (regex += `(\\s|\\n|\\t|;|\\*\\/)____CHAINED____\\s*\\n*\\t*\\.\\s*\\n*\\t*` + word + '\\s*\\n*\\t*\\(|'));
+
+                            regexRouteMiddlewares += `(\\/?\\s*\\n*\\t*${routerVar}\\s*\\n*\\t*\\.\\s*\\n*\\t*use\\s*\\n*\\t*\\(\\s*\\n*\\t*)|`;
+                            regex = regex.replace(/\|$/, '');
+                            aData = aData.replaceAll(new RegExp(`\\s+\\t*${varName}\\s*\\t*\\.\\s*\\t*Router\\s*\\t*\\(\\s*\\t*\\)____CHAINED____`), ` ${routerVar}`);
+                            aData = await handleData.addReferenceToMethods(aData, [routerVar, '____CHAINED____']);
+                        } else {
+                            aData = aData.replaceAll(new RegExp(`\\s+\\t*${varName}\\s*\\t*\\.\\s*\\t*Router\\s*\\t*\\(\\s*\\t*\\)____CHAINED____`), ` ${routerVar}`);
+                        }
+                    }
                 }
             }
 
@@ -314,6 +331,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     aData = [...aForcedsEndpoints];
                 } else {
                     aData = '\n' + aData;
+                    aData = aData.replaceAll(new RegExp('____CHAINED____'), ' ____CHAINED____');
+                    aData = aData.replaceAll(new RegExp('\\[ ____CHAINED____'), '[____CHAINED____');
                     aData = [...aData.split(new RegExp(regex)), ...aForcedsEndpoints];
                     aData[0] = undefined; // Delete 'header'
                 }
