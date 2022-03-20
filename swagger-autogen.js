@@ -130,6 +130,14 @@ module.exports = function (args) {
                 }
             });
 
+            if (objDoc['@definitions']) {
+                if (!objDoc.definitions) {
+                    objDoc.definitions = {};
+                }
+                objDoc.definitions = { ...objDoc.definitions, ...objDoc['@definitions'] };
+                delete objDoc['@definitions'];
+            }
+
             /**
              * Forcing convertion to OpenAPI 3.x
              */
@@ -170,6 +178,17 @@ module.exports = function (args) {
                             objDoc.components.schemas[schema] = { ...swaggerTags.formatDefinitions(objDoc.components.schemas[schema], {}, constainXML) };
                         }
                     });
+                }
+
+                if (objDoc.components && objDoc.components['@schemas']) {
+                    if (!objDoc.components) {
+                        objDoc.components = {};
+                    }
+                    if (!objDoc.components.schemas) {
+                        objDoc.components.schemas = {};
+                    }
+                    objDoc.components.schemas = { ...objDoc.components.schemas, ...objDoc.components['@schemas'] };
+                    delete objDoc.components['@schemas'];
                 }
 
                 if (objDoc.components && objDoc.components.examples) {
