@@ -294,6 +294,21 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                 importedFiles = await getImportedFiles(aDataRaw, relativePath);
             }
 
+            /**
+             * Identifying "express.Router()"
+             */
+            let expressVarName = null;
+            if (importedFiles.length > 0) {
+                let idx = importedFiles.findIndex(i => i.fileName === 'express');
+                if (idx > -1) {
+                    let varName = importedFiles[idx].varFileName;
+                    let varRouteFound = aData.replaceAll('\n', '').split(new RegExp(`(const|let|var)(\\s+\\w+\\s*\\t*\\=\\s*\\t*${varName}\\s*\\t*\\.\\s*\\t*Router\\s*\\t*\\(\\s*\\t*\\))`));
+                    if (varRouteFound[2]) {
+                        expressVarName = varRouteFound[2].split('=')[0].trim();
+                    }
+                }
+            }
+
             if (regex != '' || aForcedsEndpoints.length > 0) {
                 if (regex == '' && aForcedsEndpoints.length > 0) {
                     aData = [...aForcedsEndpoints];
@@ -463,6 +478,16 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                         auxElem = auxElem.replaceAll('\n', '').replaceAll(' ', '');
                         if (auxElem.split(',').length > 1 || predefMethod === 'use') {
+                            let expressVarRegex = `\\,\\s*\\n*\\t*${expressVarName}\\s*\\n*\\t*\\)`;
+                            if (expressVarName && auxElem.split(new RegExp(expressVarRegex)).length > 1) {
+                                let pathExpressRouter = utils.popString(rawPath);
+                                if (pathExpressRouter && pathExpressRouter.length > 0) {
+                                    pathRoute += pathExpressRouter;
+                                    expressVarName = null; // to consider only the first statement
+                                    continue;
+                                }
+                            }
+
                             /**
                              * Handling foo.method('/path', ..., ...)'
                              * Getting function not referenced ( such as: (req, res) => { ... } )
@@ -1595,7 +1620,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 const content = await utils.getFileContent(found.fileName + extension);
                                 if (content) {
                                     // Trying to find the 'router' variable
-                                    let varRouteFound = content.split(new RegExp('(const|let|var)(\\s+\\w+\\s*\\=\\s*Router\\(\\))')).find(e => e.replaceAll(' ', '').includes('=Router()'));
+                                    let varRouteFound = content.split(new RegExp('(const|let|var)(\\s+\\w+\\s*\\=\\s*\\n*\\t*Router\\s*\\n*\\t*\\(\\))')).find(e => e.replaceAll(' ', '').includes('=Router()'));
                                     if (varRouteFound && varRouteFound.split('=')[0].trim() == functionName) {
                                         exportPath = found.fileName;
                                     }
@@ -1895,7 +1920,7 @@ async function getImportedFiles(data, relativePath) {
                 }
                 /* END CASE */
 
-                if (fileName.includes('./')) {
+                if (fileName.includes('./') || fileName === 'express') {
                     let pathFile = null;
                     if (relativePath) {
                         pathFile = await resolvePathFile(fileName, relativePath);
@@ -1931,7 +1956,7 @@ async function getImportedFiles(data, relativePath) {
                                             if (found) {
                                                 if (imp.isDirectory) {
                                                     exportPath = null;
-                                                } else {
+                                                } else if (imp.fileName !== 'express') {
                                                     exportPath = imp.fileName; // REFECTOR: change variable name
                                                 }
                                             }
@@ -2062,7 +2087,7 @@ async function getImportedFiles(data, relativePath) {
                 }
                 /* END CASE */
 
-                if (fileName.includes('./')) {
+                if (fileName.includes('./') || fileName === 'express') {
                     if (fileName.split(new RegExp(`.json$`, 'i')).length == 1) {
                         // Will not recognize files with .json extension
                         let pathFile = null;
