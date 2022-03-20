@@ -77,7 +77,7 @@ import swaggerAutogen from 'swagger-autogen';
 If you already have the module installed and want to update to the latest version, use the command:
 
 ```bash
-$ npm install --save-dev swagger-autogen@2.19.0
+$ npm install --save-dev swagger-autogen@latest
 ```
 
 ## Usage
@@ -159,8 +159,8 @@ const doc = {
     },
     // { ... }
   ],
-  securityDefinitions: {},  // by default: empty object (Swagger 2.0)
-  definitions: {},          // by default: empty object
+  securityDefinitions: {},  // by default: empty object
+  definitions: {},          // by default: empty object (Swagger 2.0)
   components: {}            // by default: empty object (OpenAPI 3.x)
 };
 
@@ -180,6 +180,48 @@ swaggerAutogen()(outputFile, endpointsFiles, doc);
 ```
 
 **NOTE:** To omit any of the attributes in the *.json* file, just assign the value **null** to the specified attribute in the **doc**.
+
+To ignore the swagger-autogen render in the `definitions` or `components.schemas` and put the specification Swagger directly, you can use `@definitions` or `@schemas`, such as: 
+
+**(Swagger 2.0):**  
+```js
+const doc = {
+    ...
+    '@definitions': {
+        someParameter: {
+            type: 'object',
+            properties: {
+                property1: {
+                    type: 'integer',
+                    format: 'int32',
+                    description: 'With no swagger-autogen render...'
+                }
+            }
+        }
+    }
+};
+```
+
+**(OpenAPI 3.x):**  
+```js
+const doc = {
+    ...
+    components:{
+        '@schemas': {
+            someParameter: {
+                type: 'object',
+                properties: {
+                    property1: {
+                        type: 'integer',
+                        format: 'int32',
+                        description: 'With no swagger-autogen render...'
+                    }
+                }
+            }
+        }
+    }
+};
+```
 
 ## Building documentation without starting the project
 
@@ -1533,9 +1575,14 @@ Some tutorials with examples:
   - Automatic recognition improvements
   - Fixes in file path solver
   - Bug fixes
-- Version 2.19.x (latest):
+- Version 2.19.x:
   - Support '$ref' in parameters (OpenAPI)
   - Bug fixes
+- Version 2.20.x (latest):
+  - New feature: Properties @schemas and @definitions
+  - Recognizes 'express.Router()'
+  - Bug fixes
+
 
 **TODO:**
 
