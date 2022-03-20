@@ -298,6 +298,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                 if (regex == '' && aForcedsEndpoints.length > 0) {
                     aData = [...aForcedsEndpoints];
                 } else {
+                    aData = '\n' + aData;
                     aData = [...aData.split(new RegExp(regex)), ...aForcedsEndpoints];
                     aData[0] = undefined; // Delete 'header'
                 }
