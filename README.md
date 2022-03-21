@@ -4,7 +4,6 @@ This module performs the automatic construction of the Swagger documentation. Th
 
 [![NPM Version](http://img.shields.io/npm/v/swagger-autogen.svg?style=flat)](https://www.npmjs.com/package/swagger-autogen)
 [![NPM Downloads](https://img.shields.io/npm/dm/swagger-autogen.svg?style=flat)](https://npmcharts.com/compare/swagger-autogen?minimal=true)
-[![Known Vulnerabilities](https://snyk.io/test/npm/swagger-autogen/badge.svg)](https://snyk.io/test/npm/swagger-autogen)
 
 ## Contents
 
