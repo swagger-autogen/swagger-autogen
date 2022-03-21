@@ -606,7 +606,7 @@ const doc = {
 ```
 
 
-To ignore the swagger-autogen render in the `definitions` or `components.schemas` (OpenAPI 3.x) and put the specification Swagger directly, you can use `@definitions` or `@schemas`, such as: 
+To ignore the swagger-autogen render in the `definitions` (Swagger 2.0) or `components.schemas` (OpenAPI 3) and put the specification Swagger directly, you can use `@definitions` or `@schemas`, such as: 
 
 **(Swagger 2.0):**  
 ```js
