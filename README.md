@@ -181,48 +181,6 @@ swaggerAutogen()(outputFile, endpointsFiles, doc);
 
 **NOTE:** To omit any of the attributes in the *.json* file, just assign the value **null** to the specified attribute in the **doc**.
 
-To ignore the swagger-autogen render in the `definitions` or `components.schemas` and put the specification Swagger directly, you can use `@definitions` or `@schemas`, such as: 
-
-**(Swagger 2.0):**  
-```js
-const doc = {
-    ...
-    '@definitions': {
-        someParameter: {
-            type: 'object',
-            properties: {
-                property1: {
-                    type: 'integer',
-                    format: 'int32',
-                    description: 'With no swagger-autogen render...'
-                }
-            }
-        }
-    }
-};
-```
-
-**(OpenAPI 3.x):**  
-```js
-const doc = {
-    ...
-    components:{
-        '@schemas': {
-            someParameter: {
-                type: 'object',
-                properties: {
-                    property1: {
-                        type: 'integer',
-                        format: 'int32',
-                        description: 'With no swagger-autogen render...'
-                    }
-                }
-            }
-        }
-    }
-};
-```
-
 ## Building documentation without starting the project
 
 To build the documentation without starting your project, add the following script to your project's _package.json_ file:
@@ -647,6 +605,48 @@ const doc = {
 };
 ```
 
+
+To ignore the swagger-autogen render in the `definitions` or `components.schemas` (OpenAPI 3.x) and put the specification Swagger directly, you can use `@definitions` or `@schemas`, such as: 
+
+**(Swagger 2.0):**  
+```js
+const doc = {
+    ...
+    '@definitions': {
+        someParameter: {
+            type: 'object',
+            properties: {
+                property1: {
+                    type: 'integer',
+                    format: 'int32',
+                    description: 'With no swagger-autogen render...'
+                }
+            }
+        }
+    }
+};
+```
+
+**(OpenAPI 3.x):**  
+```js
+const doc = {
+    ...
+    components:{
+        '@schemas': {
+            someParameter: {
+                type: 'object',
+                properties: {
+                    property1: {
+                        type: 'integer',
+                        format: 'int32',
+                        description: 'With no swagger-autogen render...'
+                    }
+                }
+            }
+        }
+    }
+};
+```
 
 In the parameters using definition:
 ```js
