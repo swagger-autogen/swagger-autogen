@@ -220,7 +220,7 @@ function getMethodTag(data, reference) {
         return false;
     } catch (err) {
         if (!getDisableLogs()) {
-            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.method' out of structure in '${reference.filePath}'`);
+            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.method' out of structure in\n... '${reference.filePath}'`);
         }
         return false;
     }
@@ -251,7 +251,7 @@ function getForcedEndpoints(aData, reference) {
         return aForcedsEndpoints;
     } catch (err) {
         if (!getDisableLogs()) {
-            console.error(`[swagger-autogen]: '#swagger.start' ... '#swagger.end' out of structure in '${reference.filePath}'`);
+            console.error(`[swagger-autogen]: '#swagger.start' ... '#swagger.end' out of structure in\n... '${reference.filePath}'`);
         }
         return [];
     }
@@ -308,7 +308,7 @@ function getDeprecatedTag(data, reference) {
         return false;
     } catch (err) {
         if (!getDisableLogs()) {
-            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.deprecated' out of structure in '${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
+            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.deprecated' out of structure in\n'${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
         }
         return false;
     }
@@ -359,7 +359,7 @@ async function getParametersTag(data, objParameters, reference) {
                 }
             } catch (err) {
                 console.error('[swagger-autogen]: Syntax error: ' + parameter);
-                console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.parameters' out of structure in '${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
+                console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.parameters' out of structure in\n'${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
                 return origObjParameters;
             }
 
@@ -447,7 +447,7 @@ async function getParametersTag(data, objParameters, reference) {
         return objParameters;
     } catch (err) {
         if (!getDisableLogs()) {
-            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.parameters' out of structure in '${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
+            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.parameters' out of structure in\n'${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
         }
         return origObjParameters;
     }
@@ -484,7 +484,7 @@ async function getRequestBodyTag(data, reference) {
         return requestBody;
     } catch (err) {
         if (!getDisableLogs()) {
-            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.requestBody' out of structure in '${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
+            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.requestBody' out of structure in\n'${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
         }
         return {};
     }
@@ -514,7 +514,7 @@ async function getProducesTag(data, reference) {
         return [...cleanedProduces];
     } catch (err) {
         if (!getDisableLogs()) {
-            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.produces' out of structure in '${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
+            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.produces' out of structure in\n'${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
         }
         return [];
     }
@@ -543,7 +543,7 @@ async function getConsumesTag(data, reference) {
         return [...cleanedConsumes];
     } catch (err) {
         if (!getDisableLogs()) {
-            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.consumes' out of structure in '${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
+            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.consumes' out of structure in\n'${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
         }
         return [];
     }
@@ -581,7 +581,7 @@ async function getResponsesTag(data, objResponses, reference) {
                     };
                 } catch (err) {
                     console.error('[swagger-autogen]: Syntax error: ' + objResp);
-                    console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.responses' out of structure in '${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
+                    console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.responses' out of structure in\n'${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
                     return origObjResponses;
                 }
 
@@ -643,7 +643,7 @@ async function getResponsesTag(data, objResponses, reference) {
         }
     } catch (err) {
         if (!getDisableLogs()) {
-            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.responses' out of structure in '${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
+            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.responses' out of structure in\n'${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
         }
         return origObjResponses;
     }
@@ -656,6 +656,7 @@ async function getResponsesTag(data, objResponses, reference) {
 function getDescription(data, reference) {
     try {
         let swaggerDescription = data.split(new RegExp(`${statics.SWAGGER_TAG}.description\\s*\\=\\s*`))[1];
+        swaggerDescription = swaggerDescription.split('\n')[0];
 
         const quotMark = swaggerDescription[0];
         if ((quotMark == '"' || quotMark == "'" || quotMark == '`') && swaggerDescription.split(quotMark).length > 2) {
@@ -665,10 +666,13 @@ function getDescription(data, reference) {
             swaggerDescription = swaggerDescription.replaceAll(statics.STRING_BREAKER + 'quotMark' + statics.STRING_BREAKER, `\\${quotMark}`);
             return swaggerDescription;
         }
-        return '';
+        swaggerDescription = swaggerDescription.trim();
+        swaggerDescription = swaggerDescription.replace(new RegExp('^["|\'|`]'), '');
+        swaggerDescription = swaggerDescription.replace(new RegExp('["|\'|`]$'), '');
+        return swaggerDescription;
     } catch (err) {
         if (!getDisableLogs()) {
-            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.description' out of structure in '${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
+            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.description' out of structure in\n'${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
         }
         return '';
     }
@@ -681,6 +685,8 @@ function getDescription(data, reference) {
 function getSummary(data, reference) {
     try {
         let swaggerSummary = data.split(new RegExp(`${statics.SWAGGER_TAG}.summary\\s*\\=\\s*`))[1];
+        swaggerSummary = swaggerSummary.split('\n')[0];
+
         const quotMark = swaggerSummary[0];
         if ((quotMark == '"' || quotMark == "'" || quotMark == '`') && swaggerSummary.split(quotMark).length > 2) {
             let aux = swaggerSummary.replaceAll(`\\${quotMark}`, statics.STRING_BREAKER + 'quotMark' + statics.STRING_BREAKER);
@@ -689,10 +695,13 @@ function getSummary(data, reference) {
             swaggerSummary = swaggerSummary.replaceAll(statics.STRING_BREAKER + 'quotMark' + statics.STRING_BREAKER, `\\${quotMark}`);
             return swaggerSummary;
         }
-        return '';
+        swaggerSummary = swaggerSummary.trim();
+        swaggerSummary = swaggerSummary.replace(new RegExp('^["|\'|`]'), '');
+        swaggerSummary = swaggerSummary.replace(new RegExp('["|\'|`]$'), '');
+        return swaggerSummary;
     } catch (err) {
         if (!getDisableLogs()) {
-            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.summary' out of structure in '${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
+            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.summary' out of structure in\n'${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
         }
         return '';
     }
@@ -705,6 +714,8 @@ function getSummary(data, reference) {
 function getOperationId(data, reference) {
     try {
         let swaggerOperationId = data.split(new RegExp(`${statics.SWAGGER_TAG}.operationId\\s*\\=\\s*`))[1];
+        swaggerOperationId = swaggerOperationId.split('\n')[0];
+
         const quotMark = swaggerOperationId[0];
         if ((quotMark == '"' || quotMark == "'" || quotMark == '`') && swaggerOperationId.split(quotMark).length > 2) {
             let aux = swaggerOperationId.replaceAll(`\\${quotMark}`, statics.STRING_BREAKER + 'quotMark' + statics.STRING_BREAKER);
@@ -713,10 +724,13 @@ function getOperationId(data, reference) {
             swaggerOperationId = swaggerOperationId.replaceAll(statics.STRING_BREAKER + 'quotMark' + statics.STRING_BREAKER, `\\${quotMark}`);
             return swaggerOperationId;
         }
-        return '';
+        swaggerOperationId = swaggerOperationId.trim();
+        swaggerOperationId = swaggerOperationId.replace(new RegExp('^["|\'|`]'), '');
+        swaggerOperationId = swaggerOperationId.replace(new RegExp('["|\'|`]$'), '');
+        return swaggerOperationId;
     } catch (err) {
         if (!getDisableLogs()) {
-            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.operationId' out of structure in '${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
+            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.operationId' out of structure in\n'${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
         }
         return '';
     }
@@ -749,7 +763,7 @@ function getTags(data, reference) {
         return [];
     } catch (err) {
         if (!getDisableLogs()) {
-            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.tags' out of structure in '${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
+            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.tags' out of structure in\n'${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
         }
         return [];
     }
@@ -773,7 +787,7 @@ async function getSecurityTag(data, reference) {
         return security;
     } catch (err) {
         if (!getDisableLogs()) {
-            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.security' out of structure in '${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
+            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.security' out of structure in\n'${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
         }
         return [];
     }

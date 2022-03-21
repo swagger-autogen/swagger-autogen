@@ -1074,7 +1074,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     }
 
                     // Used in logs
-                    let reference = { filePath, predefPattern, method, path };
+                    let reference = { filePath, predefPattern, method, path: rawPathResolved || path };
 
                     /**
                      * Handling all endpoint functions
