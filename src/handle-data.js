@@ -1501,7 +1501,12 @@ async function getCallbackParameters(data) {
                 // Request
                 if (params[0] && params[0].includes(':')) {
                     // TS
+
+                    // TODO: Handle 'req' and 'res' only by input parameter position
                     let typeParam = params[0].split(':')[1].toLocaleLowerCase();
+                    if (typeParam && typeParam.includes('.')) {
+                        typeParam = typeParam.split('.')[1];
+                    }
                     let param = params[0].split(':')[0].replaceAll('\n', '').replaceAll('\t', '').replaceAll(' ', '');
                     if (typeParam.includes('res')) {
                         if (param.split(new RegExp(regex)).length === 1 && param && param.trim() !== '') {
