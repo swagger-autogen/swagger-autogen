@@ -501,7 +501,12 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             if (expressVarName && auxElem.split(new RegExp(expressVarRegex)).length > 1) {
                                 let pathExpressRouter = utils.popString(rawPath);
                                 if (pathExpressRouter && pathExpressRouter.length > 0) {
-                                    pathRoute += pathExpressRouter;
+                                    let routerObj = {
+                                        routeName: null
+                                    };
+                                    routerObj.routeName = expressVarName;
+                                    routerObj.prefix = pathExpressRouter;
+                                    propRoutes.push(routerObj);
                                     expressVarName = null; // to consider only the first statement
                                     continue;
                                 }
@@ -1530,6 +1535,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             obj.path = '';
                         } else {
                             obj.path = pathRoute + routePrefix + obj.path;
+                            routePrefix = '';
                         }
                         obj.path = obj.path.replaceAll('////', '/').replaceAll('///', '/').replaceAll('//', '/');
                     } else {
@@ -1540,6 +1546,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             obj.path = '';
                         } else {
                             obj.path = pathRoute + routePrefix + obj.path;
+                            routePrefix = '';
                         }
                         obj.path = obj.path.replaceAll('////', '/').replaceAll('///', '/').replaceAll('//', '/');
 
