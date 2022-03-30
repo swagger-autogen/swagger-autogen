@@ -946,7 +946,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 /**
                                  * Referenced in the same file
                                  */
-                                let refFunction = await handleData.functionRecognizerInData(aDataRaw, varFileName);
+                                let refFunction = await handleData.functionRecognizerInData(aDataRaw, varFileName === 'this' ? functionName : varFileName);
                                 if (refFunction && refFunction.slice(0, 4) == '([_[') {
                                     refFunction = null;
                                 }

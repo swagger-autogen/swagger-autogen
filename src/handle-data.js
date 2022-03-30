@@ -132,7 +132,7 @@ function clearData(data) {
             aData = aData.join('__¬¬¬__application/json__¬¬¬__');
 
             aData = aData.replaceAll(statics.STRING_BREAKER, '\n');
-            aData = aData.replaceAll(' async ', '');
+            aData = aData.replaceAll(' async ', ' ');
             aData = aData.split(new RegExp('\\s*async\\s*\\('));
             aData = aData.join(' (');
             aData = aData.split(new RegExp('\\:\\s*async\\s*\\('));
@@ -779,7 +779,7 @@ function addReferenceToMethods(data, patterns) {
                 for (let idxPtn = 0; idxPtn < patterns.length; ++idxPtn) {
                     let method = methods[idx];
                     let pattern = patterns[idxPtn];
-                    let regexMethods = `${pattern}\\s*\\n*\\t*\\.\\s*\\n*\\t*${method}\\s*\\n*\\t*\\(`;
+                    let regexMethods = `${pattern}\\s*\\n*\\t*\\.\\s*\\n*\\t*${method}\\s*\\n*\\t*\\((?!\\[)`;
                     auxData = auxData.split(new RegExp(regexMethods));
 
                     /**
