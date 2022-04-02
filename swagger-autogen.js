@@ -142,32 +142,36 @@ module.exports = function (args) {
              * Forcing convertion to OpenAPI 3.x
              */
             if (objDoc.openapi) {
-                if (objDoc.host) {
-                    if (objDoc.basePath) {
-                        objDoc.host += objDoc.basePath
-                    }
-                    if (objDoc.host.slice(0, 4).toLowerCase() != 'http') {
-                        if (objDoc.schemes && objDoc.schemes.length > 0) {
-                            objDoc.schemes.forEach(scheme => {
-                                objDoc.servers.push(
-                                    {
-                                        url: scheme + '://' + objDoc.host
-                                    }
-                                )
-                            })
-                        } else {
-                            objDoc.host = 'http://' + objDoc.host
-                            objDoc.servers = [
-                                {
-                                    url: objDoc.host
-                                }
-                            ]
+                if (!objDoc.servers || objDoc.servers.length == 0) {
+                    if (objDoc.host) {
+                        if (objDoc.basePath) {
+                            objDoc.host += objDoc.basePath
                         }
-                    }
+                        if (objDoc.host.slice(0, 4).toLowerCase() != 'http') {
+                            if (objDoc.schemes && objDoc.schemes.length > 0) {
+                                objDoc.schemes.forEach(scheme => {
+                                    objDoc.servers.push(
+                                        {
+                                            url: scheme + '://' + objDoc.host
+                                        }
+                                    )
+                                })
+                            } else {
+                                objDoc.host = 'http://' + objDoc.host
+                                objDoc.servers = [
+                                    {
+                                        url: objDoc.host
+                                    }
+                                ]
+                            }
+                        }
 
-                    delete objDoc.host
+                        delete objDoc.host
+                    } else {
+                        delete objDoc.servers
+                    }
                 } else {
-                    delete objDoc.servers
+                    delete objDoc.host
                 }
 
                 if (objDoc.components && objDoc.components.schemas) {
