@@ -123,14 +123,6 @@ function clearData(data) {
             let aData = data.replaceAll('\n', statics.STRING_BREAKER);
             aData = aData.replaceAll('\t', ' ');
 
-            // Avoiding bug when there is case sensitive and handling symbols ", ' and ` in the header
-            aData = aData.split(new RegExp('.\\s*\\t*application/xml\\s*\\t*.', 'i'));
-            aData = aData.join('__¬¬¬__application/xml__¬¬¬__');
-            aData = aData.split(new RegExp('.\\s*\\t*content-type\\s*\\t*.', 'i'));
-            aData = aData.join('__¬¬¬__content-type__¬¬¬__');
-            aData = aData.split(new RegExp('.\\s*\\t*application/json\\s*\\t*.', 'i'));
-            aData = aData.join('__¬¬¬__application/json__¬¬¬__');
-
             aData = aData.replaceAll(statics.STRING_BREAKER, '\n');
             aData = aData.replaceAll(' async ', ' ');
             aData = aData.split(new RegExp('\\s*async\\s*\\('));
@@ -963,15 +955,16 @@ function getHeader(elem, path, method, response, objEndpoint) {
     try {
         for (let idx = 0; idx < response.length; ++idx) {
             let res = response[idx];
-            if (res && elem && elem.replaceAll(' ', '').includes(res + '.setHeader(')) {
-                elem = elem.replaceAll(' ', '');
-                let aContentType = new Set(); // To avoid repetition
-                elem.split(res + '.setHeader(')
-                    .splice(1)
-                    .forEach(s => {
-                        if (s && s.includes(',') && s.split(',')[0].includes('content-type') && s.split(',"')[1]) aContentType.add(s.split(',"')[1].split('")')[0]);
-                    });
-                objEndpoint[path][method].produces = [...aContentType];
+
+            elem = elem.split(new RegExp('application/xml', 'i'));
+            elem = elem.join('application/xml');
+            if (res && elem && elem.split(new RegExp(res + '\\s*\\t*\\n*\\.\\s*\\t*\\n*setHeader\\s*\\t*\\n*\\(')).length > 1) {
+                elem = elem.split(new RegExp(res + '\\s*\\t*\\n*\\.\\s*\\t*\\n*setHeader\\s*\\('));
+                if (elem.length > 1 && elem[1].toLocaleLowerCase().includes('content-type')) {
+                    let content = elem[1].split(',')[1];
+                    content = utils.popString(content);
+                    objEndpoint[path][method].produces = [content];
+                }
             }
         }
         if (objEndpoint[path][method].produces && objEndpoint[path][method].produces.length == 0) {

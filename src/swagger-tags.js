@@ -466,8 +466,6 @@ async function getRequestBodyTag(data, reference) {
         for (let idx = 0; idx < swaggerRequestBody.length; ++idx) {
             let parameter = await utils.stack0SymbolRecognizer(swaggerRequestBody[idx], '{', '}');
             if (parameter) {
-                parameter = parameter.replaceAll('__¬¬¬__', '"');
-
                 /**
                  * Forcing convertion to OpenAPI 3.x
                  */
@@ -496,7 +494,6 @@ async function getRequestBodyTag(data, reference) {
  */
 async function getProducesTag(data, reference) {
     try {
-        data = data.replaceAll('\n', ' ').replaceAll('__¬¬¬__', '"');
         let produces = [];
         let swaggerProduces = data.split(new RegExp(`${statics.SWAGGER_TAG}.produces\\s*\\=\\s*`));
         swaggerProduces.shift();
@@ -526,7 +523,6 @@ async function getProducesTag(data, reference) {
  */
 async function getConsumesTag(data, reference) {
     try {
-        data = data.replaceAll('\n', ' ').replaceAll('__¬¬¬__', '"');
         let consumes = [];
         let swaggerConsumes = data.split(new RegExp(`${statics.SWAGGER_TAG}.consumes\\s*\\=\\s*`));
         swaggerConsumes.shift();
@@ -566,7 +562,6 @@ async function getResponsesTag(data, objResponses, reference) {
             if (swaggerResponses[idx].split(new RegExp(`\\[\\s*\\t*\\s*\\t*${statusCode}\\s*\\t*\\s*\\t*\\]\\s*\\t*\\s*\\t*\\=\\s*\\t*\\s*\\t*\\{`)).length > 1) {
                 // has object
                 let objResp = await utils.stack0SymbolRecognizer(swaggerResponses[idx], '{', '}');
-                objResp = objResp.replaceAll('__¬¬¬__', '"');
 
                 /**
                  * Forcing convertion to OpenAPI 3.x

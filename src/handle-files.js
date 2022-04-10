@@ -1106,7 +1106,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 .replaceAll('*/', '\n')
                                 .replaceAll(statics.SWAGGER_TAG, '\n' + statics.SWAGGER_TAG);
 
-                            // const rawEndpoint = endpoint;
+                            const rawEndpoint = endpoint;
 
                             req = null;
                             res = null;
@@ -1234,7 +1234,6 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 }
 
                                 endpoint = await handleData.removeStrings(endpoint); // Avoiding .status(...) in string
-                                endpoint = endpoint.replaceAll('__¬¬¬__', '"');
                                 if (req) {
                                     objParameters = handleData.getHeaderQueryBody(endpoint, req, objParameters); // Search for parameters in the query and body
                                     if (method === 'get' && objParameters['__obj__in__body__']) {
@@ -1259,7 +1258,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                     if (globalOptions.autoResponse) {
                                         //     objResponses = await handleData.getResponses(rawEndpoint, res, objResponses);
                                     }
-                                    objEndpoint = handleData.getHeader(endpoint, path, method, res, objEndpoint); // Search for resonse header
+                                    objEndpoint = handleData.getHeader(await handleData.removeComments(rawEndpoint), path, method, res, objEndpoint); // Search for resonse header
                                 }
                             }
 
