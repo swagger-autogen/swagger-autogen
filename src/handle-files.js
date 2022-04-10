@@ -1754,9 +1754,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 /**
  * Get require/import content.
  * @param {string} data
- * @param {string} relativePath
+ * @param {string} localRelativePath
  */
-async function getImportedFiles(data, relativePath) {
+async function getImportedFiles(data, localRelativePath) {
     let importedFiles = [];
     try {
         let importeds = data.split(new RegExp(`import`, 'i'));
@@ -1770,10 +1770,28 @@ async function getImportedFiles(data, relativePath) {
             // TODO: refactor this. Pass to outside
             let tsPaths = [];
             let tsconfig = await utils.getFileContent(process.cwd() + '/tsconfig.json');
+            let tsConfigPath = localRelativePath.replace('./', '/');
+            let tsRelativePath = null;
+
+            if (!tsconfig && tsConfigPath && tsConfigPath.includes('/')) {
+                tsConfigPath = tsConfigPath.split('/');
+                for (let idx = tsConfigPath.length; idx >= 2; idx--) {
+                    let path = tsConfigPath.slice(0, idx).join('/');
+                    tsconfig = await utils.getFileContent(process.cwd() + path + '/tsconfig.json');
+                    if (tsconfig) {
+                        tsRelativePath = '.' + path;
+                        break;
+                    }
+                }
+            }
             if (tsconfig) {
                 tsconfig = await handleData.removeComments(tsconfig);
                 tsconfig = JSON5.parse(tsconfig); // Allow trailing commas
                 tsPaths = tsconfig.compilerOptions && tsconfig.compilerOptions.paths && typeof tsconfig.compilerOptions.paths === 'object' ? Object.entries(tsconfig.compilerOptions.paths) : [];
+                let rootDir = tsconfig.compilerOptions && tsconfig.compilerOptions.rootDir ? tsconfig.compilerOptions.rootDir : '';
+                if (tsRelativePath) {
+                    tsRelativePath += rootDir.replace('.', '');
+                }
             }
 
             // Verify if .eslintrc
@@ -1901,7 +1919,17 @@ async function getImportedFiles(data, relativePath) {
 
                 let pathPattern = fileName.split('/').slice(0, -1).join('/');
                 let found = tsPaths.find(p => p[0] && p[0].split('/*')[0] == pathPattern);
-
+                let relativePath = localRelativePath;
+                if (!found && pathPattern && pathPattern.includes('/')) {
+                    let tsPathPattern = pathPattern.split('/');
+                    for (let idx = tsPathPattern.length; idx >= 1; idx--) {
+                        let path = tsPathPattern.slice(0, idx).join('/');
+                        found = tsPaths.find(p => p[0] && p[0].split('/*')[0] == path);
+                        if (found) {
+                            break;
+                        }
+                    }
+                }
                 if (found) {
                     let refFileName = found[0].split('/*')[0];
                     if (Array.isArray(found[1])) {
@@ -1909,22 +1937,26 @@ async function getImportedFiles(data, relativePath) {
                         if (realPath) {
                             realPath = realPath.replaceAll('/*', '');
                             fileName = './' + fileName.replace(new RegExp('^' + refFileName), realPath);
-                            relativePath = relativePath.split('/');
-                            let rootPath = realPath ? realPath.split('/')[0] : null;
-                            let rootFound = false;
+                            if (tsRelativePath) {
+                                relativePath = null;
+                                fileName = tsRelativePath + fileName.replace('.', '');
+                            } else {
+                                relativePath = relativePath.split('/');
+                                let rootPath = realPath ? realPath.split('/')[0] : null;
+                                let rootFound = false;
 
-                            relativePath = relativePath.filter(path => {
-                                if (rootFound) {
-                                    return false;
-                                }
-                                if (path == rootPath) {
-                                    rootFound = true;
-                                    return false;
-                                }
-                                return true;
-                            });
-
-                            relativePath = relativePath.join('/');
+                                relativePath = relativePath.filter(path => {
+                                    if (rootFound) {
+                                        return false;
+                                    }
+                                    if (path == rootPath) {
+                                        rootFound = true;
+                                        return false;
+                                    }
+                                    return true;
+                                });
+                                relativePath = relativePath.join('/');
+                            }
                         }
                     }
                 }
@@ -2108,7 +2140,7 @@ async function getImportedFiles(data, relativePath) {
                     if (fs.existsSync(fileName + extension)) {
                         // is an absolute path
                         fileName = './' + fileName; // TODO: check for possible problems here
-                        relativePath = '';
+                        localRelativePath = '';
                     }
                 }
                 /* END CASE */
@@ -2117,8 +2149,8 @@ async function getImportedFiles(data, relativePath) {
                     if (fileName.split(new RegExp(`.json$`, 'i')).length == 1) {
                         // Will not recognize files with .json extension
                         let pathFile = null;
-                        if (relativePath) {
-                            pathFile = await resolvePathFile(fileName, relativePath);
+                        if (localRelativePath) {
+                            pathFile = await resolvePathFile(fileName, localRelativePath);
                         } else {
                             pathFile = fileName;
                         }
@@ -2144,14 +2176,14 @@ async function getImportedFiles(data, relativePath) {
                                 } else {
                                     // TODO: Verify other cases
 
-                                    let relativePath = obj.fileName;
+                                    let localRelativePath = obj.fileName;
                                     for (let pathIdx = 0; pathIdx < obj.exports.length; ++pathIdx) {
                                         let oExp = obj.exports[pathIdx];
 
                                         if (dataFile.split(new RegExp(`${oExp}\\s*\\n*\\t*\\=\\s*\\n*\\t*require\\s*\\n*\\t*\\(`)).length > 1) {
                                             let addPath = dataFile.split(new RegExp(`${oExp}\\s*\\n*\\t*\\=\\s*\\n*\\t*require\\s*\\n*\\t*\\(\\s*\\n*\\t*`));
                                             addPath = addPath[1].split(')')[0].replaceAll("'", '').replaceAll('"', '').replaceAll('`', '');
-                                            oExp.path = await resolvePathFile(addPath, relativePath);
+                                            oExp.path = await resolvePathFile(addPath, localRelativePath);
                                         }
                                     }
                                 }
