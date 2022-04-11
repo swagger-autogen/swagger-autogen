@@ -297,15 +297,18 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
             /**
              * Identifying "express.Router()"
              */
-            let expressVarName = null;
+            let expressVarName = [];
             if (importedFiles.length > 0) {
                 let idx = importedFiles.findIndex(i => i.fileName === 'express');
                 if (idx > -1) {
                     let varName = importedFiles[idx].varFileName;
                     let varRouteFound = aData.replaceAll('\n', '').split(new RegExp(`(const|let|var)(\\s+\\w+\\s*\\t*\\=\\s*\\t*${varName}\\s*\\t*\\.\\s*\\t*Router\\s*\\t*\\(\\s*\\t*\\))`));
-                    if (varRouteFound[2]) {
-                        expressVarName = varRouteFound[2].split('=')[0].trim();
-                    }
+                    varRouteFound.map(d => {
+                        let midd = d.split(new RegExp(`\\=\\s*\\t*${varName}\\s*\\t*\\.\\s*\\t*Router\\s*\\t*\\(\\s*\\t*\\)`));
+                        if (midd.length > 1) {
+                            expressVarName.push(midd[0].trim());
+                        }
+                    });
 
                     let varExpressRouteFound = aData.replaceAll('\n', '').split(new RegExp(`(\\s+\\t*${varName}\\s*\\t*\\.\\s*\\t*Router\\s*\\t*\\(\\s*\\t*\\))`));
                     if (varExpressRouteFound[1] && varExpressRouteFound[2] && varExpressRouteFound[2].split(/^____CHAINED____/).length > 1) {
@@ -497,17 +500,17 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                         auxElem = auxElem.replaceAll('\n', '').replaceAll(' ', '');
                         if (auxElem.split(',').length > 1 || predefMethod === 'use') {
-                            let expressVarRegex = `\\,\\s*\\n*\\t*${expressVarName}\\s*\\n*\\t*\\)`;
-                            if (expressVarName && auxElem.split(new RegExp(expressVarRegex)).length > 1) {
+                            let found = expressVarName.findIndex(v => auxElem.split(new RegExp(`\\,\\s*\\n*\\t*${v}\\s*\\n*\\t*\\)`)).length > 1);
+                            if (expressVarName !== '' && found > -1) {
                                 let pathExpressRouter = utils.popString(rawPath);
                                 if (pathExpressRouter && pathExpressRouter.length > 0) {
                                     let routerObj = {
                                         routeName: null
                                     };
-                                    routerObj.routeName = expressVarName;
+                                    routerObj.routeName = expressVarName[found];
                                     routerObj.prefix = pathExpressRouter;
                                     propRoutes.push(routerObj);
-                                    expressVarName = null; // to consider only the first statement
+                                    delete expressVarName[found]; // to consider only the first statement
                                     continue;
                                 }
                             }
