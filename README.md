@@ -1148,6 +1148,19 @@ app.post('/path', (req, res, next) => {
     ...
     /*	#swagger.requestBody = {
             required: true,
+            schema: { $ref: "#/definitions/sample" }
+    } */
+    ...
+})
+```
+NOTE: The above case, the content will be generated automatically with `application/json` and `application/xml`.
+
+To declare a specific content:
+```js
+app.post('/path', (req, res, next) => {
+    ...
+    /*	#swagger.requestBody = {
+            required: true,
             content: {
                 "application/json": {
                     schema: {
@@ -1156,11 +1169,45 @@ app.post('/path', (req, res, next) => {
                 },
                 "application/xml": {
                     schema: {
-                        $ref: "#/definitions/User"
+                        $ref: "#/definitions/sample"
                     }  
                 }
             }
-    } */
+        } 
+    */
+    ...
+})
+```
+
+Use the `'@content'` instead of `content` if you don't want swagger-autogen to do the content processing. In this case you must build the content according to Swagger's specs. The result in the _.json_ will be the same in `'@content'`, for example:
+
+```js
+app.post('/path', (req, res, next) => {
+    ...
+    /*	#swagger.requestBody = {
+            required: true,
+            "@content": {
+                "multipart/form-data": {
+                    schema: {
+                        type: "object",
+                        properties: {
+                            title: {
+                                type: "string"
+                            },
+                            description: {
+                                type: "string"
+                            },
+                            image: {
+                                type: "string",
+                                format: "binary"
+                            }
+                        },
+                        required: ["title", "image"]
+                    }
+                }
+            } 
+        }
+    */ 
     ...
 })
 ```
@@ -1577,19 +1624,18 @@ Some tutorials with examples:
 - Version 2.19.x:
   - Support '$ref' in parameters (OpenAPI)
   - Bug fixes
-- Version 2.20.x (latest):
+- Version 2.20.x:
   - New feature: Properties @schemas and @definitions
   - Recognizes 'express.Router()'
   - Bug fixes
-
+- Version 2.21.x (latest):
+  - New feature: Property @content
+  - Bug fixes
 
 **TODO:**
 
 - Recognize more OpenAPI v3 features
 - Recognize more TypeScript's features
-- Recognize middlewares of routes (completely)
-- Recognize multiples "express.Router()" in the same file
-- Write more test cases
 - Improve performance
 - Refactor code
 - Integrate with other frameworks
