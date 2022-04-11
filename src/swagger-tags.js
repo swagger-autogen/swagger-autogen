@@ -479,6 +479,24 @@ async function getRequestBodyTag(data, reference) {
             };
         }
 
+        if (requestBody && requestBody.schema && !requestBody.content) {
+            // Auto generate the content
+            requestBody.content = {
+                'application/json': {
+                    schema: requestBody.schema
+                },
+                'application/xml': {
+                    schema: requestBody.schema
+                }
+            };
+            delete requestBody.schema;
+        }
+
+        if (requestBody && !requestBody.content && requestBody['@content']) {
+            requestBody.content = requestBody['@content'];
+            delete requestBody['@content'];
+        }
+
         return requestBody;
     } catch (err) {
         if (!getDisableLogs()) {
