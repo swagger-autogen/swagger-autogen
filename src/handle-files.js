@@ -27,7 +27,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
     return new Promise(resolve => {
         let paths = {};
         fs.readFile(filePath, 'utf8', async function (err, data) {
-            if (err || data.trim() === '') {
+            if (err || !data || data.trim() === '') {
                 return resolve(false);
             }
 
@@ -1936,7 +1936,7 @@ async function getImportedFiles(data, localRelativePath) {
                 }
                 if (found) {
                     let refFileName = found[0].split('/*')[0];
-                    let baseUrl = tsBaseUrl ? tsBaseUrl.split('/')[1] + '/' : './';
+                    let baseUrl = tsBaseUrl && tsBaseUrl.split('/').length > 1 ? tsBaseUrl.split('/')[1] + '/' : './';
                     if (Array.isArray(found[1])) {
                         let realPath = found[1][0];
                         if (realPath) {
