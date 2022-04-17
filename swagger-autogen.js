@@ -91,7 +91,7 @@ module.exports = function (args) {
 
             for (let file = 0; file < allFiles.length; file++) {
                 const filePath = allFiles[file];
-                const resp = await fs.existsSync(filePath);
+                const resp = fs.existsSync(filePath);
                 if (!resp) {
                     console.error('[swagger-autogen]: Error! Endpoint file not found => ' + "'" + filePath + "'");
                     if (!options.disableLogs) {

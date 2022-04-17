@@ -1771,6 +1771,7 @@ async function getImportedFiles(data, localRelativePath) {
 
             // TODO: refactor this. Pass to outside
             let tsPaths = [];
+            let tsBaseUrl = null;
             let tsconfig = await utils.getFileContent(process.cwd() + '/tsconfig.json');
             let tsConfigPath = localRelativePath.replace('./', '/');
             let tsRelativePath = null;
@@ -1790,6 +1791,7 @@ async function getImportedFiles(data, localRelativePath) {
                 tsconfig = await handleData.removeComments(tsconfig);
                 tsconfig = JSON5.parse(tsconfig); // Allow trailing commas
                 tsPaths = tsconfig.compilerOptions && tsconfig.compilerOptions.paths && typeof tsconfig.compilerOptions.paths === 'object' ? Object.entries(tsconfig.compilerOptions.paths) : [];
+                tsBaseUrl = tsconfig.compilerOptions && tsconfig.compilerOptions.baseUrl && typeof tsconfig.compilerOptions.baseUrl === 'string' ? tsconfig.compilerOptions.baseUrl : null;
                 let rootDir = tsconfig.compilerOptions && tsconfig.compilerOptions.rootDir ? tsconfig.compilerOptions.rootDir : '';
                 if (tsRelativePath) {
                     tsRelativePath += rootDir.replace('.', '');
@@ -1934,11 +1936,12 @@ async function getImportedFiles(data, localRelativePath) {
                 }
                 if (found) {
                     let refFileName = found[0].split('/*')[0];
+                    let baseUrl = tsBaseUrl ? tsBaseUrl.split('/')[1] + '/' : './';
                     if (Array.isArray(found[1])) {
                         let realPath = found[1][0];
                         if (realPath) {
                             realPath = realPath.replaceAll('/*', '');
-                            fileName = './' + fileName.replace(new RegExp('^' + refFileName), realPath);
+                            fileName = baseUrl + fileName.replace(new RegExp('^' + refFileName), realPath);
                             if (tsRelativePath) {
                                 relativePath = null;
                                 fileName = tsRelativePath + fileName.replace('.', '');
