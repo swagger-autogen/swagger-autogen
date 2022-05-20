@@ -375,7 +375,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         rawPath = rawPath.split('_])(')[3];
                         if ((rawPath && rawPath.includes(')') && !rawPath.split(')')[0].includes('(')) || rawPath == data) {
                             // has no path
-                            rawPath = false;
+                            rawPath = '';
                         }
                     }
 
@@ -406,6 +406,13 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         predefMethod = elem[1];
                         predefPattern = elem[3];
                         bytePosition = parseInt(elem[5]);
+
+                        if (rawPathResolved === rawPath && predefMethod === 'use') {
+                            if (rawPath && rawPath[0] && !statics.QUOTES.includes(rawPath[0])) {
+                                rawPath = '';
+                                rawPathResolved = false;
+                            }
+                        }
 
                         if (predefPattern === '____CHAINED____') {
                             // CASE: router.get(...).post(...).put(...)...
@@ -461,8 +468,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                      * CASE (continuing): router.use(middleware).get(...).post(...).put(...)...
                      * Adding middleware to be processed together with the other endpoint functions
                      */
-                    if (isChained) {
-                        const endpointRegex = `\\(\\[\\_\\[${predefMethod}\\]\\_\\]\\)\\(\\[\\_\\[____CHAINED____\\]\\_\\]\\)\\(\\[\\_\\[${bytePosition}\\]\\_\\]\\)\\(\\s*\\n*\\t*${rawPath}\\s*\\n*\\t*\\,`;
+                    if (isChained && rawPath) {
+                        const endpointRegex = `\\(\\[\\_\\[${predefMethod}\\]\\_\\]\\)\\(\\[\\_\\[____CHAINED____\\]\\_\\]\\)\\(\\[\\_\\[${bytePosition}\\]\\_\\]\\)\\(\\s*\\n*\\t*${rawPath.replaceAll('/', '\\/')}\\s*\\n*\\t*\\,`;
                         const found = localRouteMiddlewares.find(midd => midd.rawRoute && midd.rawRoute.split(new RegExp(endpointRegex)).length > 1);
                         if (found) {
                             elem += ',' + found.middleware;
@@ -535,7 +542,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             functionsStr = functionsStr.replaceAll('{_{__function__}_}', '');
                             for (let idxFunc = 0; idxFunc < 15; ++idxFunc) {
                                 // Adding '(' and ')' to arrow functions that not contains '(' and ')', such as: async req => {
-                                if (functionsStr && functionsStr.split(new RegExp('\\s*\\t*=>\\s*\\n*\\t*').length > 1)) {
+                                if (functionsStr && functionsStr.split(new RegExp('\\s*\\t*=>\\s*\\n*\\t*')).length > 1) {
                                     let params = functionsStr.trim().split(new RegExp('\\s*\\t*=>\\s*\\n*\\t*'));
                                     if (params && params.length > 1 && params[0].trim().slice(-1)[0] !== ')') {
                                         let paramsAux = params[0].split(new RegExp('\\s+|\\n+|\\t+|\\,|\\.|\\;|\\:'));
@@ -644,6 +651,10 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             endpointSwaggers = await handleData.getSwaggerComments(functionsStr);
                             functionsStr = await handleData.removeComments(functionsStr);
                             functions = [...functions, ...functionsStr.split(',')];
+
+                            if (predefMethod == 'use' && endpointSwaggers && routeMiddlewares.length > 0) {
+                                routeMiddlewares[0].func += endpointSwaggers;
+                            }
                         }
 
                         /**
@@ -793,7 +804,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                     if (importedFiles[idx] && importedFiles[idx].isRequireDirLib && func && func.split('.').length == 3) {
                                         functionName = func.split('.')[2].trim();
                                         pathFile = importedFiles[idx].fileName + '/' + func.split('.')[1].trim();
-                                    } else {
+                                    } else if (importedFiles[idx]) {
                                         pathFile = importedFiles[idx].fileName;
                                     }
                                 }

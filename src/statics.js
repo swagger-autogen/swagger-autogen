@@ -24,11 +24,14 @@ const STRING_BREAKER = '__¬!@#$¬__'; // for line break and return without text
 const STRING_QUOTE = '__¬¬¬¬__QUOTE__¬¬¬¬__';
 const METHODS = ['get', 'head', 'post', 'put', 'delete', 'patch', 'options'];
 const RESERVED_FUNCTIONS = ['if', 'for', 'while', 'forEach'];
+const QUOTES = ['"', "'", '`'];
+
 module.exports = {
     TEMPLATE,
     SWAGGER_TAG,
     STRING_BREAKER,
     METHODS,
     RESERVED_FUNCTIONS,
-    STRING_QUOTE
+    STRING_QUOTE,
+    QUOTES
 };
