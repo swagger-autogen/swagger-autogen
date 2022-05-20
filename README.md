@@ -16,7 +16,6 @@ This module performs the automatic construction of the Swagger documentation. Th
 - [Building documentation at project startup](#building-documentation-at-project-startup)
 - [Options](#options)
 - [Endpoints](#endpoints)
-  - [Automatic capture](#automatic-capture)
   - [Tags](#tags)
   - [Summary](#summary)
   - [Description](#description)
@@ -265,28 +264,6 @@ To see the available languages, go to the section [Response Language](#response-
 
 The way to configure the module is done within comments, and can be in the format `// ...` or `/* ... */`. The used pattern will be `#swagger.something` tag. Each comment can contain one or more `#swagger.something` tags. **NOTE:** ALL COMMENTS CONTAINING `#swagger.something` MUST BE WITHIN THE FUNCTIONS.
 
-### Automatic capture
-
-In this case, it is not necessary to do anything. Considering, for example, if the pattern of your API is as follows:
-
-```js
-    ...
-    app.post('/path', (req, res) => {
-        ...
-        users.addUser(req.query.obj)
-        ...
-        if(...)
-            return res.status(201).send(data)
-        ...
-        return res.status(500).send(false)
-    })
-    ...
-```
-
-The recognition of the method, path, parameters and status of the response will be automatic.
-
-See an [example here!](#examples)
-
 ### Tags
 
 To inform which tags the endpoints belong to, use the `#swagger.tags` tag, for example:
@@ -444,20 +421,9 @@ To reference one or more parameters, use the `parameters` tag passing the `$ref`
 
 #### Body
 
-The **body** is automatically recognized, for example:
+To disable the automatic body recognition, see about the **autoBody** in the [Options](#options).
 
-```js
-    app.post('/users', (req, res) => {
-
-        const myItem1 = req.body.item1
-
-        const { item2, item3 } = req.body
-
-        ...
-    })
-```
-
-**NOTE:** But, if there is any `#swagger.parameters[...] = { in: 'body', ... }` with **schema** declared, the recognition of **body** will be ignored, for example:
+**NOTE:** If there is any `#swagger.parameters[...] = { in: 'body', ... }` with **schema** declared, the recognition of **body** will be ignored, for example:
 
 ```js
     app.post('/path', (req, res) => {
@@ -1643,9 +1609,6 @@ Some tutorials with examples:
 ## Help us!
 
 Help us improve this module. If you have any information that the module does not provide or provides incompletely or incorrectly, please use our [Github](https://github.com/davibaltar/swagger-autogen) repository.
-
-**pt-BR:**
-Ajude-nos a melhorar este módulo. Se você tiver alguma informação que o módulo não forneça ou forneça de maneira incompleta ou incorreta, use o nosso repositório do [Github](https://github.com/davibaltar/swagger-autogen). Pode enviar em português Brasil também! :)
 
 Repository: https://github.com/davibaltar/swagger-autogen
 
