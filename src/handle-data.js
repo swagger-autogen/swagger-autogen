@@ -62,18 +62,29 @@ function dataConverter(data) {
 }
 
 /**
- * Remove the await keyword in a string, except in comments and substrings.
+ * Remove the await and async keyword in a string, except in comments and substrings.
  * @param {string} data file content.
  */
- function removeAwaits(data) {
-    return new Promise(resolve => {
+function removeAwaitsAndAsyncs(data) {
+    const origData = data;
+    try {
         if (!data || data.length === 0) {
-            return resolve(data);
+            return data;
         }
 
         let isStr = 0;
-        const strDelimiters = '\'"`'
+        let isComment = false;
+        const strDelimiters = '\'"`';
+        let currentDelimiter = null;
         for (let idx = 0; idx < data.length; idx += 1) {
+            if (data.slice(idx, idx + 2) === '*/') {
+                isComment = false;
+            }
+
+            if (isComment) {
+                continue;
+            }
+
             // Check if current character is a string delimiter
             if (strDelimiters.includes(data[idx])) {
                 currentDelimiter = strDelimiters.indexOf(data[idx]) + 1;
@@ -85,22 +96,33 @@ function dataConverter(data) {
                     isStr = 0;
                 }
             }
+
             // If in string, skip current index
-            if (isStr !== 0) continue;
-            // Skip comments
-            if (data.slice(idx, idx + 2) === '/*') {
-                while (data.slice(idx, idx + 2) !== '*/' && idx < data.length) idx += 1;
+            if (isStr !== 0) {
                 continue;
             }
-            // Remove await keyword
-            if (data.slice(idx, idx + 6) === 'await ' && idx > 0 && data[idx - 1].split(new RegExp("([a-z]|[A-Z]|[0-9]|_|$)")).length === 1) {
+
+            // Skip comments
+            if (data.slice(idx, idx + 2) === '/*') {
+                isComment = true;
+                continue;
+            }
+
+            if (data.slice(idx, idx + 6) === 'await ' && idx > 0 && data[idx - 1].split(new RegExp('([a-z]|[A-Z]|[0-9]|_|$)')).length === 1) {
+                // Remove await keyword
                 data = data.slice(0, idx) + data.slice(idx + 6);
-                idx -= 1;
+                continue;
+            } else if (data.slice(idx, idx + 5) === 'async' && idx > 0 && data[idx - 1].split(new RegExp('([a-z]|[A-Z]|[0-9]|_|$)')).length === 1 && data[idx + 5].split(new RegExp('([a-z]|[A-Z]|[0-9]|_|$)')).length === 1) {
+                // Remove async keyword
+                data = data.slice(0, idx) + data.slice(idx + 5);
                 continue;
             }
         }
-        resolve(data);
-    });
+
+        return data;
+    } catch (err) {
+        return origData;
+    }
 }
 
 /**
@@ -166,11 +188,6 @@ function clearData(data) {
             aData = aData.replaceAll('\t', ' ');
 
             aData = aData.replaceAll(statics.STRING_BREAKER, '\n');
-            aData = aData.replaceAll(' async ', ' ');
-            aData = aData.split(new RegExp('\\s*async\\s*\\('));
-            aData = aData.join(' (');
-            aData = aData.split(new RegExp('\\:\\s*async\\s*\\('));
-            aData = aData.join(': (');
             aData = aData.split(new RegExp('axios\\s*\\n*\\t*\\.\\w*', 'i'));
             aData = aData.join('axios.method');
 
@@ -178,8 +195,9 @@ function clearData(data) {
             aData = aData.join(' = ');
             aData = aData.split(new RegExp('\\,\\s*\\n*\\t*expressAsyncHandler\\s*\\n*\\t*\\('));
             aData = aData.join(' , ');
+            aData = removeAwaitsAndAsyncs(aData);
 
-            removeAwaits(aData).then(resolve);
+            return resolve(aData);
         } catch (err) {
             return resolve(origData);
         }
