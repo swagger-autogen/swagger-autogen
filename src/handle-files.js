@@ -1837,12 +1837,16 @@ async function getImportedFiles(data, localRelativePath) {
                     const origVarFileName = varFileName;
                     try {
                         let instancesRegex = `\\s*\\n*\\t*\\=\\s*\\n*\\t*new\\s+${varFileName}\\s*\\n*\\t*\\(`;
-                        let instances = data.split(new RegExp(instancesRegex));
+                        let modData = data.replaceAll(new RegExp('\\s*\\n*\\t*:\\s*\\n*\\t*'), ':');
+                        let instances = modData.split(new RegExp(instancesRegex));
                         if (instances.length > 1) {
                             instances.pop();
                             let newVarFileName = '{ ';
                             instances.forEach(inst => {
                                 let instance = inst.split(' ').slice(-1)[0];
+                                if (instance.includes(':')) {
+                                    instance = instance.split(':')[0];
+                                }
                                 newVarFileName += instance + ', ';
                             });
                             newVarFileName += varFileName + ' }';
