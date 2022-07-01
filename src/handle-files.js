@@ -769,7 +769,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                             found.varName = found.varAlias;
                                         }
                                         if (found) {
-                                            if (!functionName && !imp.isDirectory) {
+                                            if (!functionName) {
                                                 functionName = found.varName;
                                             }
                                             imp.isDirectory && found.path ? (exportPath = found.path) : (exportPath = imp.fileName); // TODO: change variable name
@@ -2200,11 +2200,17 @@ async function getImportedFiles(data, localRelativePath) {
                                     for (let pathIdx = 0; pathIdx < obj.exports.length; ++pathIdx) {
                                         let oExp = obj.exports[pathIdx];
 
-                                        if (dataFile.split(new RegExp(`${oExp}\\s*\\n*\\t*\\=\\s*\\n*\\t*require\\s*\\n*\\t*\\(`)).length > 1) {
-                                            let addPath = dataFile.split(new RegExp(`${oExp}\\s*\\n*\\t*\\=\\s*\\n*\\t*require\\s*\\n*\\t*\\(\\s*\\n*\\t*`));
-                                            addPath = addPath[1].split(')')[0].replaceAll("'", '').replaceAll('"', '').replaceAll('`', '');
-                                            oExp.path = await resolvePathFile(addPath, localRelativePath);
-                                        }
+                                        await dataFile.split(/[\r|\n]\s*(const|let|var)/gm).forEach(async (moduleDefine) => {
+                                            if ((new RegExp(`(${oExp.varName}|${oExp.varAlias}).+require`)).exec(moduleDefine) === null) {
+                                                return;
+                                            }
+
+                                            if (moduleDefine.split(new RegExp(`${oExp}\\s*\\n*\\t*\\=\\s*\\n*\\t*require\\s*\\n*\\t*\\(`)).length > 1) {
+                                                let addPath = moduleDefine.split(new RegExp(`${oExp}\\s*\\n*\\t*\\=\\s*\\n*\\t*require\\s*\\n*\\t*\\(\\s*\\n*\\t*`));
+                                                addPath = addPath[1].split(')')[0].replaceAll("'", '').replaceAll('"', '').replaceAll('`', '');
+                                                oExp.path = await resolvePathFile(addPath, localRelativePath);
+                                            }
+                                        });
                                     }
                                 }
                             }
