@@ -400,6 +400,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     let forced = false;
                     let predefPattern = false;
                     let isChained = false;
+                    let toIgnore = false;
 
                     if (elem && elem.includes('[_[') && elem.includes(']_]')) {
                         elem = elem.split(new RegExp('\\[_\\[|\\]_\\]\\)\\('));
@@ -812,6 +813,11 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 let extension = await utils.getExtension(pathFile);
                                 let refFunction = await functionRecognizerInFile(pathFile + extension, functionName);
 
+                                if (refFunction && swaggerTags.getIgnoreTag(refFunction)) {
+                                    toIgnore = true;
+                                    break;
+                                }
+
                                 // Trying to find the reference in the index file
                                 // TODO: implements to 'import' and 'exports.default'
                                 if (!refFunction && functionName && pathFile && pathFile.split('/').length > 1 && pathFile.split('/').slice(-1)[0] == 'index') {
@@ -993,7 +999,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         }
                     }
 
-                    if (predefMethod == 'use') {
+                    if (predefMethod == 'use' || toIgnore) {
                         continue;
                     }
 
@@ -1109,9 +1115,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             let globalObjResponses = null;
                             let objResponsesTag = null;
                             if (swaggerTags.getIgnoreTag(endpoint)) {
-                                continue;
+                                break;
                             } else if (swaggerTags.getIgnoreTag(globalSwaggerProperties) && endpoint && endpoint.split(new RegExp(`${statics.SWAGGER_TAG}.ignore\\s*\\=`)).length == 1) {
-                                continue;
+                                break;
                             }
 
                             endpoint = endpoint
