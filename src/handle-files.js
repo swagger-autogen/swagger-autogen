@@ -811,6 +811,10 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 }
 
                                 let extension = await utils.getExtension(pathFile);
+                                if (pathFile && pathFile.split(new RegExp('\\.js$')).length > 1 && !fs.existsSync(pathFile)) {
+                                    pathFile = pathFile.replace(new RegExp('\\.js$'), '.ts');
+                                }
+
                                 let refFunction = await functionRecognizerInFile(pathFile + extension, functionName);
 
                                 if (refFunction && swaggerTags.getIgnoreTag(refFunction)) {
@@ -866,6 +870,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                         }
                                         if (pathFile) {
                                             extension = await utils.getExtension(pathFile);
+                                            if (pathFile && pathFile.split(new RegExp('\\.js$')).length > 1 && !fs.existsSync(pathFile)) {
+                                                pathFile = pathFile.replace(new RegExp('\\.js$'), '.ts');
+                                            }
                                             refFunction = await functionRecognizerInFile(pathFile + extension, functionName);
                                         }
                                     }
@@ -918,11 +925,58 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                             }
                                             if (pathFile) {
                                                 extension = await utils.getExtension(pathFile);
+                                                if (pathFile && pathFile.split(new RegExp('\\.js$')).length > 1 && !fs.existsSync(pathFile)) {
+                                                    pathFile = pathFile.replace(new RegExp('\\.js$'), '.ts');
+                                                }
                                                 refFunction = await functionRecognizerInFile(pathFile + extension, functionName);
                                             }
                                         }
                                     } else {
-                                        // TODO: When functionName is != null
+                                        let dataIndexFile = await utils.getFileContent(pathFile + extension);
+                                        if (dataIndexFile) {
+                                            dataIndexFile = dataIndexFile.split('import').join('__ignored__');
+                                            dataIndexFile = dataIndexFile.split('export').join('import');
+
+                                            let relativePath = pathFile.split('/').slice(0, -1).join('/');
+                                            let exportsIndexFile = await getImportedFiles(dataIndexFile, relativePath);
+
+                                            // First, try to find by varName
+                                            for (let idxExp = 0; idxExp < exportsIndexFile.length; ++idxExp) {
+                                                let exported = exportsIndexFile[idxExp];
+                                                if (exported.exports) {
+                                                    for (let localIdxExp = 0; localIdxExp < exported.exports.length; ++localIdxExp) {
+                                                        let localExported = exported.exports[localIdxExp];
+                                                        if (localExported && localExported.varName && localExported.varName == functionName) {
+                                                            let extension = await utils.getExtension(exported.fileName);
+                                                            if (exported.fileName && exported.fileName.split(new RegExp('\\.js$')).length > 1 && !fs.existsSync(exported.fileName)) {
+                                                                exported.fileName = exported.fileName.replace(new RegExp('\\.js$'), '.ts');
+                                                            }
+                                                            if (exported.fileName && fs.existsSync(exported.fileName)) {
+                                                                refFunction = await functionRecognizerInFile(exported.fileName + extension, functionName);
+                                                                if (refFunction) {
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            // Try to find one by one
+                                            for (let idxExp = 0; idxExp < exportsIndexFile.length; ++idxExp) {
+                                                let exported = exportsIndexFile[idxExp];
+                                                if (exported.fileName && exported.fileName.split(new RegExp('\\.js$')).length > 1 && !fs.existsSync(exported.fileName)) {
+                                                    exported.fileName = exported.fileName.replace(new RegExp('\\.js$'), '.ts');
+                                                }
+                                                let extension = await utils.getExtension(exported.fileName);
+                                                if (!refFunction && exported.fileName && fs.existsSync(exported.fileName)) {
+                                                    refFunction = await functionRecognizerInFile(exported.fileName + extension, functionName);
+                                                    if (refFunction) {
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                                 /* END CASE */
@@ -1499,6 +1553,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         if (found) {
                             // Variable in other file
                             let extension = await utils.getExtension(found.fileName);
+                            if (found.fileName && found.fileName.split(new RegExp('\\.js$')).length > 1 && !fs.existsSync(found.fileName)) {
+                                found.fileName = found.fileName.replace(new RegExp('\\.js$'), '.ts');
+                            }
                             let content = await utils.getFileContent(found.fileName + extension);
                             if (content) {
                                 // Try to find the variable
@@ -1662,6 +1719,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             let found = importedFiles.find(e => e.varFileName && varFileName && e.varFileName == varFileName);
                             if (found) {
                                 let extension = await utils.getExtension(found.fileName);
+                                if (found.fileName && found.fileName.split(new RegExp('\\.js$')).length > 1 && !fs.existsSync(found.fileName)) {
+                                    found.fileName = found.fileName.replace(new RegExp('\\.js$'), '.ts');
+                                }
                                 const content = await utils.getFileContent(found.fileName + extension);
                                 if (content) {
                                     // Trying to find the 'router' variable
@@ -1732,6 +1792,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             } else {
                                 let refFunction = null;
                                 let extension = await utils.getExtension(obj.fileName);
+                                if (obj.fileName && obj.fileName.split(new RegExp('\\.js$')).length > 1 && !fs.existsSync(obj.fileName)) {
+                                    obj.fileName = obj.fileName.replace(new RegExp('\\.js$'), '.ts');
+                                }
 
                                 if (refFunc) {
                                     refFunction = await functionRecognizerInFile(obj.fileName + extension, refFunc);
@@ -2303,6 +2366,9 @@ function functionRecognizerInFile(filePath, functionName, isRecursive = true) {
                             path = await resolvePathFile(path, relativePath);
                             if (path) {
                                 let extension = await utils.getExtension(path);
+                                if (path && path.split(new RegExp('\\.js$')).length > 1 && !fs.existsSync(path)) {
+                                    path = path.replace(new RegExp('\\.js$'), '.ts');
+                                }
                                 funcStr = await functionRecognizerInFile(path + extension, functionName, false);
                             }
                         }
