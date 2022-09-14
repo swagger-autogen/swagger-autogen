@@ -907,7 +907,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                              * TODO: searching in the varFileName
                                              * let idx = exportsIndexFile.findIndex(e => e.varFileName && (e.varFileName == functionName))
                                              */
-
+                                            const auxPathFile = pathFile;
                                             pathFile = null;
                                             if (idx == -1) {
                                                 exportsIndexFile.forEach(imp => {
@@ -929,6 +929,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                                     pathFile = pathFile.replace(new RegExp('\\.js$'), '.ts');
                                                 }
                                                 refFunction = await functionRecognizerInFile(pathFile + extension, functionName);
+                                            } else {
+                                                pathFile = auxPathFile;
                                             }
                                         }
                                     } else {
@@ -982,7 +984,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 /* END CASE */
 
                                 if (!refFunction && !functionName) {
-                                    refFunction = await functionRecognizerInFile(pathFile + extension, varFileName);
+                                    refFunction = await functionRecognizerInFile(exportPath + extension, varFileName);
                                 }
 
                                 if (predefMethod == 'use' && refFunction) {
@@ -2269,8 +2271,8 @@ async function getImportedFiles(data, localRelativePath) {
                                     for (let pathIdx = 0; pathIdx < obj.exports.length; ++pathIdx) {
                                         let oExp = obj.exports[pathIdx];
 
-                                        if (dataFile.split(new RegExp(`${oExp}\\s*\\n*\\t*\\=\\s*\\n*\\t*require\\s*\\n*\\t*\\(`)).length > 1) {
-                                            let addPath = dataFile.split(new RegExp(`${oExp}\\s*\\n*\\t*\\=\\s*\\n*\\t*require\\s*\\n*\\t*\\(\\s*\\n*\\t*`));
+                                        if (dataFile.split(new RegExp(`${oExp.varName}\\s*\\n*\\t*\\=\\s*\\n*\\t*require\\s*\\n*\\t*\\(`)).length > 1) {
+                                            let addPath = dataFile.split(new RegExp(`${oExp.varName}\\s*\\n*\\t*\\=\\s*\\n*\\t*require\\s*\\n*\\t*\\(\\s*\\n*\\t*`));
                                             addPath = addPath[1].split(')')[0].replaceAll("'", '').replaceAll('"', '').replaceAll('`', '');
                                             oExp.path = await resolvePathFile(addPath, localRelativePath);
                                         }
