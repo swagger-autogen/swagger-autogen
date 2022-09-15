@@ -256,7 +256,7 @@ swaggerAutogen(options)(outputFile, endpointsFiles, doc).then(async () => {
 });
 ```
 
-**OpenAPI:** _(BETA)_ To enable OpenAPI v3, assign a version, such as "3.0.0" to the *openapi* parameter. In the future, OpenAPI v3 will be the default.
+**OpenAPI:** To enable OpenAPI v3, assign a version, such as "3.0.0" to the *openapi* parameter. 
 
 To see the available languages, go to the section [Response Language](#response-language)
 
@@ -1596,6 +1596,9 @@ Some tutorials with examples:
   - Bug fixes
 - Version 2.21.x (latest):
   - New feature: Property @content
+  - Improvements to relative paths
+  - TypeScript fixes
+  - Fixes for TypeScript
   - Bug fixes
 
 **TODO:**
