@@ -2458,5 +2458,6 @@ async function resolvePathFile(path, relativePath) {
 
 module.exports = {
     readEndpointFile,
-    setOptions
+    setOptions,
+    resolvePathFile
 };
