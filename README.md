@@ -1616,6 +1616,7 @@ Some tutorials with examples:
 Help us improve this module. If you have any information that the module does not provide or provides incompletely or incorrectly, please use our [Github](https://github.com/davibaltar/swagger-autogen) repository.
 
 Have you liked it?
+
 [![](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate/?business=2BD7YTL8TNYA6&no_recurring=0&item_name=swagger-autogen+author&currency_code=USD)
 
 ## License
