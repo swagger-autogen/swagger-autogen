@@ -25,12 +25,12 @@ async function fileOrDirectoryExist(path) {
  */
 async function getExtension(fileName) {
     try {
+        let extensios = ['.js', '.ts', '.jsx', '.tsx', '.mjs', '.cjs'];
         let data = fileName.split('.').slice(-1)[0].toLowerCase();
-        if (data == 'js' || data == 'ts' || data == 'jsx' || data == 'jsx' || data == 'mjs') {
+        if (extensios.includes(data)) {
             return '';
         }
 
-        let extensios = ['.js', '.ts', '.jsx', '.tsx', '.mjs'];
         for (let idx = 0; idx < extensios.length; ++idx) {
             if (fs.existsSync(fileName + extensios[idx])) {
                 return extensios[idx];
