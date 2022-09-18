@@ -46,10 +46,21 @@ const init = async (outputFile, endpointsFiles, data) => {
         if (!outputFile) throw console.error("\nError: 'outputFile' was not specified.");
         if (!endpointsFiles) throw console.error("\nError: 'endpointsFiles' was not specified.");
 
+        const legacyOutputFile = outputFile
+        if (outputFile.split(new RegExp("^/")).length == 1 && process && process.argv[1]) {
+            let basePath = process.argv[1].split('/').slice(0, -1).join('/');
+            outputFile = await handleFiles.resolvePathFile(outputFile, basePath);
+        }
+
         let allFiles = [];
         // Checking if endpoint files exist
         for (let idx = 0; idx < endpointsFiles.length; ++idx) {
             let file = endpointsFiles[idx];
+
+            if (file.split(new RegExp("^/")).length == 1 && process && process.argv[1]) {
+                let basePath = process.argv[1].split('/').slice(0, -1).join('/');
+                file = await handleFiles.resolvePathFile(file, basePath);
+            }
 
             if (file.includes('*')) {
                 const patternPath = await utils.resolvePatternPath(file)
@@ -66,15 +77,6 @@ const init = async (outputFile, endpointsFiles, data) => {
                     }
                     allFiles = [...allFiles, ...patternPath];
                 }
-
-            } else if (file.includes('..') && process && process.argv[1]) {
-                let basePath = process.argv[1].split('/').slice(0, -1).join('/');
-                let solvedPath = await handleFiles.resolvePathFile(file, basePath);
-                let extension = await utils.getExtension(solvedPath);
-                if (!fs.existsSync(solvedPath + extension)) {
-                    throw console.error("[swagger-autogen]: Error! File not found: '" + file + "'");
-                }
-                allFiles = [...allFiles, solvedPath + extension];
             } else {
                 let extension = await utils.getExtension(file);
                 if (!fs.existsSync(file + extension)) {
@@ -299,7 +301,15 @@ const init = async (outputFile, endpointsFiles, data) => {
         }
 
         let dataJSON = JSON.stringify(objDoc, null, 2);
-        fs.writeFileSync(outputFile, dataJSON);
+        try {
+            fs.writeFileSync(outputFile, dataJSON);
+        } catch (err) {
+            try {
+                fs.writeFileSync(legacyOutputFile, dataJSON); // To legacy cases. Will be deprecated in the future
+            } catch (err) {
+                throw console.error("[swagger-autogen]: Error! Could not generate output file.\nInvalid path: '" + outputFile + "'");
+            }
+        }
         if (!options.disableLogs) {
             console.log('Swagger-autogen:', '\x1b[32m', 'Success ' + symbols.success, '\x1b[0m');
         }
