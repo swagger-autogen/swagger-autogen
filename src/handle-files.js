@@ -401,6 +401,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     let predefPattern = false;
                     let isChained = false;
                     let toIgnore = false;
+                    let inheritedSwaggerComments = '';
 
                     if (elem && elem.includes('[_[') && elem.includes(']_]')) {
                         elem = elem.split(new RegExp('\\[_\\[|\\]_\\]\\)\\('));
@@ -436,6 +437,9 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         let prefixFound = propRoutes.find(r => r.routeName === predefPattern);
                         if (prefixFound) {
                             routePrefix = prefixFound.prefix || '';
+                            if (prefixFound.swaggerComments) {
+                                inheritedSwaggerComments += prefixFound.swaggerComments;
+                            }
                         } else {
                             routePrefix = '';
                         }
@@ -515,6 +519,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                     let routerObj = {
                                         routeName: null
                                     };
+
+                                    routerObj.swaggerComments = await handleData.getSwaggerComments(elem);
                                     routerObj.routeName = expressVarName[found];
                                     routerObj.prefix = pathExpressRouter;
                                     propRoutes.push(routerObj);
@@ -1167,7 +1173,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                     } else {
                         let objInBody = null;
                         for (let _idxEF = 0; _idxEF < endpointFunctions.length; ++_idxEF) {
-                            let endpoint = endpointFunctions[_idxEF].func;
+                            let endpoint = endpointFunctions[_idxEF].func + inheritedSwaggerComments;
                             let globalObjResponses = null;
                             let objResponsesTag = null;
                             if (swaggerTags.getIgnoreTag(endpoint)) {
