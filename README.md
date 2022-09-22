@@ -4,7 +4,6 @@ This module performs the automatic construction of the Swagger documentation. Th
 
 [![NPM Version](http://img.shields.io/npm/v/swagger-autogen.svg?style=flat)](https://www.npmjs.com/package/swagger-autogen)
 [![NPM Downloads](https://img.shields.io/npm/dm/swagger-autogen.svg?style=flat)](https://npmcharts.com/compare/swagger-autogen?minimal=true)
-[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/donate/?business=2BD7YTL8TNYA6&no_recurring=0&item_name=swagger-autogen+author&currency_code=USD)
 
 ## Contents
 
@@ -1595,13 +1594,16 @@ Some tutorials with examples:
   - New feature: Properties @schemas and @definitions
   - Recognizes 'express.Router()'
   - Bug fixes
-- Version 2.21.x (latest):
+- Version 2.21.x:
   - New feature: Property @content
   - Improvements to relative paths
   - TypeScript fixes
   - Fixes for TypeScript
   - New extension: .cjs
   - Bug fixes
+- Version 2.22.x (latest):
+  - .d.ts files
+  - Improvements to relative paths
 
 **TODO:**
 
@@ -1615,9 +1617,6 @@ Some tutorials with examples:
 
 Help us improve this module. If you have any information that the module does not provide or provides incompletely or incorrectly, please use our [Github](https://github.com/davibaltar/swagger-autogen) repository.
 
-Have you liked it?
-
-[![](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate/?business=2BD7YTL8TNYA6&no_recurring=0&item_name=swagger-autogen+author&currency_code=USD)
 
 ## License
 
