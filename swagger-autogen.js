@@ -58,6 +58,7 @@ const init = async (outputFile, endpointsFiles, data) => {
         // Checking if endpoint files exist
         for (let idx = 0; idx < endpointsFiles.length; ++idx) {
             let file = endpointsFiles[idx];
+            const legacyFilePath = file;
 
             if (platform === 'win32') {
                 // TODO: Implement relative path for Windows
@@ -84,7 +85,10 @@ const init = async (outputFile, endpointsFiles, data) => {
             } else {
                 let extension = await utils.getExtension(file);
                 if (!fs.existsSync(file + extension)) {
-                    throw console.error("[swagger-autogen]: Error! File not found: '" + file + "'");
+                    file = legacyFilePath;  // To legacy cases. Will be deprecated in the future
+                    if (!fs.existsSync(file + extension)) {
+                        throw console.error("[swagger-autogen]: Error! File not found: '" + file + "'");
+                    }
                 }
                 allFiles = [...allFiles, file + extension];
             }
