@@ -256,6 +256,23 @@ swaggerAutogen(options)(outputFile, endpointsFiles, doc).then(async () => {
 });
 ```
 
+To enable/disable the automatic body, query or headers recognition for a specific endpoint, use the following tags in the endpoint's function:
+```js
+// #swagger.autoBody=true 
+OR 
+// #swagger.autoBody=false
+```
+```js
+// #swagger.autoQuery=true 
+OR 
+// #swagger.autoQuery=false
+```
+```js
+// #swagger.autoHeaders=true 
+OR 
+// #swagger.autoHeaders=false
+```
+
 **OpenAPI:** To enable OpenAPI v3, assign a version, such as "3.0.0" to the *openapi* parameter. 
 
 To see the available languages, go to the section [Response Language](#response-language)
@@ -1635,9 +1652,12 @@ Some tutorials with examples:
   - Fixes for TypeScript
   - New extension: .cjs
   - Bug fixes
-- Version 2.22.x (latest):
+- Version 2.22.x:
   - .d.ts files
   - Improvements to relative paths
+- Version 2.23.x (latest):
+  - New tags: #swagger.autoBody, #swagger.autoQuery and #swagger.autoHeaders
+  - Bug fixes
 
 **TODO:**
 
