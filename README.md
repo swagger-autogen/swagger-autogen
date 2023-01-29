@@ -256,6 +256,23 @@ swaggerAutogen(options)(outputFile, endpointsFiles, doc).then(async () => {
 });
 ```
 
+To enable/disable the automatic body, query or headers recognition for a specific endpoint, use the following tags in the endpoint's function:
+```js
+// #swagger.autoBody=true 
+OR 
+// #swagger.autoBody=false
+```
+```js
+// #swagger.autoQuery=true 
+OR 
+// #swagger.autoQuery=false
+```
+```js
+// #swagger.autoHeaders=true 
+OR 
+// #swagger.autoHeaders=false
+```
+
 **OpenAPI:** To enable OpenAPI v3, assign a version, such as "3.0.0" to the *openapi* parameter. 
 
 To see the available languages, go to the section [Response Language](#response-language)
@@ -1102,6 +1119,40 @@ swaggerAutogen({openapi: '3.0.0'})(outputFile, endpointsFiles, doc).then(async (
   await import('./index.js'); // Your project's root file
 });
 ```
+### Multiple servers
+_To use this feature, enable OpenAPI [[click here](#openapi-3x)]._
+to use multiple servers for the same swagger documentation, add them to `servers` array.
+```js
+const doc = {
+  info: {
+    version: '',      // by default: '1.0.0'
+    title: '',        // by default: 'REST API'
+    description: '',  // by default: ''
+  },
+  servers: [
+    {
+      url: "http://localhost:3000/",
+      description: "local server"
+    },
+    {
+      url: "http://localhost:5000/",
+      description: "the other server"
+    }
+  ],
+  consumes: [],  // by default: ['application/json']
+  produces: [],  // by default: ['application/json']
+  tags: [        // by default: empty Array
+    {
+      name: '',         // Tag name
+      description: '',  // Tag description
+    },
+    // { ... }
+  ],
+  securityDefinitions: {},  // by default: empty object
+  definitions: {},          // by default: empty object (Swagger 2.0)
+  components: {}            // by default: empty object (OpenAPI 3.x)
+};
+```
 
 ### Request Body
 _To use this feature, enable OpenAPI [[click here](#openapi-3x)]._
@@ -1601,9 +1652,12 @@ Some tutorials with examples:
   - Fixes for TypeScript
   - New extension: .cjs
   - Bug fixes
-- Version 2.22.x (latest):
+- Version 2.22.x:
   - .d.ts files
   - Improvements to relative paths
+- Version 2.23.x (latest):
+  - New tags: #swagger.autoBody, #swagger.autoQuery and #swagger.autoHeaders
+  - Bug fixes
 
 **TODO:**
 
