@@ -315,6 +315,28 @@ function getDeprecatedTag(data, reference) {
 }
 
 /**
+ * Search for #swagger.someThing = false   (by default is true)
+ * @param {*} data
+ */
+function getAutoParameterTag(data, reference, paramName) {
+    try {
+        if (data.includes(statics.SWAGGER_TAG + `.${paramName}`)) {
+            let autoBody = data.split(new RegExp(statics.SWAGGER_TAG + `.${paramName}` + '\\s*\\=\\s*'))[1];
+            autoBody = autoBody.split(new RegExp('\\s|\\n|\\t|\\;'))[0];
+            if (autoBody && autoBody.toLowerCase() === 'false') {
+                return false;
+            }
+        }
+        return true;
+    } catch (err) {
+        if (!getDisableLogs()) {
+            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.${paramName}' out of structure in\n'${reference.filePath}' ... ${reference.predefPattern}.${reference.method}('${reference.path}', ...)`);
+        }
+        return true;
+    }
+}
+
+/**
  * Get the content in '#swagger.parameters'
  * @param {string} data file content
  * @param {object} objParameters
@@ -829,5 +851,6 @@ module.exports = {
     setLanguage,
     setOpenAPI,
     getDisableLogs,
-    setDisableLogs
+    setDisableLogs,
+    getAutoParameterTag
 };
