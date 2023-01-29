@@ -129,7 +129,7 @@ function removeAwaitsAndAsyncs(data) {
  * Removes unnecessary content.
  * @param {string} data file content.
  */
-function clearData(data) {
+function clearData(data, imports) {
     return new Promise(resolve => {
         if (!data) {
             return resolve(data);
@@ -191,12 +191,26 @@ function clearData(data) {
             aData = aData.split(new RegExp('axios\\s*\\n*\\t*\\.\\w*', 'i'));
             aData = aData.join('axios.method');
 
-            aData = aData.split(new RegExp('\\s*\\=\\s*\\n*\\t*asyncHandler\\s*\\n*\\t*\\('));
-            aData = aData.join(' = ');
-            aData = aData.split(new RegExp('\\,\\s*\\n*\\t*expressAsyncHandler\\s*\\n*\\t*\\('));
-            aData = aData.join(' , ');
-            aData = removeAwaitsAndAsyncs(aData);
+            /**
+             * Removing express-async-handler function
+             */
+            let expressAsyncHandler = null;
+            if (imports) {
+                let idx = imports.findIndex(e => e.fileName == 'express-async-handler');
+                if (idx > -1) {
+                    if (!imports[idx].varFileName && imports[idx].exports.length > 0) {
+                        expressAsyncHandler = imports[idx].exports[0].varName;
+                    } else {
+                        expressAsyncHandler = imports[idx].varFileName;
+                    }
+                }
+                if (expressAsyncHandler) {
+                    aData = aData.split(new RegExp(`\\s*\\n*\\t*${expressAsyncHandler}\\s*\\n*\\t*\\(`));
+                    aData = aData.join(' ');
+                }
+            }
 
+            aData = removeAwaitsAndAsyncs(aData);
             return resolve(aData);
         } catch (err) {
             return resolve(origData);
@@ -1042,7 +1056,7 @@ function getHeader(elem, path, method, response, objEndpoint) {
  * @param {array} request array containing variables of response.
  * @param {object} objParameters
  */
-function getHeaderQueryBody(elem, request, objParameters) {
+function getHeaderQueryBody(elem, request, objParameters, opt) {
     const origObjParameters = objParameters;
 
     if (elem) {
@@ -1058,6 +1072,10 @@ function getHeaderQueryBody(elem, request, objParameters) {
         elem = elem.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*')).join('.');
         elem = elem.split(new RegExp('\\s*\\n*\\t*\\=\\s*\\n*\\t*')).join(' = ');
     }
+
+    const autoBody = autoBodyLogic(opt.autoBody);
+    const autoQuery = autoQueryLogic(opt.autoQuery);
+    const autoHeaders = autoHeadersLogic(opt.autoHeaders);
 
     try {
         for (let idx = 0; idx < request.length; ++idx) {
@@ -1125,7 +1143,7 @@ function getHeaderQueryBody(elem, request, objParameters) {
             /**
              * Headers
              */
-            if (globalOptions.autoHeaders && req && elem && elem.split(' ' + req + '.headers.').length > 1) {
+            if (autoHeaders && req && elem && elem.split(' ' + req + '.headers.').length > 1) {
                 elem.split(' ' + req + '.headers.')
                     .splice(1)
                     .forEach(p => {
@@ -1173,7 +1191,7 @@ function getHeaderQueryBody(elem, request, objParameters) {
              * Headers
              * Destructuring in body, such as: {a, b} = req.headers
              */
-            if (globalOptions.autoHeaders && req && elem && elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.headers\\s+')).length > 1) {
+            if (autoHeaders && req && elem && elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.headers\\s+')).length > 1) {
                 let elems = elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.headers\\s+'));
                 for (let idxHeader = 0; idxHeader < elems.length - 1; ++idxHeader) {
                     let header = elems[idxHeader];
@@ -1232,7 +1250,7 @@ function getHeaderQueryBody(elem, request, objParameters) {
              * Headers
              * E.g: let someHeader = req.headers['x-token']
              */
-            if (globalOptions.autoHeaders && req && elem && elem.split(' ' + req + '.headers[').length > 1) {
+            if (autoHeaders && req && elem && elem.split(' ' + req + '.headers[').length > 1) {
                 let elems = elem.split(' ' + req + '.headers[');
                 for (let idxHeader = 1; idxHeader < elems.length; ++idxHeader) {
                     let header = elems[idxHeader];
@@ -1280,7 +1298,7 @@ function getHeaderQueryBody(elem, request, objParameters) {
             /**
              * query
              */
-            if (globalOptions.autoQuery && req && elem && elem.split(' ' + req + '.query.').length > 1) {
+            if (autoQuery && req && elem && elem.split(' ' + req + '.query.').length > 1) {
                 elem.split(' ' + req + '.query.')
                     .splice(1)
                     .forEach(p => {
@@ -1330,7 +1348,7 @@ function getHeaderQueryBody(elem, request, objParameters) {
              * Created by: WHL
              * Modified by: Davi Baltar
              */
-            if (globalOptions.autoQuery && req && elem && elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.query\\s+')).length > 1) {
+            if (autoQuery && req && elem && elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.query\\s+')).length > 1) {
                 let elems = elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.query\\s+'));
                 for (let idxQuery = 0; idxQuery < elems.length - 1; ++idxQuery) {
                     let query = elems[idxQuery]; //objBody
@@ -1397,7 +1415,7 @@ function getHeaderQueryBody(elem, request, objParameters) {
              * Created by: WHL
              * Modified by: Davi Baltar
              */
-            if (globalOptions.autoBody && req && elem && elem.split(' ' + req + '.body.').length > 1) {
+            if (autoBody && req && elem && elem.split(' ' + req + '.body.').length > 1) {
                 elem.split(' ' + req + '.body.')
                     .splice(1)
                     .forEach(p => {
@@ -1441,7 +1459,7 @@ function getHeaderQueryBody(elem, request, objParameters) {
              * Created by: WHL
              * Modified by: Davi Baltar
              */
-            if (globalOptions.autoBody && req && elem && elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.body\\s+')).length > 1) {
+            if (autoBody && req && elem && elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.body\\s+')).length > 1) {
                 let elems = elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.body\\s+'));
                 for (let idxBody = 0; idxBody < elems.length - 1; ++idxBody) {
                     let objBody = elems[idxBody];
@@ -1524,8 +1542,7 @@ async function getCallbackParameters(data) {
         let splitedParams = data.split(new RegExp('(\\(|\\))'));
         for (let idx = 0; idx < splitedParams.length; ++idx) {
             let pos = splitedParams[idx + 2] || '';
-
-            if (!pos) {
+            if (!pos || pos.split(new RegExp(`[\\(|\\)|\\{|\\}|\\[|\\]|\\/|\\|;|:|=|!|@|\\$|#|\\?|\\+|,|\\||&|\\s|\\t|\\n|\\*]`)).join('', 'gm') == '') {
                 continue;
             }
 
@@ -1540,7 +1557,9 @@ async function getCallbackParameters(data) {
 
             if (arrowFunctionPos.length == 1) {
                 arrowFunctionWithoutCurlyBracketPos = pos.split(new RegExp(`(\\s*\\t*=>)`));
-                if (arrowFunctionWithoutCurlyBracketPos.length == 1) traditionalFunctionPos = pos.split(new RegExp(`(\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\<?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\>?\\s*\\n*\\t*\\{)`));
+                if (arrowFunctionWithoutCurlyBracketPos.length == 1) {
+                    traditionalFunctionPos = pos.split(new RegExp(`(\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\<?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\>?\\s*\\n*\\t*\\{)`));
+                }
             }
 
             let isFunction = false;
@@ -1584,6 +1603,24 @@ async function getCallbackParameters(data) {
                     let param = params[0].replaceAll('\n', '').replaceAll('\t', '').replaceAll(' ', '');
                     if (param.split(new RegExp(regex)).length === 1 && param && param.trim() !== '') {
                         req.add(param);
+                    }
+
+                    if (splitedParams[idx - 4] && splitedParams[idx - 3] == ')') {
+                        let auxReq = splitedParams[idx - 4].split(',')[0];
+                        if (auxReq) {
+                            auxReq = auxReq.split(':')[0].trim();
+                            req.add(auxReq);
+                        }
+                        let auxRes = splitedParams[idx - 4].split(',')[1];
+                        if (auxRes) {
+                            auxRes = auxRes.split(':')[0].trim();
+                            res.add(auxRes);
+                        }
+                        let auxNext = splitedParams[idx - 4].split(',')[2];
+                        if (auxNext) {
+                            auxNext = auxNext.split(':')[0].trim();
+                            next.add(auxNext);
+                        }
                     }
                 }
 
@@ -1719,7 +1756,7 @@ async function getPathParameters(path, objParameters) {
  * @param {string} data content.
  * @param {string} functionName
  */
-async function functionRecognizerInData(data, functionName) {
+async function functionRecognizerInData(data, functionName, imports) {
     if (!data || !functionName) {
         return null;
     }
@@ -1794,6 +1831,7 @@ async function functionRecognizerInData(data, functionName) {
         let arrowFunctionWithoutCurlyBracket = [''];
         let traditionalFunction = [''];
         let arrowFunctionType = 1;
+        let regexImports = [];
 
         if (arrowFunction.length == 1) {
             arrowFunctionWithoutCurlyBracket = data.split(new RegExp(`(${functionName}\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\=\\s*\\n*\\t*\\([\\s\\S]*\\)\\s*\\t*=>)`));
@@ -1808,7 +1846,7 @@ async function functionRecognizerInData(data, functionName) {
                         let myRegexp = new RegExp('(\\=\\s*\\n*\\t*\\([\\s\\S]*?\\)\\s*:[\\s\\S]*?=>)');
                         let matchFunctions = myRegexp.exec(data);
 
-                        if (matchFunctions.length > 0) {
+                        if (matchFunctions && matchFunctions.length > 0) {
                             for (let idx = 0; idx < matchFunctions.length; idx++) {
                                 let match = matchFunctions[idx];
                                 if (match.includes('=>')) {
@@ -1818,6 +1856,35 @@ async function functionRecognizerInData(data, functionName) {
                                     data = data.replace(matchFunctions[idx], match);
                                 }
                                 arrowFunction = data.split(new RegExp(`(${functionName}\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\=\\s*\\n*\\t*\\([\\s\\S]*\\)\\s*\\t*=>\\s*\\n*\\t*\\{)`));
+                            }
+                        } else if (imports) {
+                            imports.forEach(imp => {
+                                if (imp.varFileName) {
+                                    regexImports.push(imp.varFileName);
+                                }
+                                if (imp.exports) {
+                                    imp.exports.forEach(imp => {
+                                        regexImports.push(imp.varName || imp.varAlias);
+                                    });
+                                }
+                            });
+
+                            for (let idxImp = 0; idxImp < regexImports.length; idxImp++) {
+                                const originalArrowFunction = arrowFunction;
+                                try {
+                                    arrowFunction = data.split(new RegExp(`(${functionName}\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\=\\s*\\n*\\t*${regexImports[idxImp]}\\s*\\n*\\t*\\([\\s\\S]*\\)\\s*\\t*=>\\s*\\n*\\t*\\{)`));
+                                } catch (err) {
+                                    arrowFunction = originalArrowFunction;
+                                }
+                                if (arrowFunction.length > 1) {
+                                    break;
+                                }
+                            }
+                            if (arrowFunction.length > 3) {
+                                // avoiding ambiguity
+                                arrowFunction = [];
+                                arrowFunction[0] = data;
+                                regexImports = '';
                             }
                         } else {
                             // CASE: exports.foo = [ ]
@@ -1845,6 +1912,7 @@ async function functionRecognizerInData(data, functionName) {
             // CASE: exports.validateUser = [ ]
             let array = data.split(new RegExp(`${functionName}\\s*\\n*\\t*=\\s*\\n*\\t*\\[`));
             if (array.length > 1) {
+                array[1] = await utils.stackSymbolRecognizer(array[1], '[', ']');
                 let resp = await utils.stackSymbolRecognizer(array[1], '(', ')');
                 return '[' + resp;
             }
@@ -1881,7 +1949,20 @@ async function functionRecognizerInData(data, functionName) {
                 func = func.join('{');
                 let funcStr = null;
                 if (isArrowFunction && arrowFunctionType == 1) {
-                    funcStr = data.split(new RegExp(`${functionName}\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\=\\s*\\n*\\t*\\(`))[1];
+                    funcStr = data.split(new RegExp(`${functionName}\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\=\\s*\\n*\\t*\\(`));
+                    if (funcStr.length == 1 && regexImports.length > 0) {
+                        for (let idxImp = 0; idxImp < regexImports.length; idxImp++) {
+                            funcStr = data.split(new RegExp(`${functionName}\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\=\\s*\\n*\\t*${regexImports[idxImp]}\\s*\\n*\\t*\\(`));
+                            if (funcStr.length > 1) {
+                                break;
+                            }
+                        }
+                    }
+                    if (funcStr.length > 1) {
+                        funcStr = funcStr[1];
+                    } else {
+                        funcStr = null;
+                    }
                 }
                 if (isArrowFunction && arrowFunctionType == 2) {
                     funcStr = data.split(new RegExp(`${functionName}\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\s*\\n*\\t*\\s*\\n*\\t*\\(`))[1];
@@ -1900,7 +1981,11 @@ async function functionRecognizerInData(data, functionName) {
                         return p.split('=')[0];
                     })
                     .join(',');
-                funcStr = cleanedParams + ')' + funcStr.split(')')[1];
+                let aux = funcStr.split(')');
+                aux.shift();
+                aux = aux.join(')');
+                funcStr = cleanedParams + ')' + aux;
+                funcStr = funcStr.replace('((', '(');
                 let finalFunc = await utils.stackSymbolRecognizer(func, '{', '}');
                 return funcStr + finalFunc;
             } else {
@@ -1955,7 +2040,7 @@ async function popFunction(data) {
             params = await utils.stack0SymbolRecognizer(params, ')', '(');
 
             if (params) {
-                params = '(' + params.split('').reverse().join('') + ')';
+                params = '(' + (params == ')' ? '' : params.split('').reverse().join('')) + ')';
                 signatureFunc = params + func[0].split(params)[1] + '{';
             } else {
                 // TODO: verify case without '(' and ')'
@@ -1979,6 +2064,27 @@ async function popFunction(data) {
     } catch (err) {
         return null;
     }
+}
+
+function autoBodyLogic(localAutoBody) {
+    if (localAutoBody === undefined || localAutoBody === null) {
+        return globalOptions.autoBody;
+    }
+    return localAutoBody;
+}
+
+function autoQueryLogic(localAutoQuery) {
+    if (localAutoQuery === undefined || localAutoQuery === null) {
+        return globalOptions.autoQuery;
+    }
+    return localAutoQuery;
+}
+
+function autoHeadersLogic(localAutoHeaders) {
+    if (localAutoHeaders === undefined || localAutoHeaders === null) {
+        return globalOptions.autoHeaders;
+    }
+    return localAutoHeaders;
 }
 
 module.exports = {

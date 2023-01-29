@@ -94,8 +94,12 @@ function stackSymbolRecognizer(data, startSymbol, endSymbol, ignoreString = true
                         ignore = false;
                     }
                     if (stack <= 0) return false;
-                    if (c == startSymbol && !ignore) stack += 1;
-                    if (c == endSymbol && !ignore) stack -= 1;
+                    if (c == startSymbol && !ignore) {
+                        stack += 1;
+                    }
+                    if (c == endSymbol && !ignore) {
+                        stack -= 1;
+                    }
                     return true;
                 })
                 .join('');
@@ -139,7 +143,7 @@ function stack0SymbolRecognizer(data, startSymbol, endSymbol, keepSymbol = false
 
                 if ((idx === data.length - 1 && rec == 1) || (idx === data.length - 1 && rec == 0)) return resolve(null);
 
-                if (idx === data.length - 1) {
+                if (idx === data.length - 1 || rec == 2) {
                     strVect = strVect.join('');
                     if (keepSymbol) {
                         return resolve(startSymbol + strVect.slice(1) + endSymbol);
