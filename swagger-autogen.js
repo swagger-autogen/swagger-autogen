@@ -152,6 +152,10 @@ const init = async (outputFile, endpointsFiles, data) => {
             // REFACTOR: improve this
             constainXML = true;
         }
+        if (Object.keys(objDoc.definitions).length == 0 && objDoc.definition) {
+            objDoc.definitions = objDoc.definition
+            delete objDoc.definition
+        }
         Object.keys(objDoc.definitions).forEach(definition => {
             if (constainXML) {
                 objDoc.definitions[definition] = { ...swaggerTags.formatDefinitions(objDoc.definitions[definition], {}, constainXML), xml: { name: definition } };
