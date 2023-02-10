@@ -225,7 +225,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                 regex = '';
                 patterns.forEach(pattern => {
-                    if (pattern.split(new RegExp('\\!|\\=|\\<|\\>|\\,|\\;|\\:|\\{|\\}|\\(|\\)|\\[|\\]', 'i')).length > 1) {
+                    if (pattern && pattern.split(new RegExp('\\!|\\=|\\<|\\>|\\,|\\;|\\:|\\{|\\}|\\(|\\)|\\[|\\]', 'i')).length > 1) {
                         return;
                     }
                     if (!firstPattern) {
@@ -303,12 +303,14 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                 if (idx > -1) {
                     let varName = importedFiles[idx].varFileName;
                     let varRouteFound = aData.replaceAll('\n', '').split(new RegExp(`(const|let|var)(\\s+\\w+\\s*\\t*\\=\\s*\\t*${varName}\\s*\\t*\\.\\s*\\t*Router\\s*\\t*\\(\\s*\\t*\\))`));
-                    varRouteFound.map(d => {
-                        let midd = d.split(new RegExp(`\\=\\s*\\t*${varName}\\s*\\t*\\.\\s*\\t*Router\\s*\\t*\\(\\s*\\t*\\)`));
-                        if (midd.length > 1) {
-                            expressVarName.push(midd[0].trim());
-                        }
-                    });
+                    varRouteFound
+                        .filter(e => e)
+                        .map(d => {
+                            let midd = d.split(new RegExp(`\\=\\s*\\t*${varName}\\s*\\t*\\.\\s*\\t*Router\\s*\\t*\\(\\s*\\t*\\)`));
+                            if (midd.length > 1) {
+                                expressVarName.push(midd[0].trim());
+                            }
+                        });
 
                     let varExpressRouteFound = aData.replaceAll('\n', '').split(new RegExp(`(\\s+\\t*${varName}\\s*\\t*\\.\\s*\\t*Router\\s*\\t*\\(\\s*\\t*\\))`));
                     if (varExpressRouteFound[1] && varExpressRouteFound[2] && varExpressRouteFound[2].split(/^____CHAINED____/).length > 1) {
@@ -621,16 +623,18 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                                 } else {
                                                     refFunc = refFunc.slice(1, -1);
                                                 }
-                                                refFunc.forEach(f => {
-                                                    let func = f.replaceAll('\n', ' ').split(new RegExp('\\s*\\t*\\.\\s*\\t*'));
-                                                    func = func.join('.');
-                                                    func = func.trim().split(new RegExp('\\s|\\n|\\t|\\;|\\/|\\,'));
-                                                    func = func.slice(-1)[0].trim();
-                                                    if (!statics.RESERVED_FUNCTIONS.includes(func)) {
-                                                        // TODO: improve this?
-                                                        functions.push(func);
-                                                    }
-                                                });
+                                                refFunc
+                                                    .filter(e => e)
+                                                    .forEach(f => {
+                                                        let func = f.replaceAll('\n', ' ').split(new RegExp('\\s*\\t*\\.\\s*\\t*'));
+                                                        func = func.join('.');
+                                                        func = func.trim().split(new RegExp('\\s|\\n|\\t|\\;|\\/|\\,'));
+                                                        func = func.slice(-1)[0].trim();
+                                                        if (!statics.RESERVED_FUNCTIONS.includes(func)) {
+                                                            // TODO: improve this?
+                                                            functions.push(func);
+                                                        }
+                                                    });
                                             }
                                         }
                                     }
@@ -671,16 +675,20 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                         let handledFunctions = functions;
                         let regexImports = [];
-                        importedFiles.forEach(imp => {
-                            if (imp.varFileName) {
-                                regexImports.push(imp.varFileName);
-                            }
-                            if (imp.exports) {
-                                imp.exports.forEach(imp => {
-                                    regexImports.push(imp.varName || imp.varAlias);
-                                });
-                            }
-                        });
+                        importedFiles
+                            .filter(e => e)
+                            .forEach(imp => {
+                                if (imp.varFileName) {
+                                    regexImports.push(imp.varFileName);
+                                }
+                                if (imp.exports) {
+                                    imp.exports
+                                        .filter(e => e)
+                                        .forEach(imp => {
+                                            regexImports.push(imp.varName || imp.varAlias);
+                                        });
+                                }
+                            });
                         for (let index = 0; index < handledFunctions.length; index++) {
                             for (let idxImp = 0; idxImp < regexImports.length; idxImp++) {
                                 let handledFunction = [];
@@ -864,22 +872,24 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                         let idx = importsIndexFile.findIndex(e => e.varFileName && functionName && e.varFileName == functionName);
                                         pathFile = null;
                                         if (idx == -1) {
-                                            importsIndexFile.forEach(imp => {
-                                                if (pathFile) {
-                                                    return;
-                                                }
-                                                let found = imp && imp.exports ? imp.exports.find(e => e.varName && functionName && e.varName == functionName) : null;
-                                                if (found) {
-                                                    if (!functionName) {
-                                                        functionName = found.varName;
+                                            importsIndexFile
+                                                .filter(e => e)
+                                                .forEach(imp => {
+                                                    if (pathFile) {
+                                                        return;
                                                     }
-                                                    if (imp.isDirectory) {
-                                                        pathFile = found.path;
-                                                    } else {
-                                                        pathFile = imp.fileName; // TODO: change variable name
+                                                    let found = imp && imp.exports ? imp.exports.find(e => e.varName && functionName && e.varName == functionName) : null;
+                                                    if (found) {
+                                                        if (!functionName) {
+                                                            functionName = found.varName;
+                                                        }
+                                                        if (imp.isDirectory) {
+                                                            pathFile = found.path;
+                                                        } else {
+                                                            pathFile = imp.fileName; // TODO: change variable name
+                                                        }
                                                     }
-                                                }
-                                            });
+                                                });
                                         } else {
                                             pathFile = importsIndexFile[idx].fileName;
                                         }
@@ -941,18 +951,20 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                             const auxPathFile = pathFile;
                                             pathFile = null;
                                             if (idx == -1) {
-                                                exportsIndexFile.forEach(imp => {
-                                                    if (pathFile) {
-                                                        return;
-                                                    }
-                                                    let found = imp && imp.exports ? imp.exports.find(e => e.varAlias && e.varAlias == 'default') : null;
-                                                    if (found) {
-                                                        pathFile = imp.fileName;
-                                                        if (!functionName) {
-                                                            functionName = found.varName;
+                                                exportsIndexFile
+                                                    .filter(e => e)
+                                                    .forEach(imp => {
+                                                        if (pathFile) {
+                                                            return;
                                                         }
-                                                    }
-                                                });
+                                                        let found = imp && imp.exports ? imp.exports.find(e => e.varAlias && e.varAlias == 'default') : null;
+                                                        if (found) {
+                                                            pathFile = imp.fileName;
+                                                            if (!functionName) {
+                                                                functionName = found.varName;
+                                                            }
+                                                        }
+                                                    });
                                             }
                                             if (pathFile) {
                                                 extension = await utils.getExtension(pathFile);
@@ -1229,9 +1241,11 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                             elem = elem.split(new RegExp(`\\.\\s*\\n*\\t*status\\s*\\n*\\t*\\(`));
                                             if (elem && elem.length > 1) {
                                                 elem.pop();
-                                                elem.forEach(e => {
+                                                elem.filter(e => e).forEach(e => {
                                                     let resAux = e.split(new RegExp(`\\s|\\n|\\t|;|:|,|\\(|\\)|\\[|\\]|\\{|\\}`)).slice(-1)[0].trim();
-                                                    if (resAux && resAux != '') setRes.add(resAux);
+                                                    if (resAux && resAux != '') {
+                                                        setRes.add(resAux);
+                                                    }
                                                 });
                                             }
                                             res = [...setRes];
@@ -1351,11 +1365,13 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 let hasOwnProperties = endpoint.split(new RegExp('\\s*\\.\\s*hasOwnProperty\\s*\\('));
                                 if (hasOwnProperties && hasOwnProperties.length > 1) {
                                     hasOwnProperties.shift();
-                                    hasOwnProperties.forEach(h => {
-                                        let varName = h.replaceAll('"', '').replaceAll("'", '').replaceAll('`', '').replaceAll(' ', '');
-                                        varName = '.' + varName.split(')')[0];
-                                        endpoint = endpoint.replace(new RegExp('\\s*\\.\\s*hasOwnProperty\\s*\\('), varName);
-                                    });
+                                    hasOwnProperties
+                                        .filter(e => e)
+                                        .forEach(h => {
+                                            let varName = h.replaceAll('"', '').replaceAll("'", '').replaceAll('`', '').replaceAll(' ', '');
+                                            varName = '.' + varName.split(')')[0];
+                                            endpoint = endpoint.replace(new RegExp('\\s*\\.\\s*hasOwnProperty\\s*\\('), varName);
+                                        });
                                 }
 
                                 endpoint = await handleData.removeStrings(endpoint); // Avoiding .status(...) in string
@@ -1399,57 +1415,63 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                              * Global swagger properties
                              */
                             if (globalObjResponses) {
-                                Object.keys(globalObjResponses).forEach(r => {
-                                    if (objResponses[r] && globalObjResponses[r].ifStatusPresent === true) {
-                                        objResponses[r] = { ...globalObjResponses[r], ...objResponses[r] };
-                                        delete objResponses[r].ifStatusPresent;
-                                        if (globalObjResponses[r].description && (!objResponsesTag || (globalObjResponses[r].description && objResponsesTag[r] && objResponses[r] && objResponsesTag[r].description != objResponses[r].description))) {
-                                            objResponses[r].description = globalObjResponses[r].description;
+                                Object.keys(globalObjResponses)
+                                    .filter(e => e)
+                                    .forEach(r => {
+                                        if (objResponses[r] && globalObjResponses[r].ifStatusPresent === true) {
+                                            objResponses[r] = { ...globalObjResponses[r], ...objResponses[r] };
+                                            delete objResponses[r].ifStatusPresent;
+                                            if (globalObjResponses[r].description && (!objResponsesTag || (globalObjResponses[r].description && objResponsesTag[r] && objResponses[r] && objResponsesTag[r].description != objResponses[r].description))) {
+                                                objResponses[r].description = globalObjResponses[r].description;
+                                            }
+                                        } else if (!objResponses[r] && globalObjResponses[r] && !globalObjResponses[r].ifStatusPresent) {
+                                            objResponses[r] = globalObjResponses[r];
                                         }
-                                    } else if (!objResponses[r] && globalObjResponses[r] && !globalObjResponses[r].ifStatusPresent) {
-                                        objResponses[r] = globalObjResponses[r];
-                                    }
 
-                                    if (objResponses[r] && !objResponses[r].schema) {
-                                        delete objResponses[r].schema;
-                                    }
-                                });
+                                        if (objResponses[r] && !objResponses[r].schema) {
+                                            delete objResponses[r].schema;
+                                        }
+                                    });
                             }
 
-                            Object.values(objParameters).forEach(objParam => {
-                                if (objEndpoint[path][method].parameters) {
-                                    if (objParam.$ref) {
-                                        let paramName = objParam.$ref.split('/').slice(-1)[0];
-                                        let idxFound = objEndpoint[path][method].parameters.findIndex(e => e && e.name === paramName);
-                                        if (idxFound > -1) {
-                                            delete objEndpoint[path][method].parameters[idxFound];
+                            Object.values(objParameters)
+                                .filter(e => e)
+                                .forEach(objParam => {
+                                    if (objEndpoint[path][method].parameters) {
+                                        if (objParam.$ref) {
+                                            let paramName = objParam.$ref.split('/').slice(-1)[0];
+                                            let idxFound = objEndpoint[path][method].parameters.findIndex(e => e && e.name === paramName);
+                                            if (idxFound > -1) {
+                                                delete objEndpoint[path][method].parameters[idxFound];
+                                            }
+                                            objEndpoint[path][method].parameters.push(objParam);
+                                            return;
                                         }
-                                        objEndpoint[path][method].parameters.push(objParam);
-                                        return;
+                                        let idxFound = objEndpoint[path][method].parameters.findIndex(e => e && e.name === objParam.name && e.in === objParam.in);
+                                        if (objParam.name) {
+                                            objParam.name = objParam.name.split('__[__[__')[0];
+                                        }
+                                        if (idxFound > -1) {
+                                            objEndpoint[path][method].parameters[idxFound] = objParam;
+                                        } else {
+                                            objEndpoint[path][method].parameters.push(objParam);
+                                        }
                                     }
-                                    let idxFound = objEndpoint[path][method].parameters.findIndex(e => e && e.name === objParam.name && e.in === objParam.in);
-                                    if (objParam.name) {
-                                        objParam.name = objParam.name.split('__[__[__')[0];
-                                    }
-                                    if (idxFound > -1) {
-                                        objEndpoint[path][method].parameters[idxFound] = objParam;
-                                    } else {
-                                        objEndpoint[path][method].parameters.push(objParam);
-                                    }
-                                }
-                            });
+                                });
 
                             if (objEndpoint[path][method] && objEndpoint[path][method].parameters && objEndpoint[path][method].parameters.length > 0) {
                                 let currentParameters = objEndpoint[path][method].parameters;
                                 let ref = '$ref';
 
                                 // Remove all other properties from ref parameters
-                                currentParameters = currentParameters.map(x => {
-                                    if (Object.prototype.hasOwnProperty.call(x, ref)) {
-                                        return { [ref]: x[ref] };
-                                    }
-                                    return x;
-                                });
+                                currentParameters = currentParameters
+                                    .filter(e => e)
+                                    .map(x => {
+                                        if (Object.prototype.hasOwnProperty.call(x, ref)) {
+                                            return { [ref]: x[ref] };
+                                        }
+                                        return x;
+                                    });
 
                                 // Remove duplicates
                                 objEndpoint[path][method].parameters = currentParameters.filter((e, pIdx, a) => {
@@ -1502,12 +1524,14 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                             let parameters = objEndpoint[path][method].parameters;
                             if (parameters && parameters.length > 0) {
-                                objEndpoint[path][method].parameters = parameters.map(p => {
-                                    if (p.schema && p.schema.properties && p.schema.properties['__AUTO_GENERATE__']) {
-                                        p.schema.properties = {};
-                                    }
-                                    return p;
-                                });
+                                objEndpoint[path][method].parameters = parameters
+                                    .filter(e => e)
+                                    .map(p => {
+                                        if (p.schema && p.schema.properties && p.schema.properties['__AUTO_GENERATE__']) {
+                                            p.schema.properties = {};
+                                        }
+                                        return p;
+                                    });
                             }
 
                             delete objEndpoint[path][method].path;
@@ -1754,23 +1778,25 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                         if (idx == -1 && !exportPath) {
                             // Second, tries to find in the 'exports' of import/require, such as 'foo' in the: import { foo } from './fooFile'
-                            importedFiles.forEach((imp, importIdx) => {
-                                if (exportPath) {
-                                    return;
-                                }
-                                let found = imp && imp.exports ? imp.exports.find(e => e.varName && obj.varFileName && e.varName == obj.varFileName) : null;
-                                if (found) {
-                                    if (imp.isDirectory && found.path) {
-                                        exportPath = found.path;
-                                        idx = importIdx;
-                                    } else if (imp.isDirectory && !found.path) {
-                                        exportPath = imp.fileName;
-                                        idx = importIdx;
-                                    } else {
-                                        exportPath = imp.fileName; // TODO: change variable name
+                            importedFiles
+                                .filter(e => e)
+                                .forEach((imp, importIdx) => {
+                                    if (exportPath) {
+                                        return;
                                     }
-                                }
-                            });
+                                    let found = imp && imp.exports ? imp.exports.find(e => e.varName && obj.varFileName && e.varName == obj.varFileName) : null;
+                                    if (found) {
+                                        if (imp.isDirectory && found.path) {
+                                            exportPath = found.path;
+                                            idx = importIdx;
+                                        } else if (imp.isDirectory && !found.path) {
+                                            exportPath = imp.fileName;
+                                            idx = importIdx;
+                                        } else {
+                                            exportPath = imp.fileName; // TODO: change variable name
+                                        }
+                                    }
+                                });
                         }
 
                         if (idx == -1 && !exportPath && obj && obj.varFileName && obj.varFileName.includes('.')) {
@@ -1973,13 +1999,15 @@ async function getImportedFiles(data, localRelativePath = '') {
                         if (instances.length > 1) {
                             instances.pop();
                             let newVarFileName = '{ ';
-                            instances.forEach(inst => {
-                                let instance = inst.split(' ').slice(-1)[0];
-                                if (instance.includes(':')) {
-                                    instance = instance.split(':')[0];
-                                }
-                                newVarFileName += instance + ', ';
-                            });
+                            instances
+                                .filter(e => e)
+                                .forEach(inst => {
+                                    let instance = inst.split(' ').slice(-1)[0];
+                                    if (instance.includes(':')) {
+                                        instance = instance.split(':')[0];
+                                    }
+                                    newVarFileName += instance + ', ';
+                                });
                             newVarFileName += varFileName + ' }';
                             varFileName = newVarFileName;
                         }
@@ -1993,10 +2021,12 @@ async function getImportedFiles(data, localRelativePath = '') {
                         if (instances.length > 1) {
                             instances.pop();
                             let newVarFileName = '{ ';
-                            instances.forEach(inst => {
-                                let vars = inst.split('{').slice(-1)[0];
-                                newVarFileName += vars + ', ';
-                            });
+                            instances
+                                .filter(e => e)
+                                .forEach(inst => {
+                                    let vars = inst.split('{').slice(-1)[0];
+                                    newVarFileName += vars + ', ';
+                                });
                             newVarFileName += varFileName + ' }';
                             varFileName = newVarFileName;
                         }
@@ -2006,13 +2036,15 @@ async function getImportedFiles(data, localRelativePath = '') {
                         if (instances.length > 1) {
                             instances.pop();
                             let newVarFileName = '{ ';
-                            instances.forEach(inst => {
-                                if (inst.trim().slice(-1)[0] == '}') {
-                                    return;
-                                }
-                                let varsName = inst.split(' ').slice(-1)[0];
-                                newVarFileName += varsName + ', ';
-                            });
+                            instances
+                                .filter(e => e)
+                                .forEach(inst => {
+                                    if (inst.trim().slice(-1)[0] == '}') {
+                                        return;
+                                    }
+                                    let varsName = inst.split(' ').slice(-1)[0];
+                                    newVarFileName += varsName + ', ';
+                                });
                             newVarFileName += varFileName + ' }';
                             varFileName = newVarFileName;
                             varFileName = varFileName.replaceAll(' ', '').replaceAll(',{', ',').replaceAll('{{', '{').replaceAll('}}', '}');
@@ -2031,6 +2063,7 @@ async function getImportedFiles(data, localRelativePath = '') {
                     varFileName
                         .split('{')[1]
                         .split(',')
+                        .filter(e => e)
                         .forEach(exp => {
                             exp = exp.replaceAll('{', '').replaceAll('}', '').replaceAll(',', '').trim();
                             if (exp == '') {
@@ -2189,19 +2222,21 @@ async function getImportedFiles(data, localRelativePath = '') {
                                     let idxFound = imports.findIndex(e => e.varFileName && varName && e.varFileName.toLowerCase() == varName.toLowerCase());
                                     let exportPath = null;
                                     if (idxFound == -1) {
-                                        imports.forEach(imp => {
-                                            if (exportPath) {
-                                                return;
-                                            }
-                                            let found = imp && imp.exports ? imp.exports.find(e => e.varName && varName && e.varName.toLowerCase() == varName.toLowerCase()) : null;
-                                            if (found) {
-                                                if (imp.isDirectory) {
-                                                    exportPath = null;
-                                                } else if (imp.fileName !== 'express') {
-                                                    exportPath = imp.fileName; // REFECTOR: change variable name
+                                        imports
+                                            .filter(e => e)
+                                            .forEach(imp => {
+                                                if (exportPath) {
+                                                    return;
                                                 }
-                                            }
-                                        });
+                                                let found = imp && imp.exports ? imp.exports.find(e => e.varName && varName && e.varName.toLowerCase() == varName.toLowerCase()) : null;
+                                                if (found) {
+                                                    if (imp.isDirectory) {
+                                                        exportPath = null;
+                                                    } else if (imp.fileName !== 'express') {
+                                                        exportPath = imp.fileName; // REFECTOR: change variable name
+                                                    }
+                                                }
+                                            });
 
                                         if (exportPath) {
                                             let extension = await utils.getExtension(exportPath);
@@ -2245,10 +2280,12 @@ async function getImportedFiles(data, localRelativePath = '') {
                         if (instances.length > 1) {
                             instances.pop();
                             let newVarFileName = '{ ';
-                            instances.forEach(inst => {
-                                let vars = inst.split('{').slice(-1)[0];
-                                newVarFileName += vars + ', ';
-                            });
+                            instances
+                                .filter(e => e)
+                                .forEach(inst => {
+                                    let vars = inst.split('{').slice(-1)[0];
+                                    newVarFileName += vars + ', ';
+                                });
                             newVarFileName += varFileName + ' }';
                             varFileName = newVarFileName;
                         }
@@ -2258,13 +2295,15 @@ async function getImportedFiles(data, localRelativePath = '') {
                         if (instances.length > 1) {
                             instances.pop();
                             let newVarFileName = '{ ';
-                            instances.forEach(inst => {
-                                if (inst.trim().slice(-1)[0] == '}') {
-                                    return;
-                                }
-                                let varsName = inst.split(' ').slice(-1)[0];
-                                newVarFileName += varsName + ', ';
-                            });
+                            instances
+                                .filter(e => e)
+                                .forEach(inst => {
+                                    if (inst.trim().slice(-1)[0] == '}') {
+                                        return;
+                                    }
+                                    let varsName = inst.split(' ').slice(-1)[0];
+                                    newVarFileName += varsName + ', ';
+                                });
                             newVarFileName += varFileName + ' }';
                             varFileName = newVarFileName;
                             varFileName = varFileName.replaceAll(' ', '').replaceAll(',{', ',').replaceAll('{{', '{').replaceAll('}}', '}');

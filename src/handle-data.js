@@ -370,9 +370,11 @@ function removeComments(data, keepSwaggerTags = false) {
 
                 if (idx == data.length - 1) {
                     if (storedRegexs.length > 0) {
-                        storedRegexs.forEach(r => {
-                            strToReturn = strToReturn.replace(r.ref, r.regex);
-                        });
+                        storedRegexs
+                            .filter(e => e)
+                            .forEach(r => {
+                                strToReturn = strToReturn.replace(r.ref, r.regex);
+                            });
                     }
                     strToReturn = strToReturn.replaceAll('  ', ' ').replaceAll('  ', ' ').replaceAll('  ', ' ').replaceAll('  ', ' ');
                     return resolve(strToReturn);
@@ -380,9 +382,11 @@ function removeComments(data, keepSwaggerTags = false) {
             }
         } catch (err) {
             if (storedRegexs.length > 0) {
-                storedRegexs.forEach(r => {
-                    strToReturn = strToReturn.replace(r.ref, r.regex);
-                });
+                storedRegexs
+                    .filter(e => e)
+                    .forEach(r => {
+                        strToReturn = strToReturn.replace(r.ref, r.regex);
+                    });
             }
             return resolve(strToReturn);
         }
@@ -617,9 +621,11 @@ function removeStrings(data) {
 
                 if (idx == data.length - 1) {
                     if (storedRegexs.length > 0) {
-                        storedRegexs.forEach(r => {
-                            strToReturn = strToReturn.replace(r.ref, r.regex);
-                        });
+                        storedRegexs
+                            .filter(e => e)
+                            .forEach(r => {
+                                strToReturn = strToReturn.replace(r.ref, r.regex);
+                            });
                     }
                     strToReturn = strToReturn.replaceAll('  ', ' ').replaceAll('  ', ' ').replaceAll('  ', ' ').replaceAll('  ', ' '); // TODO: Verifiy
                     return resolve(strToReturn);
@@ -627,9 +633,11 @@ function removeStrings(data) {
             }
         } catch (err) {
             if (storedRegexs.length > 0) {
-                storedRegexs.forEach(r => {
-                    strToReturn = strToReturn.replace(r.ref, r.regex);
-                });
+                storedRegexs
+                    .filter(e => e)
+                    .forEach(r => {
+                        strToReturn = strToReturn.replace(r.ref, r.regex);
+                    });
             }
             return resolve(strToReturn);
         }
@@ -761,18 +769,22 @@ function removeInsideParentheses(data, keepParentheses = false, level = 0) {
 
                 if (idx == data.length - 1) {
                     if (storedRegexs.length > 0) {
-                        storedRegexs.forEach(r => {
-                            strToReturn = strToReturn.replace(r.ref, r.regex);
-                        });
+                        storedRegexs
+                            .filter(e => e)
+                            .forEach(r => {
+                                strToReturn = strToReturn.replace(r.ref, r.regex);
+                            });
                     }
                     return resolve(strToReturn);
                 }
             }
         } catch (err) {
             if (storedRegexs.length > 0) {
-                storedRegexs.forEach(r => {
-                    strToReturn = strToReturn.replace(r.ref, r.regex);
-                });
+                storedRegexs
+                    .filter(e => e)
+                    .forEach(r => {
+                        strToReturn = strToReturn.replace(r.ref, r.regex);
+                    });
             }
             return resolve(strToReturn);
         }
@@ -913,18 +925,22 @@ function getQueryIndirectly(elem, request, objParameters) {
                         }
                     }
                     if (queryVars.length > 0) {
-                        queryVars.forEach(query => {
-                            if (query && query.split(new RegExp('\\;|\\{|\\(|\\[|\\"|\\\'|\\`|\\}|\\)|\\]|\\:|\\,|\\*|\\!|\\|')).length == 1) {
-                                let varNames = elem.split(new RegExp(' ' + query + '\\.')).splice(1);
-                                varNames = varNames.map(v => (v = v.split(new RegExp('\\s|;|\\n|\\t'))[0]));
-                                varNames.forEach(name => {
-                                    objParameters[name] = {
-                                        name,
-                                        in: 'query'
-                                    };
-                                });
-                            }
-                        });
+                        queryVars
+                            .filter(e => e)
+                            .forEach(query => {
+                                if (query.split(new RegExp('\\;|\\{|\\(|\\[|\\"|\\\'|\\`|\\}|\\)|\\]|\\:|\\,|\\*|\\!|\\|')).length == 1) {
+                                    let varNames = elem.split(new RegExp(' ' + query + '\\.')).splice(1);
+                                    varNames = varNames.filter(e => e).map(v => (v = v.split(new RegExp('\\s|;|\\n|\\t'))[0]));
+                                    varNames
+                                        .filter(e => e)
+                                        .forEach(name => {
+                                            objParameters[name] = {
+                                                name,
+                                                in: 'query'
+                                            };
+                                        });
+                                }
+                            });
                     }
                 }
             }
@@ -956,6 +972,7 @@ async function getStatus(elem, response, objResponses) {
             if (res && elem && elem.split(new RegExp(' ' + res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*status\\s*\\(| ' + res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*sendStatus\\s*\\(')).length > 1) {
                 elem.split(new RegExp('\\s+' + res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*status\\s*\\(|\\s+' + res + '\\s*\\n*\\t*\\.\\s*\\n*\\t*sendStatus\\s*\\('))
                     .splice(1)
+                    .filter(e => e)
                     .forEach(async s => {
                         let status = await utils.stackSymbolRecognizer(s, '(', ')');
                         status = status.replaceAll('(', '').replaceAll(')', '').replaceAll(' ', '');
@@ -966,19 +983,21 @@ async function getStatus(elem, response, objResponses) {
                              * Issue: #62
                              */
                             let auxStatus = status.split(new RegExp('\\?|\\|\\||\\:'));
-                            auxStatus.forEach(sts => {
-                                if (utils.isNumeric(sts) && !!objResponses[sts] === false) {
-                                    objResponses[sts] = {
-                                        description: tables.getHttpStatusDescription(sts, swaggerTags.getLanguage()) || ''
-                                    };
-                                } else if (utils.isNumeric(sts) && !!objResponses[sts] === true) {
-                                    // concatenated with existing information
-                                    objResponses[sts] = {
-                                        description: tables.getHttpStatusDescription(sts, swaggerTags.getLanguage()) || '',
-                                        ...objResponses[sts]
-                                    };
-                                }
-                            });
+                            auxStatus
+                                .filter(e => e)
+                                .forEach(sts => {
+                                    if (utils.isNumeric(sts) && !!objResponses[sts] === false) {
+                                        objResponses[sts] = {
+                                            description: tables.getHttpStatusDescription(sts, swaggerTags.getLanguage()) || ''
+                                        };
+                                    } else if (utils.isNumeric(sts) && !!objResponses[sts] === true) {
+                                        // concatenated with existing information
+                                        objResponses[sts] = {
+                                            description: tables.getHttpStatusDescription(sts, swaggerTags.getLanguage()) || '',
+                                            ...objResponses[sts]
+                                        };
+                                    }
+                                });
                         } else if (utils.isNumeric(status) && !!objResponses[status] === false) {
                             objResponses[status] = {
                                 description: tables.getHttpStatusDescription(status, swaggerTags.getLanguage()) || ''
@@ -1134,9 +1153,11 @@ function getHeaderQueryBody(elem, request, objParameters, opt) {
             }
 
             // Coming back with the strings
-            storedStrings.forEach(s => {
-                elem = elem.replace(s.ref, s.str);
-            });
+            storedStrings
+                .filter(e => e)
+                .forEach(s => {
+                    elem = elem.replace(s.ref, s.str);
+                });
 
             elem = elem.replaceAll('"', statics.STRING_QUOTE);
 
@@ -1146,6 +1167,7 @@ function getHeaderQueryBody(elem, request, objParameters, opt) {
             if (autoHeaders && req && elem && elem.split(' ' + req + '.headers.').length > 1) {
                 elem.split(' ' + req + '.headers.')
                     .splice(1)
+                    .filter(e => e)
                     .forEach(p => {
                         p = p.trim();
                         let name = p
@@ -1206,43 +1228,45 @@ function getHeaderQueryBody(elem, request, objParameters, opt) {
 
                     header = header.split('{').slice(-1)[0];
                     header = header.split(',');
-                    header.map(name => {
-                        name = name.trim();
-                        name = name.replaceAll('...', '');
-                        name = name
-                            .split(/\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
-                            .replaceAll(' ', '')
-                            .replaceAll('\r', '');
-                        if (name && name.slice(-1)[0] == '(') {
-                            return;
-                        }
-                        if (name == '') {
-                            return;
-                        }
-
-                        if (!!objParameters[name] === false || (objParameters[name] && objParameters[name].name !== name) || (objParameters[name] && objParameters[name].name === name && objParameters[name].in !== 'header')) {
-                            name += `__[__[__header__]__]`;
-
-                            if (!!objParameters[name] === false) {
-                                // Checks if the parameter name already exists
-                                objParameters[name] = {
-                                    name,
-                                    in: 'header'
-                                };
+                    header
+                        .filter(e => e)
+                        .map(name => {
+                            name = name.trim();
+                            name = name.replaceAll('...', '');
+                            name = name
+                                .split(/\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
+                                .replaceAll(' ', '')
+                                .replaceAll('\r', '');
+                            if (name && name.slice(-1)[0] == '(') {
+                                return;
                             }
-                            if (!objParameters[name].in) {
-                                objParameters[name].in = 'header';
+                            if (name == '') {
+                                return;
                             }
-                            if (!objParameters[name].type && !objParameters[name].schema) {
-                                // by default: 'type' is 'string' when 'schema' is missing
-                                if (swaggerTags.getOpenAPI()) {
-                                    objParameters[name].schema = { type: 'string' };
-                                } else {
-                                    objParameters[name].type = 'string';
+
+                            if (!!objParameters[name] === false || (objParameters[name] && objParameters[name].name !== name) || (objParameters[name] && objParameters[name].name === name && objParameters[name].in !== 'header')) {
+                                name += `__[__[__header__]__]`;
+
+                                if (!!objParameters[name] === false) {
+                                    // Checks if the parameter name already exists
+                                    objParameters[name] = {
+                                        name,
+                                        in: 'header'
+                                    };
+                                }
+                                if (!objParameters[name].in) {
+                                    objParameters[name].in = 'header';
+                                }
+                                if (!objParameters[name].type && !objParameters[name].schema) {
+                                    // by default: 'type' is 'string' when 'schema' is missing
+                                    if (swaggerTags.getOpenAPI()) {
+                                        objParameters[name].schema = { type: 'string' };
+                                    } else {
+                                        objParameters[name].type = 'string';
+                                    }
                                 }
                             }
-                        }
-                    });
+                        });
                 }
             }
 
@@ -1301,6 +1325,7 @@ function getHeaderQueryBody(elem, request, objParameters, opt) {
             if (autoQuery && req && elem && elem.split(' ' + req + '.query.').length > 1) {
                 elem.split(' ' + req + '.query.')
                     .splice(1)
+                    .filter(e => e)
                     .forEach(p => {
                         p = p.trim();
                         let name = p
@@ -1369,43 +1394,45 @@ function getHeaderQueryBody(elem, request, objParameters, opt) {
 
                     query = query.split('{').slice(-1)[0];
                     query = query.split(',');
-                    query.map(name => {
-                        name = name.trim();
-                        name = name.replaceAll('...', '');
-                        name = name
-                            .split(/\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
-                            .replaceAll(' ', '')
-                            .replaceAll('\r', '');
-                        if (name && name.slice(-1)[0] == '(') {
-                            return;
-                        }
-                        if (name == '') {
-                            return;
-                        }
-
-                        if (!!objParameters[name] === false || (objParameters[name] && objParameters[name].name !== name) || (objParameters[name] && objParameters[name].name === name && objParameters[name].in !== 'query')) {
-                            name += `__[__[__query__]__]`;
-
-                            if (!!objParameters[name] === false) {
-                                // Checks if the parameter name already exists
-                                objParameters[name] = {
-                                    name,
-                                    in: 'query'
-                                };
+                    query
+                        .filter(e => e)
+                        .map(name => {
+                            name = name.trim();
+                            name = name.replaceAll('...', '');
+                            name = name
+                                .split(/\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
+                                .replaceAll(' ', '')
+                                .replaceAll('\r', '');
+                            if (name && name.slice(-1)[0] == '(') {
+                                return;
                             }
-                            if (!objParameters[name].in) {
-                                objParameters[name].in = 'query';
+                            if (name == '') {
+                                return;
                             }
-                            if (!objParameters[name].type && !objParameters[name].schema) {
-                                // by default: 'type' is 'string' when 'schema' is missing
-                                if (swaggerTags.getOpenAPI()) {
-                                    objParameters[name].schema = { type: 'string' };
-                                } else {
-                                    objParameters[name].type = 'string';
+
+                            if (!!objParameters[name] === false || (objParameters[name] && objParameters[name].name !== name) || (objParameters[name] && objParameters[name].name === name && objParameters[name].in !== 'query')) {
+                                name += `__[__[__query__]__]`;
+
+                                if (!!objParameters[name] === false) {
+                                    // Checks if the parameter name already exists
+                                    objParameters[name] = {
+                                        name,
+                                        in: 'query'
+                                    };
+                                }
+                                if (!objParameters[name].in) {
+                                    objParameters[name].in = 'query';
+                                }
+                                if (!objParameters[name].type && !objParameters[name].schema) {
+                                    // by default: 'type' is 'string' when 'schema' is missing
+                                    if (swaggerTags.getOpenAPI()) {
+                                        objParameters[name].schema = { type: 'string' };
+                                    } else {
+                                        objParameters[name].type = 'string';
+                                    }
                                 }
                             }
-                        }
-                    });
+                        });
                 }
             }
 
@@ -1418,6 +1445,7 @@ function getHeaderQueryBody(elem, request, objParameters, opt) {
             if (autoBody && req && elem && elem.split(' ' + req + '.body.').length > 1) {
                 elem.split(' ' + req + '.body.')
                     .splice(1)
+                    .filter(e => e)
                     .forEach(p => {
                         p = p.trim();
                         let name = p
@@ -1480,37 +1508,39 @@ function getHeaderQueryBody(elem, request, objParameters, opt) {
 
                     objBody = objBody.split('{').slice(-1)[0];
                     objBody = objBody.split(',');
-                    objBody.map(name => {
-                        name = name.trim();
-                        name = name.replaceAll('...', '');
-                        name = name
-                            .split(/\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
-                            .replaceAll(' ', '')
-                            .replaceAll('\r', '');
-                        if (name && name.slice(-1)[0] == '(') {
-                            return;
-                        }
-                        if (name == '') {
-                            return;
-                        }
+                    objBody
+                        .filter(e => e)
+                        .map(name => {
+                            name = name.trim();
+                            name = name.replaceAll('...', '');
+                            name = name
+                                .split(/\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
+                                .replaceAll(' ', '')
+                                .replaceAll('\r', '');
+                            if (name && name.slice(-1)[0] == '(') {
+                                return;
+                            }
+                            if (name == '') {
+                                return;
+                            }
 
-                        if (!!objParameters['__obj__in__body__'] === false) {
-                            objParameters['__obj__in__body__'] = {
-                                name: '__obj__in__body__',
-                                in: 'body',
-                                schema: {
-                                    type: 'object',
-                                    properties: {}
-                                }
-                            };
-                        }
-                        if (!!objParameters['__obj__in__body__'] === true) {
-                            // Checks if the parameter name already exists
-                            objParameters['__obj__in__body__'].schema.properties[name] = {
-                                example: 'any'
-                            };
-                        }
-                    });
+                            if (!!objParameters['__obj__in__body__'] === false) {
+                                objParameters['__obj__in__body__'] = {
+                                    name: '__obj__in__body__',
+                                    in: 'body',
+                                    schema: {
+                                        type: 'object',
+                                        properties: {}
+                                    }
+                                };
+                            }
+                            if (!!objParameters['__obj__in__body__'] === true) {
+                                // Checks if the parameter name already exists
+                                objParameters['__obj__in__body__'].schema.properties[name] = {
+                                    example: 'any'
+                                };
+                            }
+                        });
                 }
             }
         }
@@ -1858,16 +1888,20 @@ async function functionRecognizerInData(data, functionName, imports) {
                                 arrowFunction = data.split(new RegExp(`(${functionName}\\s*\\n*\\t*\\:?\\s*\\n*\\t*\\w*\\s*\\n*\\t*\\=\\s*\\n*\\t*\\([\\s\\S]*\\)\\s*\\t*=>\\s*\\n*\\t*\\{)`));
                             }
                         } else if (imports) {
-                            imports.forEach(imp => {
-                                if (imp.varFileName) {
-                                    regexImports.push(imp.varFileName);
-                                }
-                                if (imp.exports) {
-                                    imp.exports.forEach(imp => {
-                                        regexImports.push(imp.varName || imp.varAlias);
-                                    });
-                                }
-                            });
+                            imports
+                                .filter(e => e)
+                                .forEach(imp => {
+                                    if (imp.varFileName) {
+                                        regexImports.push(imp.varFileName);
+                                    }
+                                    if (imp.exports) {
+                                        imp.exports
+                                            .filter(e => e)
+                                            .forEach(imp => {
+                                                regexImports.push(imp.varName || imp.varAlias);
+                                            });
+                                    }
+                                });
 
                             for (let idxImp = 0; idxImp < regexImports.length; idxImp++) {
                                 const originalArrowFunction = arrowFunction;
