@@ -1657,6 +1657,8 @@ Some tutorials with examples:
   - Improvements to relative paths
 - Version 2.23.x (latest):
   - New tags: #swagger.autoBody, #swagger.autoQuery and #swagger.autoHeaders
+  - Automatic body, query and headers recognition improvements
+  - TypeScript recognition improvements
   - Bug fixes
 
 **TODO:**
@@ -1664,8 +1666,8 @@ Some tutorials with examples:
 - Recognize more OpenAPI v3 features
 - Recognize more TypeScript's features
 - Improve performance
-- Refactor code
 - Integrate with other frameworks
+- Code Refactor (Urgent!). Sorry for the code mess :(
 
 ## Help us!
 
