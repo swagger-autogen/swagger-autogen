@@ -1,6 +1,11 @@
 const fs = require('fs');
 const glob = require('glob');
 
+let globalOptions = {};
+function setOptions(options) {
+    globalOptions = options;
+}
+
 /**
  * Check if 'path' is a directory or a file
  *
@@ -352,6 +357,98 @@ function popString(data, keepQuote = false) {
     }
 }
 
+/**
+ * Sort parameters. (in test)
+ * @param {Array} parameters
+ */
+async function sortParameters(paths) {
+    let exceptionParameters = ['user', 'username', 'pass', 'password'];
+    try {
+        if (globalOptions.sortParameters.toLowerCase() == 'alphabetically') {
+            let pathList = Object.entries(paths);
+            for (let idxPath = 0; idxPath < Object.entries(paths).length; ++idxPath) {
+                let path = pathList[idxPath][0];
+                let methods = Object.entries(pathList[idxPath][1]);
+                for (let idx = 0; idx < methods.length; ++idx) {
+                    let method = methods[idx][0];
+                    let parameters = methods[idx][1].parameters;
+                    if (parameters && parameters.length > 0) {
+                        let sortedParameters = parameters.sort((a, b) => sortAlphabetically(a, b));
+                        sortedParameters = sortedParameters.sort((a, b) => sortByRequestType(a, b));
+                        sortedParameters = sortedParameters.sort((a, b) => sortByPathParameter(a, b));
+
+                        // Sorting the body (Swagger2). TODO: OpenAPIv3
+                        for (let idxBody = 0; idxBody < sortedParameters.length; ++idxBody) {
+                            let param = sortedParameters[idxBody];
+                            if (param && param.schema && param.schema.properties) {
+                                let sortedProperties = sortObjectKeyAlphabetically(param.schema.properties);
+                                let bodyParameters = Object.keys(sortedProperties);
+                                if (bodyParameters.length == 2 && param.schema.properties) {
+                                    // Sort exception for user/username and pass/password
+                                    if (exceptionParameters.slice(2, 4).includes(bodyParameters[0].toLocaleLowerCase()) && exceptionParameters.slice(0, 2).includes(bodyParameters[1].toLocaleLowerCase())) {
+                                        sortedParameters[idxBody].schema.properties = {};
+                                        sortedParameters[idxBody].schema.properties[bodyParameters[1]] = sortedProperties[bodyParameters[1]];
+                                        sortedParameters[idxBody].schema.properties[bodyParameters[0]] = sortedProperties[bodyParameters[0]];
+                                        break;
+                                    }
+                                }
+                                sortedParameters[idxBody].schema.properties = sortedProperties;
+                            }
+                        }
+
+                        paths[path][method].parameters = sortedParameters;
+                    }
+                }
+            }
+        }
+        return paths;
+    } catch (err) {
+        return paths;
+    }
+}
+
+function sortObjectKeyAlphabetically(list) {
+    return Object.keys(list)
+        .sort((a, b) => sortAlphabetically(a, b))
+        .reduce((obj, key) => {
+            obj[key] = list[key];
+            return obj;
+        }, {});
+}
+
+function sortAlphabetically(a, b) {
+    if (a.name && b.name && a.in != 'path' && b.in != 'path') {
+        if (a.name.toLowerCase() < b.name.toLowerCase()) {
+            return -1;
+        }
+        if (a.name.toLowerCase() > b.name.toLowerCase()) {
+            return 1;
+        }
+    } else if (a && b) {
+        if (a.toLowerCase() < b.toLowerCase()) {
+            return -1;
+        }
+        if (a.toLowerCase() > b.toLowerCase()) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+function sortByRequestType(a, b) {
+    return a.in && b.in && b.in.length - a.in.length;
+}
+
+function sortByPathParameter(a, b) {
+    if (a.in == 'path' && b.in != 'path') {
+        return -1;
+    }
+    if (a.in != 'path' && b.in == 'path') {
+        return 1;
+    }
+    return 0;
+}
+
 function replaceRange(str, start, end, substitute) {
     return str.substring(0, start) + substitute + str.substring(end);
 }
@@ -366,5 +463,7 @@ module.exports = {
     stack0SymbolRecognizer,
     getFirstPosition,
     popString,
-    replaceRange
+    replaceRange,
+    setOptions,
+    sortParameters
 };
