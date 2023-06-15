@@ -1210,6 +1210,126 @@ function getHeaderQueryBody(elem, request, objParameters, opt) {
             }
 
             /**
+             * CASE: Destructuring body, such as: const { body, query, headers } = req
+             */
+            const bodyRegexPattern1 = '\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '[\\s|\\;]';
+            if (autoBody && req && elem && elem.split(new RegExp(bodyRegexPattern1)).length > 1) {
+                let elems = elem.split(new RegExp(bodyRegexPattern1));
+                for (let idxBody = 0; idxBody < elems.length - 1; ++idxBody) {
+                    let requestTypes = elems[idxBody];
+
+                    /**
+                     * CASE: const { item1, item2: { subItem1, subItem2 } } = req.body;
+                     * Solution: Eliminate sub-items for now
+                     * TODO: In the future, handle sub-items
+                     */
+                    if (requestTypes.split(new RegExp('\\:\\s*\\n*\\t*\\{')).length > 1) {
+                        let subObjs = requestTypes.split(new RegExp('\\:\\s*\\n*\\t*\\{'));
+                        for (let idxObj = 1; idxObj < subObjs.length; ++idxObj) {
+                            subObjs[idxObj] = subObjs[idxObj].split('}')[1];
+                        }
+                        requestTypes = subObjs.join('');
+                    }
+                    /* END CASE */
+
+                    requestTypes = requestTypes.split('{').slice(-1)[0];
+                    requestTypes = requestTypes.split(',');
+                    requestTypes = requestTypes.map(e => e.trim());
+
+                    const bodyRegex = /[\s|(|{|[|,|;|/]body\./;
+                    if (requestTypes.includes('body')) {
+                        elem.split(bodyRegex)
+                            .splice(1)
+                            .filter(e => e)
+                            .forEach(p => {
+                                p = p.trim();
+                                let name = p
+                                    .split(/\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
+                                    .replaceAll(' ', '')
+                                    .replaceAll('\r', '');
+
+                                if (name && name.includes('.')) {
+                                    name = name.split('.')[0];
+                                }
+                                if (name && name.slice(-1)[0] == '(') {
+                                    return;
+                                }
+
+                                name = name.replaceAll('...', '');
+
+                                if (!!objParameters['__obj__in__body__'] === false) {
+                                    objParameters['__obj__in__body__'] = {
+                                        name: '__obj__in__body__',
+                                        in: 'body',
+                                        schema: {
+                                            type: 'object',
+                                            properties: {}
+                                        }
+                                    };
+                                }
+                                if (!!objParameters['__obj__in__body__'] === true) {
+                                    // Checks if the parameter name already exists
+                                    objParameters['__obj__in__body__'].schema.properties[name] = {
+                                        example: 'any'
+                                    };
+                                }
+                            });
+                        elem = elem.replaceAll(/\}\s*=\s*body[\s|;]/, `} = ${req}.body `);
+                    }
+
+                    ['query', 'headers'].forEach(requestType => {
+                        if (requestTypes.includes(requestType)) {
+                            elem.split(new RegExp(`[\\s|(|{|[|,|;|/]${requestType}\\.`))
+                                .splice(1)
+                                .filter(e => e)
+                                .map(name => {
+                                    name = name.trim();
+                                    name = name.replaceAll('...', '');
+                                    name = name
+                                        .split(/\)|\{|\}|\[|\]|\/|\\|;|:|!|@|\$|#|=|\?|\+|,|\||&|\t|\n| /)[0]
+                                        .replaceAll(' ', '')
+                                        .replaceAll('\r', '');
+                                    if (name && name.slice(-1)[0] == '(') {
+                                        return;
+                                    }
+                                    if (name == '') {
+                                        return;
+                                    }
+
+                                    let formattedRequestType = requestType;
+                                    if (formattedRequestType === 'headers') {
+                                        formattedRequestType = 'header';
+                                    }
+                                    if (!!objParameters[name] === false || (objParameters[name] && objParameters[name].name !== name) || (objParameters[name] && objParameters[name].name === name && objParameters[name].in !== formattedRequestType)) {
+                                        name += `__[__[__${formattedRequestType}__]__]`;
+
+                                        if (!!objParameters[name] === false) {
+                                            // Checks if the parameter name already exists
+                                            objParameters[name] = {
+                                                name,
+                                                in: formattedRequestType
+                                            };
+                                        }
+                                        if (!objParameters[name].in) {
+                                            objParameters[name].in = formattedRequestType;
+                                        }
+                                        if (!objParameters[name].type && !objParameters[name].schema) {
+                                            // by default: 'type' is 'string' when 'schema' is missing
+                                            if (swaggerTags.getOpenAPI()) {
+                                                objParameters[name].schema = { type: 'string' };
+                                            } else {
+                                                objParameters[name].type = 'string';
+                                            }
+                                        }
+                                    }
+                                });
+                            elem = elem.replaceAll(new RegExp(`\\}\\s*\\=\\s*${requestType}[\\s|;]`), `} = ${req}.${requestType} `);
+                        }
+                    });
+                }
+            }
+
+            /**
              * Headers
              * Destructuring in body, such as: {a, b} = req.headers
              */
@@ -1376,7 +1496,7 @@ function getHeaderQueryBody(elem, request, objParameters, opt) {
             if (autoQuery && req && elem && elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.query\\s+')).length > 1) {
                 let elems = elem.split(new RegExp('\\}\\s*\\n*\\t*\\=\\s*\\n*\\t*' + req + '.query\\s+'));
                 for (let idxQuery = 0; idxQuery < elems.length - 1; ++idxQuery) {
-                    let query = elems[idxQuery]; //objBody
+                    let query = elems[idxQuery];
 
                     /**
                      * CASE: const { item1, item2: { subItem1, subItem2 } } = req.query;

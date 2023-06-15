@@ -942,7 +942,6 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                             dataIndexFile = dataIndexFile.split('export').join('import');
 
                                             let exportsIndexFile = await getImportedFiles(dataIndexFile, pathFile);
-                                            let idx = -1;
 
                                             /**
                                              * TODO: searching in the varFileName
@@ -950,22 +949,45 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                              */
                                             const auxPathFile = pathFile;
                                             pathFile = null;
-                                            if (idx == -1) {
+
+                                            exportsIndexFile
+                                                .filter(e => e)
+                                                .forEach(imp => {
+                                                    if (pathFile) {
+                                                        return;
+                                                    }
+                                                    let found = imp && imp.exports ? imp.exports.find(e => e.varAlias && e.varAlias == 'default') : null;
+                                                    if (found) {
+                                                        pathFile = imp.fileName;
+                                                        if (!functionName) {
+                                                            functionName = found.varName;
+                                                        }
+                                                    }
+                                                });
+
+                                            if (!pathFile) {
                                                 exportsIndexFile
                                                     .filter(e => e)
+                                                    .map(e => {
+                                                        if (e.varFileName === '*' && e.fileName && e.fileName.includes('/')) {
+                                                            e.varFileName = e.fileName.split('/').slice(-1)[0];
+                                                        }
+                                                        return e;
+                                                    })
                                                     .forEach(imp => {
                                                         if (pathFile) {
                                                             return;
                                                         }
-                                                        let found = imp && imp.exports ? imp.exports.find(e => e.varAlias && e.varAlias == 'default') : null;
-                                                        if (found) {
+
+                                                        if (imp.varFileName === func) {
                                                             pathFile = imp.fileName;
                                                             if (!functionName) {
-                                                                functionName = found.varName;
+                                                                functionName = imp.varFileName;
                                                             }
                                                         }
                                                     });
                                             }
+
                                             if (pathFile) {
                                                 extension = await utils.getExtension(pathFile);
                                                 if (pathFile && pathFile.split(new RegExp('\\.js$')).length > 1 && !fs.existsSync(pathFile)) {
@@ -1652,6 +1674,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                         data = data.replace(rawPath, ''); // removing path
                                     }
                                 }
+                            } else {
+                                rawPath = '';
                             }
                         }
                     }
@@ -1711,19 +1735,22 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         obj.path = obj.path.replaceAll('////', '/').replaceAll('///', '/').replaceAll('//', '/');
                         obj.path = obj.path.replaceAll('\\\\', '\\').replaceAll('\\\\', '\\');
 
-                        if (data.trim()[0] === ',' && (await utils.stack0SymbolRecognizer(data, '[', ']'))) {
-                            /**
-                             * Multiple express Routers under the same name space
-                             * Issue: 61
-                             */
-                            let auxOfFileName = await utils.stack0SymbolRecognizer(data, '[', ']');
-                            if (auxOfFileName) {
-                                auxOfFileName = auxOfFileName.replaceAll(' ', '').split(',');
+                        let useList = data.split(',').slice(1);
+                        for (let useIdx = 0; useIdx < useList.length; ++useIdx) {
+                            let useParam = useList[useIdx];
+                            if (useParam && useParam.split(/\{|=|:/).length == 1) {
+                                if (useParam.trim()[0] == '[') {
+                                    useParam = useParam.trim().slice(1);
+                                }
+                                if (useParam.includes(']')) {
+                                    if (useIdx == useList.length - 1) {
+                                        useParam = useParam.split(']')[0];
+                                    } else if (useParam.trim().slice(-1)[0] == ']') {
+                                        useParam = useParam.trim().slice(0, -1);
+                                    }
+                                }
+                                listOfFileName.add(useParam);
                             }
-                            listOfFileName = new Set(auxOfFileName);
-                        } else {
-                            obj.varFileName = data.split(',').slice(-1)[0];
-                            listOfFileName.add(obj.varFileName);
                         }
 
                         listOfFileName = [...listOfFileName];
@@ -1767,10 +1794,6 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
 
                         if (refFunc && refFunc.split(new RegExp('\\:|\\;|\\=|\\>|\\<|\\{|\\}|\\(|\\)|\\[|\\]|\\,')).length > 1) {
                             refFunc = null;
-                        }
-
-                        if (exportPath) {
-                            obj.varFileName = exportPath;
                         }
 
                         // First, tries to find in the import/require
@@ -1864,6 +1887,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             if (idx > -1 && importedFiles[idx] && importedFiles[idx].isDirectory && !exportPath) {
                                 let extension = await utils.getExtension(obj.fileName + '/index');
                                 let auxPaths = await readEndpointFile(obj.fileName + '/index' + extension, obj.path || '', obj.fileName, obj.routeMiddlewares, null, routeSwaggerProperties);
+                                auxPaths = await utils.sortParameters(auxPaths);
+                                exportPath = null;
                                 if (auxPaths) {
                                     allPaths = {
                                         ...paths,
@@ -1888,6 +1913,8 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 }
 
                                 let auxPaths = await readEndpointFile(obj.fileName + extension, routePrefix + (obj.path || ''), auxRelativePath, obj.routeMiddlewares, refFunction, routeSwaggerProperties);
+                                auxPaths = await utils.sortParameters(auxPaths);
+                                exportPath = null;
                                 if (auxPaths) {
                                     allPaths = merge(paths, allPaths, {
                                         arrayMerge: overwriteMerge
@@ -1895,10 +1922,11 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                     allPaths = merge(allPaths, auxPaths, {
                                         arrayMerge: overwriteMerge
                                     });
-                                } else
+                                } else {
                                     allPaths = merge(paths, allPaths, {
                                         arrayMerge: overwriteMerge
                                     });
+                                }
                             }
                         } else {
                             allPaths = merge(paths, allPaths, {
@@ -1906,6 +1934,11 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                             });
                         }
                     }
+
+                    allPaths = merge(paths, allPaths, {
+                        arrayMerge: overwriteMerge
+                    });
+
                     if (file == aRoutes.length - 1) {
                         return resolve(allPaths);
                     }
@@ -1929,6 +1962,7 @@ async function getImportedFiles(data, localRelativePath = '') {
     let importedFiles = [];
     let knownFunctions = ['express', 'express-async-handler'];
     try {
+        const aliasRegex = /\s*\*\s*as\s+|\s*as\s+/;
         let importeds = data.split(new RegExp(`import`, 'i'));
         let requireds = data.replaceAll('\n', ' ').split(new RegExp(`\\s*\\t*const\\s+|\\s*\\t*var\\s+|\\s*\\t*let\\s+`, 'i'));
         requireds = requireds.filter(e => e.split(new RegExp(`=\\s*\\t*require\\s*\\t*\\(`, 'i')).length > 1);
@@ -2070,11 +2104,11 @@ async function getImportedFiles(data, localRelativePath = '') {
                                 return;
                             }
 
-                            if (exp.includes(' as ')) {
+                            if (aliasRegex.test(exp)) {
                                 // alias
                                 obj.exports.push({
-                                    varName: exp.split(' as ')[0],
-                                    varAlias: exp.split(' as ')[1],
+                                    varName: exp.split(aliasRegex)[0],
+                                    varAlias: exp.split(aliasRegex)[1],
                                     path: null
                                 });
                             } else {
@@ -2086,8 +2120,8 @@ async function getImportedFiles(data, localRelativePath = '') {
                             }
                         });
                 } else {
-                    if (varFileName.includes(' as ')) {
-                        obj.varFileName = varFileName.split(' as ')[1];
+                    if (aliasRegex.test(varFileName)) {
+                        obj.varFileName = varFileName.split(aliasRegex)[1];
                     } else {
                         obj.varFileName = varFileName;
                     }
@@ -2327,11 +2361,11 @@ async function getImportedFiles(data, localRelativePath = '') {
                                 return;
                             }
 
-                            if (exp && exp.includes(' as ')) {
+                            if (exp && aliasRegex.test(exp)) {
                                 // alias
                                 obj.exports.push({
-                                    varName: exp.split(' as ')[0],
-                                    varAlias: exp.split(' as ')[1],
+                                    varName: exp.split(aliasRegex)[0],
+                                    varAlias: exp.split(aliasRegex)[1],
                                     path: null
                                 });
                             } else {
