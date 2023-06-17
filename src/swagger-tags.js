@@ -113,49 +113,51 @@ function formatDefinitions(def, resp = {}, constainXML) {
                     properties: {}
                 };
             }
-            Object.entries(def).forEach(elem => {
-                if (typeof elem[1] === 'object') {
-                    // Array or object
-                    if (elem[0] && elem[0][0] && elem[0][0] == '$') {
-                        // Required parameter
-                        elem[0] = elem[0].slice(1);
-                        if (!resp.required) {
-                            resp.required = [];
-                        }
-                        resp.required.push(elem[0]);
-                    }
-                    if (resp.type == 'array') {
-                        resp.items = {
-                            ...formatDefinitions(elem[1], resp, constainXML)
-                        };
-                    } else {
-                        resp.properties[elem[0]] = formatDefinitions(elem[1], resp, constainXML);
-                    }
-                } else {
-                    if (resp.type == 'array') {
-                        if (arrayOf == 'object') {
-                            if (!resp.items.properties) resp.items.properties = {};
-                            resp.items.properties[elem[0]] = {
-                                type: typeof elem[1]
-                            };
-                        } else
-                            resp.items = {
-                                type: typeof elem[1]
-                            };
-                    } else {
-                        if (elem[0][0] == '$') {
+            Object.entries(def)
+                .filter(e => e)
+                .forEach(elem => {
+                    if (typeof elem[1] === 'object') {
+                        // Array or object
+                        if (elem[0] && elem[0][0] && elem[0][0] == '$') {
                             // Required parameter
                             elem[0] = elem[0].slice(1);
-                            if (!resp.required) resp.required = [];
+                            if (!resp.required) {
+                                resp.required = [];
+                            }
                             resp.required.push(elem[0]);
                         }
-                        resp.properties[elem[0]] = {
-                            type: typeof elem[1],
-                            example: elem[1]
-                        };
+                        if (resp.type == 'array') {
+                            resp.items = {
+                                ...formatDefinitions(elem[1], resp, constainXML)
+                            };
+                        } else {
+                            resp.properties[elem[0]] = formatDefinitions(elem[1], resp, constainXML);
+                        }
+                    } else {
+                        if (resp.type == 'array') {
+                            if (arrayOf == 'object') {
+                                if (!resp.items.properties) resp.items.properties = {};
+                                resp.items.properties[elem[0]] = {
+                                    type: typeof elem[1]
+                                };
+                            } else
+                                resp.items = {
+                                    type: typeof elem[1]
+                                };
+                        } else {
+                            if (elem[0][0] == '$') {
+                                // Required parameter
+                                elem[0] = elem[0].slice(1);
+                                if (!resp.required) resp.required = [];
+                                resp.required.push(elem[0]);
+                            }
+                            resp.properties[elem[0]] = {
+                                type: typeof elem[1],
+                                example: elem[1]
+                            };
+                        }
                     }
-                }
-            });
+                });
         }
         return resp;
     } catch (err) {
@@ -235,16 +237,18 @@ function getForcedEndpoints(aData, reference) {
         let aForcedsEndpoints = aData.split(new RegExp(`.*${statics.SWAGGER_TAG}.start.*|.*${statics.SWAGGER_TAG}.end.*`, 'i'));
         if (aForcedsEndpoints.length > 1) {
             aForcedsEndpoints = aForcedsEndpoints.filter((_, idx) => idx % 2 != 0);
-            aForcedsEndpoints = aForcedsEndpoints.map(e => {
-                let method = e.split(new RegExp(`${statics.SWAGGER_TAG}\\.method\\s*\\=\\s*`));
-                if (method.length > 1) {
-                    method = method[1].split(/\n|;/);
-                    method = method[0].replaceAll('"', '').replaceAll("'", '').replaceAll('`', '').replaceAll(' ', '');
-                } else {
-                    method = 'get';
-                }
-                return (e = '[_[' + method + "]_])('/_undefined_path_0x" + e.length.toString(16) + "', " + e);
-            });
+            aForcedsEndpoints = aForcedsEndpoints
+                .filter(e => e)
+                .map(e => {
+                    let method = e.split(new RegExp(`${statics.SWAGGER_TAG}\\.method\\s*\\=\\s*`));
+                    if (method.length > 1) {
+                        method = method[1].split(/\n|;/);
+                        method = method[0].replaceAll('"', '').replaceAll("'", '').replaceAll('`', '').replaceAll(' ', '');
+                    } else {
+                        method = 'get';
+                    }
+                    return (e = '[_[' + method + "]_])('/_undefined_path_0x" + e.length.toString(16) + "', " + e);
+                });
         } else {
             aForcedsEndpoints = [];
         }
@@ -364,11 +368,13 @@ async function getParametersTag(data, objParameters, reference) {
                     swaggerParameters[idx] = swaggerParameters[idx].join('=');
                     parameter = await utils.stack0SymbolRecognizer(swaggerParameters[idx], '[', ']');
                     parameterObj = eval(`(${'[' + parameter + ']'})`);
-                    parameterObj.forEach((parameter, idx) => {
-                        objParameters[`$ref__¬¬__${idx}`] = {
-                            $ref: parameter
-                        };
-                    });
+                    parameterObj
+                        .filter(e => e)
+                        .forEach((parameter, idx) => {
+                            objParameters[`$ref__¬¬__${idx}`] = {
+                                $ref: parameter
+                            };
+                        });
                     return objParameters;
                 } else {
                     parameter = await utils.stack0SymbolRecognizer(swaggerParameters[idx], '{', '}');

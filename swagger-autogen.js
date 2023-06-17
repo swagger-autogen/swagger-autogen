@@ -14,7 +14,18 @@ let recLang = null;
 
 module.exports = function (args, endpointsFiles, data) {
     let outputFile = null;
-    options = { language: null, disableLogs: false, disableWarnings: false, openapi: null, autoHeaders: true, autoQuery: true, autoBody: true, autoResponse: true };
+    options = { 
+        language: null, 
+        disableLogs: false, 
+        disableWarnings: false, 
+        openapi: null, 
+        autoHeaders: true, 
+        autoQuery: true, 
+        autoBody: true, 
+        autoResponse: true,
+        sortParameters: 'natural'   // in test
+    };
+
     if (args && endpointsFiles) {
         outputFile = args;
         args = null;
@@ -29,6 +40,7 @@ module.exports = function (args, endpointsFiles, data) {
     options.language = recLang || options.language || 'en-US';
     handleFiles.setOptions(options);
     handleData.setOptions(options);
+    utils.setOptions(options);        
 
     swaggerTags.setLanguage(recLang || options.language || 'en-US');
     swaggerTags.setOpenAPI(options.openapi);
