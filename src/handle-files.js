@@ -53,6 +53,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
              */
             let dataToGetPatterns = data; // dataToGetPatterns = 'data' without strings, comments and inside parentheses
 
+            dataToGetPatterns = utils.removeRegexes(dataToGetPatterns);
             dataToGetPatterns = await handleData.removeComments(dataToGetPatterns, false);
             dataToGetPatterns = await handleData.removeStrings(dataToGetPatterns);
             dataToGetPatterns = await handleData.removeInsideParentheses(dataToGetPatterns, true);
@@ -1197,9 +1198,16 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                         objEndpoint[path][method].operationId = undefined;
                         objEndpoint[path][method].consumes = undefined;
                         objEndpoint[path][method].produces = undefined;
-                        objEndpoint[path][method].parameters = [];
-                        objEndpoint[path][method].responses = {};
+                        objEndpoint[path][method].parameters = undefined;
+                        objEndpoint[path][method].responses = undefined;
                         objEndpoint[path][method].security = undefined;
+
+                        // Default response
+                        objEndpoint[path][method].responses = {
+                            default: {
+                                description: ''
+                            }
+                        };
 
                         if (path.includes('_undefined_path_0x')) {
                             continue;
@@ -1456,6 +1464,10 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                     });
                             }
 
+                            if (!isObjectEmpty(objParameters)) {
+                                objEndpoint[path][method].parameters = [];
+                            }
+
                             Object.values(objParameters)
                                 .filter(e => e)
                                 .forEach(objParam => {
@@ -1496,13 +1508,17 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                     });
 
                                 // Remove duplicates
-                                objEndpoint[path][method].parameters = currentParameters.filter((e, pIdx, a) => {
-                                    let idxFound = a.findIndex(i => i && ((i.in && e.in && i.name && e.name && i.in === e.in && i.name === e.name) || (i[ref] && e[ref] && i[ref] == e[ref])));
-                                    if (idxFound == -1 || idxFound === pIdx) return true;
-                                });
+                                if (currentParameters && currentParameters.length > 0) {
+                                    objEndpoint[path][method].parameters = currentParameters.filter((e, pIdx, a) => {
+                                        let idxFound = a.findIndex(i => i && ((i.in && e.in && i.name && e.name && i.in === e.in && i.name === e.name) || (i[ref] && e[ref] && i[ref] == e[ref])));
+                                        if (idxFound == -1 || idxFound === pIdx) return true;
+                                    });
+                                }
                             }
 
-                            objEndpoint[path][method].responses = objResponses;
+                            if (!isObjectEmpty(objResponses)) {
+                                objEndpoint[path][method].responses = objResponses;
+                            }
 
                             /**
                              * If OpenAPI is enabled, convert body parameters to requestBody
@@ -1525,7 +1541,7 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                 if (objEndpoint[path][method].parameters && objEndpoint[path][method].parameters.length > 0 && objEndpoint[path][method].parameters.find(e => e.in === 'body')) {
                                     let idxFound = objEndpoint[path][method].parameters.findIndex(e => e.in === 'body');
                                     let body = objEndpoint[path][method].parameters[idxFound];
-                                    if (objInBody && objInBody.schema && body && body.schema && body.schema.properties && body.schema.properties['__AUTO_GENERATE__'] && Object.keys(body.schema.properties).length == 0) {
+                                    if (objInBody && objInBody.schema && body && body.schema && body.schema.properties && body.schema.properties['__AUTO_GENERATE__'] && isObjectEmpty(body.schema.properties)) {
                                         delete body.schema;
                                     }
 
@@ -1540,7 +1556,12 @@ function readEndpointFile(filePath, pathRoute = '', relativePath, receivedRouteM
                                         };
                                     }
                                 } else if (objEndpoint[path][method] && !objEndpoint[path][method].requestBody) {
-                                    objEndpoint[path][method].parameters.push(objInBody);
+                                    if (objInBody) {
+                                        if (!objEndpoint[path][method].parameters) {
+                                            objEndpoint[path][method].parameters = [];
+                                        }
+                                        objEndpoint[path][method].parameters.push(objInBody);
+                                    }
                                 }
                             }
 
@@ -2639,7 +2660,11 @@ async function resolvePathFile(path, relativePath) {
             }
         }
     }
-    return solvedPath;
+    return solvedPath.replaceAll(')', '');
+}
+
+function isObjectEmpty(obj) {
+    return Object.keys(obj).length > 0 ? false : true;
 }
 
 module.exports = {

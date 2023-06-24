@@ -1,5 +1,6 @@
 const fs = require('fs');
 const glob = require('glob');
+const statics = require('./statics');
 
 let globalOptions = {};
 function setOptions(options) {
@@ -187,136 +188,6 @@ function getFirstPosition(param, data) {
     return null;
 }
 
-function removeRegex(data) {
-    if (!data || data.length == 0) {
-        return data;
-    }
-
-    let strToReturn = '';
-    let stackComment1 = 0; // For type  //
-    let stackComment2 = 0; // For type  /* */
-
-    let buffer = ''; // For type   /* */
-
-    // Won't remove comments in strings
-    let isStr1 = 0; // "
-    let isStr2 = 0; // '
-    let isStr3 = 0; // `
-    try {
-        for (let idx = 0; idx < data.length; ++idx) {
-            let c = data[idx];
-
-            // If in comments or regex, ignore strings
-            if (stackComment1 == 0 && stackComment2 == 0) {
-                // Type '
-                if (c == "'" && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 1) {
-                    isStr1 = 2;
-                } else if (c == "'" && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) {
-                    isStr1 = 1;
-                }
-
-                // Type  "
-                else if (c == '"' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr2 == 1) {
-                    isStr2 = 2;
-                } else if (c == '"' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) {
-                    isStr2 = 1;
-                }
-
-                // Type  `
-                else if (c == '`' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr3 == 1) {
-                    isStr3 = 2;
-                } else if (c == '`' && (data[idx - 1] != '\\' || (data[idx - 1] == '\\' && data[idx - 2] == '\\')) && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) {
-                    isStr3 = 1;
-                }
-            }
-
-            // Type //
-            if (c == '/' && data[idx + 1] == '/' && data[idx - 1] != '\\' && data[idx - 1] != ':' && stackComment1 == 0 && stackComment2 == 0) {
-                // REFACTOR: improve this. Avoiding cases such as: ... http://... be handled as a comment
-                stackComment1 = 1;
-            } else if (c == '\n' && stackComment1 == 1) {
-                stackComment1 = 2;
-            }
-
-            // Type  /* */
-            else if (c == '/' && data[idx + 1] == '*' && data[idx - 1] != '\\' && stackComment1 == 0 && stackComment2 == 0 && isStr1 == 0 && isStr2 == 0 && isStr3 == 0) {
-                stackComment2 = 1;
-            } else if (c == '/' && data[idx - 1] == '*' && stackComment2 == 1 && isStr1 == 0 && isStr2 == 0 && isStr3 == 0 && buffer != '/*') {
-                stackComment2 = 2;
-            }
-
-            /**
-             * REGEX START
-             */
-            if (c == '/' && data[idx - 1] != '\\' && data[idx + 1] != '/' && isStr1 == 0 && isStr2 == 0 && isStr3 == 0 && stackComment1 == 0 && stackComment2 == 0) {
-                // Checking if it is valid regex
-                let lidx = idx + 1;
-                let lstr = '';
-                let regexStackParenthesis = 0;
-                let regexStackSquareBracket = 0;
-
-                while (lidx < data.length) {
-                    let lc = data[lidx];
-
-                    if (lc == '(') {
-                        regexStackParenthesis += 1;
-                    } else if (lc == ')') {
-                        regexStackParenthesis -= 1;
-                    } else if (lc == '[') {
-                        regexStackSquareBracket += 1;
-                    } else if (lc == ']') {
-                        regexStackSquareBracket -= 1;
-                    }
-
-                    lstr += lc;
-                    lidx += 1;
-
-                    if (data[lidx] == '/' && data[idx - 1] != '\\' && regexStackParenthesis < 1 && regexStackSquareBracket < 1) {
-                        if (regexStackParenthesis < 0) {
-                            regexStackParenthesis = 0;
-                        }
-                        if (regexStackSquareBracket < 0) {
-                            regexStackSquareBracket = 0;
-                        }
-                        break;
-                    }
-                }
-
-                try {
-                    if (''.split(new RegExp(lstr)).length > -1) {
-                        // Valid regex
-                        data = replaceRange(data, idx, lidx + 1, ' ');
-                        c = data[idx];
-                    }
-                } catch (err) {
-                    // Invalid regex
-                }
-            }
-            /* REGEX END */
-
-            strToReturn += c;
-
-            if (stackComment1 == 2) {
-                stackComment1 = 0;
-            }
-
-            if (stackComment2 == 2) {
-                stackComment2 = 0;
-            }
-
-            if (isStr1 == 2) isStr1 = 0;
-            if (isStr2 == 2) isStr2 = 0;
-            if (isStr3 == 2) isStr3 = 0;
-
-            if (idx == data.length - 1) {
-                return strToReturn;
-            }
-        }
-    } catch (err) {
-        return strToReturn;
-    }
-}
-
 /**
  * Get the first string in a string.
  * @param {string} data content.
@@ -327,7 +198,9 @@ function popString(data, keepQuote = false) {
     }
 
     try {
-        data = removeRegex(data);
+        // Backing up regexes
+        let { formattedData, regexes } = backupRegexes(data);
+        data = formattedData;
 
         let quote = null;
         let onString = false;
@@ -340,6 +213,8 @@ function popString(data, keepQuote = false) {
             }
 
             if (onString && c == quote && data[i - 1] !== '\\') {
+                // Restoring descriptions
+                string = restoreRegexes(string, regexes);
                 if (!keepQuote) {
                     return string.slice(0, -1);
                 }
@@ -453,6 +328,69 @@ function replaceRange(str, start, end, substitute) {
     return str.substring(0, start) + substitute + str.substring(end);
 }
 
+function removeRegexes(data) {
+    const dataOrig = data;
+    try {
+        const regexPattern1 = /\(\s*\/(.+?)\/[gimuy]*/g;
+        const regexPattern2 = /=\s*\/(.+?)\/[gimuy]*/g;
+
+        const regexesType1 = data.match(regexPattern1) || [];
+        for (let idx = 0; idx < regexesType1.length; ++idx) {
+            let regexes = regexesType1[idx];
+            data = data.split(regexes).join('( / ');
+        }
+
+        const regexesType2 = data.match(regexPattern2) || [];
+        for (let idx = 0; idx < regexesType2.length; ++idx) {
+            let regexes = regexesType2[idx];
+            data = data.split(regexes).join('');
+        }
+    } catch (err) {
+        return dataOrig;
+    }
+
+    return data;
+}
+
+function backupRegexes(data) {
+    if (!data) {
+        return null;
+    }
+    const dataOrig = data;
+    try {
+        let regexStorage = new Map();
+        const regexPattern = /\/(.+?)\/[gimuy]*/g;
+        const regexes = data.match(regexPattern) || [];
+        for (let idx = 0; idx < regexes.length; ++idx) {
+            let regex = regexes[idx];
+            let key = `__${statics.UNKNOWN}__regex__${idx}`; // TODO: put unknown char here
+            regexStorage.set(key, regex);
+            data = data.replace(regex, key);
+        }
+        return { regexes: regexStorage, formattedData: data };
+    } catch (err) {
+        return { regexes: new Map(), formattedData: dataOrig };
+    }
+}
+
+function restoreRegexes(data, regexStorage) {
+    if (!data) {
+        return null;
+    }
+    const dataOrig = data;
+    try {
+        for (let idx = 0; idx < regexStorage.size; ++idx) {
+            let key = `__${statics.UNKNOWN}__regex__${idx}`;
+            let regex = regexStorage.get(key);
+            data = data.replace(key, regex);
+        }
+    } catch (err) {
+        return dataOrig;
+    }
+
+    return data;
+}
+
 module.exports = {
     fileOrDirectoryExist,
     getExtension,
@@ -465,5 +403,8 @@ module.exports = {
     popString,
     replaceRange,
     setOptions,
-    sortParameters
+    sortParameters,
+    removeRegexes,
+    backupRegexes,
+    restoreRegexes
 };

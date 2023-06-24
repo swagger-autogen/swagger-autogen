@@ -139,6 +139,21 @@ function clearData(data, imports) {
         try {
             // Change "// ..." comment to "/* ... */"
             const origData = data;
+
+            data = data.replaceAll(new RegExp('#swagger\\.description\\s*\\=\\s*'), ' #swagger.description = ');
+
+            // Backuping descriptions
+            let swaggerDescriptionsStorage = new Map();
+            if (data.includes('#swagger.description')) {
+                let swaggerDescriptions = data.split(new RegExp('#swagger.description = '));
+                for (let idx = 1; idx < swaggerDescriptions.length; ++idx) {
+                    let key = `__${statics.UNKNOWN}__swagger_description__${idx}`; // TODO: put unknown char here
+                    let description = utils.popString(swaggerDescriptions[idx], true);
+                    swaggerDescriptionsStorage.set(key, description);
+                    data = data.replace('#swagger.description = ' + description, key);
+                }
+            }
+
             try {
                 data = data.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*headers\\s*\\n*\\t*\\[\\s*\\n*\\t*')).join('.headers[');
                 data = data.split(new RegExp('\\s*\\n*\\t*\\.\\s*\\n*\\t*header\\s*\\n*\\t*\\(\\s*\\n*\\t*'));
@@ -175,13 +190,16 @@ function clearData(data, imports) {
             data = data.replaceAll('///', '//');
             data = data.replaceAll('://', ':/' + statics.STRING_BREAKER + '/'); // REFACTOR: improve this. Avoiding cases such as: ... http://... be handled as a comment
 
+            data = utils.removeRegexes(data);
+
             data = data.split('//').map((e, idx) => {
                 if (idx != 0) {
                     return e.replace('\n', ' */ \n');
                 }
                 return e;
             });
-            data = data.join('//').replaceAll('//', '/*');
+            data = data.join('/*');
+
             data = data.replaceAll(':/' + statics.STRING_BREAKER + '/', '://');
 
             let aData = data.replaceAll('\n', statics.STRING_BREAKER);
@@ -211,6 +229,14 @@ function clearData(data, imports) {
             }
 
             aData = removeAwaitsAndAsyncs(aData);
+
+            // Restoring descriptions
+            for (let idx = 0; idx < swaggerDescriptionsStorage.size; ++idx) {
+                let key = `__${statics.UNKNOWN}__swagger_description__${idx + 1}`;
+                let description = swaggerDescriptionsStorage.get(key);
+                aData = aData.replace(key, ` #swagger.description = ${description}`);
+            }
+
             return resolve(aData);
         } catch (err) {
             return resolve(origData);
@@ -323,6 +349,7 @@ function removeComments(data, keepSwaggerTags = false) {
                     }
 
                     try {
+                        // TODO: improve / refactoring
                         if (''.split(new RegExp(lstr)).length > -1) {
                             // Valid regex
                             const ref = `__¬¬¬__${idx}__¬¬¬__`;
@@ -792,7 +819,7 @@ function removeInsideParentheses(data, keepParentheses = false, level = 0) {
 }
 
 /**
- * Add "([_[method]_])([_[foo]_])([_[index]_])" to all endpoints. This standardize each endpoint.
+ * Add the pattern "([_[method]_])([_[foo]_])([_[index]_])" to all endpoints. This standardize each endpoint.
  *
  * 'method': get, post, put, etc.
  *
