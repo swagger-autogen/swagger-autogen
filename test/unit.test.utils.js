@@ -71,6 +71,12 @@ test('Unitary tests [popString(...)]:', async (t) => {
   resp = utils.popString(`text .split(/(.*)|"|[\\s\\"]*/) text "to get"`, true)  
   t.deepEqual(resp, `"to get"`, '[popString(...)] 014')
 
+  resp = utils.popString(`text .split(/(.*)|"|[\\s\\"]*/) text "to get /(.*)|"|[\\s\\"]*/ with regex"`, true)  
+  t.deepEqual(resp, `"to get /(.*)|"|[\\s\\"]*/ with regex"`, '[popString(...)] 015')
+
+  resp = utils.popString(`text .split(/(.*)|"|[\\s\\"]*/) text "/(.*)|"|[\\s\\"]*/"`, true)  
+  t.deepEqual(resp, `"/(.*)|"|[\\s\\"]*/"`, '[popString(...)] 016')
+
   t.end()
   
 })
