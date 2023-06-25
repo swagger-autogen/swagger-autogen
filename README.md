@@ -1659,6 +1659,7 @@ Some tutorials with examples:
   - New tags: #swagger.autoBody, #swagger.autoQuery and #swagger.autoHeaders
   - Automatic body, query and headers recognition improvements
   - TypeScript recognition improvements
+  - Fixes for Windows paths
   - Bug fixes
 
 **TODO:**
