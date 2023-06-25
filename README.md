@@ -1556,6 +1556,8 @@ Some tutorials with examples:
 
 [Tutorial em Português Brasil](https://medium.com/@davibaltarx/documenta%C3%A7%C3%A3o-autom%C3%A1tica-de-apis-em-node-js-eb03041c643b)
 
+[中文教學](https://israynotarray.com/nodejs/20201229/1974873838/)
+
 ## Changelog
 
 - Version 2.0.x:
