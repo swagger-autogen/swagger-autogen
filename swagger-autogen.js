@@ -23,7 +23,9 @@ module.exports = function (args, endpointsFiles, data) {
         autoQuery: true, 
         autoBody: true, 
         autoResponse: true,
-        sortParameters: 'natural'   // in test
+        sortParameters: 'natural',   // in test
+        sanitizeOutputData: false,
+        writeOutputFile: true
     };
 
     if (args && endpointsFiles) {
@@ -60,7 +62,9 @@ const init = async (outputFile, endpointsFiles, data) => {
 
         const legacyOutputFile = outputFile
         if (platform === 'win32') {
-            // TODO: Implement relative path for Windows
+            let basePath = process.argv[1].split('\\').slice(0, -1).join('\\');
+            basePath = basePath.replaceAll('\\', '/');
+            outputFile = await handleFiles.resolvePathFile(outputFile, basePath);
         } else if (outputFile.split(new RegExp("^/")).length == 1 && process && process.argv[1]) {
             let basePath = process.argv[1].split('/').slice(0, -1).join('/');
             outputFile = await handleFiles.resolvePathFile(outputFile, basePath);
@@ -73,7 +77,9 @@ const init = async (outputFile, endpointsFiles, data) => {
             const legacyFilePath = file;
 
             if (platform === 'win32') {
-                // TODO: Implement relative path for Windows
+                let basePath = process.argv[1].split('\\').slice(0, -1).join('\\');
+                basePath = basePath.replaceAll('\\', '/');
+                file = await handleFiles.resolvePathFile(file, basePath);
             } else if (file.split(new RegExp("^/")).length == 1 && process && process.argv[1]) {
                 let basePath = process.argv[1].split('/').slice(0, -1).join('/');
                 file = await handleFiles.resolvePathFile(file, basePath);
@@ -324,20 +330,35 @@ const init = async (outputFile, endpointsFiles, data) => {
             delete objDoc.definitions;
         }
 
-        let dataJSON = JSON.stringify(objDoc, null, 2);
-        try {
-            fs.writeFileSync(outputFile, dataJSON);
-        } catch (err) {
+        if (options.writeOutputFile) {
+            let dataJSON = JSON.stringify(objDoc, null, 2);
             try {
-                fs.writeFileSync(legacyOutputFile, dataJSON); // To legacy cases. Will be deprecated in the future
+                fs.writeFileSync(outputFile, dataJSON);
             } catch (err) {
-                throw console.error("[swagger-autogen]: Error! Could not generate output file.\nInvalid path: '" + outputFile + "'");
+                try {
+                    fs.writeFileSync(legacyOutputFile, dataJSON); // To legacy cases. Will be deprecated in the future
+                } catch (err) {
+                    throw console.error("[swagger-autogen]: Error! Could not generate output file.\nInvalid path: '" + outputFile + "'");
+                }
             }
         }
+        
         if (!options.disableLogs) {
             console.log('Swagger-autogen:', '\x1b[32m', 'Success ' + symbols.success, '\x1b[0m');
         }
-        return { success: true, data: objDoc };
+
+        const objDocOrig = {...objDoc}
+        try {
+            if (options.sanitizeOutputData) {
+                return { 
+                    success: true, 
+                    data: JSON.parse(JSON.stringify(objDoc)) // Deleting 'undefined' parameters
+                };
+            }
+            return { success: true, data: objDocOrig };
+        } catch (err) {
+            return { success: true, data: objDoc };
+        }
     } catch (err) {
         if (!options.disableLogs) {
             console.log('Swagger-autogen:', '\x1b[31m', 'Failed ' + symbols.failed, '\x1b[0m');
