@@ -38,7 +38,7 @@ npm install --save-dev swagger-autogen
 <TabItem value="yarn" label="yarn">
 
 ```bash
-yarn add --save-dev swagger-autogen
+yarn add swagger-autogen --dev
 ```
 
 </TabItem>
@@ -66,7 +66,7 @@ npm install --save-dev swagger-autogen@latest
 <TabItem value="yarn" label="yarn">
 
 ```bash
-yarn upgrade --save-dev swagger-autogen --latest
+yarn add swagger-autogen --dev --latest
 ```
 
 </TabItem>
