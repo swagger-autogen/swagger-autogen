@@ -102,7 +102,7 @@ td:last-child {
 
 /* Search bar */
 .aa-DetachedSearchButton {
-  cursor: text !important;
+  /* cursor: text !important; */
   background-color: rgb(255, 255, 255) !important;
   border-radius: 30px !important;
 }
