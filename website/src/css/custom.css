@@ -1,0 +1,112 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* You can override the default Infima variables here. */
+
+:root {
+
+  --ifm-color-primary: #02b185;
+  --ifm-color-primary-light: #33925d;
+  --ifm-color-primary-lighter: #359962;
+  --ifm-color-primary-lightest: #3cad6e;
+  /* --ifm-code-font-size: 95%; */
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+
+  /* Search bar */
+  /* --aa-primary-color-rgb: 255, 0, 0 !important;
+  --aa-muted-color-rgb: 255, 0, 0 !important;  02b185 */
+
+  --light-mode-primary: #02b185; 
+
+  --dark-mode-primary-light: #ffffff;
+  --dark-mode-primary-lighter: #ffffff;
+  --dark-mode-primary-lightest: #ffffff;
+
+  --ifm-color-primary: var(--light-mode-primary);
+  --ifm-background-color: #fff;
+
+  --ifm-navbar-background-color: var(--light-mode-primary);
+  --ifm-navbar-link-color: #fff;
+  --ifm-navbar-link-hover-color: #fff;
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #25c2a0;
+  --ifm-color-primary-dark: #21af90;
+  --ifm-color-primary-darker: #1fa588;
+  --ifm-color-primary-darkest: #1a8870;
+  --ifm-color-primary-light: #29d5b0;
+  --ifm-color-primary-lighter: #32d8b4;
+  --ifm-color-primary-lightest: #4fddbf;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+} 
+
+[data-theme='light'] .footer--dark {
+  --ifm-footer-link-hover-color: var(--dark-mode-primary);
+}
+
+.navbar {
+  color: #fff;
+}
+
+.navbar-sidebar {
+  background: var(--ifm-background-color);
+}
+
+.navbar-sidebar__brand {
+  background: var(--ifm-navbar-background-color);
+}
+
+.navbar-sidebar__back {
+  color: var(--ifm-menu-color);
+}
+
+.navbar__link--active {
+  font-weight: bold;
+}
+
+/* HACK: This targets the color mode switch.
+  It doesn't (atm) have a stable class both in development and production modes */
+.navbar button:hover {
+  background-color: var(----light-mode-primary-lightest);
+}
+
+/* Because of the above hack, the search input needs to be reset. */
+.navbar-search button:hover {
+  background-color: var(--docsearch-searchbox-focus-background);
+}
+
+th {
+  text-align: left;
+}
+
+th,
+td {
+  /* Ensures that non-last column in tables don't get wrapped on every space due to the below rule */
+  white-space: nowrap;
+}
+
+td:last-child {
+  /* Make the last column in tables always use up the remaining space */
+  width: 100%;
+}
+
+.menu__link {
+  line-height: 0.68;
+  font-weight: normal;
+  font-size: 0.98rem;
+}
+
+/* Search bar */
+.aa-DetachedSearchButton {
+  cursor: text !important;
+  background-color: rgb(255, 255, 255) !important;
+  border-radius: 30px !important;
+}
+
+.theme-doc-sidebar-menu {
+  margin-bottom: 45px !important;
+}
