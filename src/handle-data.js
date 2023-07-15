@@ -1087,7 +1087,7 @@ function getHeader(elem, path, method, response, objEndpoint) {
                 }
             }
         }
-        if (objEndpoint[path][method].produces && objEndpoint[path][method].produces.length == 0) {
+        if (swaggerTags.getOpenAPI() || (objEndpoint[path][method].produces && objEndpoint[path][method].produces.length == 0)) {
             objEndpoint[path][method].produces = undefined;
         }
         return objEndpoint;
