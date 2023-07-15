@@ -31,7 +31,7 @@
     "email": "davibaltar.npm@gmail.com"
   },
   "license": "MIT",
-  "homepage": "https://swagger-autogen.github.io",
+  "homepage": "https://swagger-autogen.github.io/docs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/swagger-autogen/swagger-autogen.git"
