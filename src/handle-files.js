@@ -49,6 +49,7 @@ function processFile(filePath, props = {}) {
                     imports: new Set(),
                     isTypeScript,
                     filePath,
+                    scopeStack: [],
                     ...props
                 });
                 response.imports = new Set();
@@ -62,7 +63,70 @@ function processFile(filePath, props = {}) {
     });
 }
 
+// async function findFunctioninAst(ast, props) {
 
+
+//     if (ast.type === 'Program') {
+//         for (let bodyIdx = 0; bodyIdx < ast.body.length; ++bodyIdx) {
+//             let body = ast.body[bodyIdx];
+//             if (body.type === 'FunctionDeclaration') {
+//                 const processedAst = await processAST(ast.body[bodyIdx], { ...props });
+//                 props.inheritedProperties = processedAst.inheritedProperties;
+//                 console.log()
+//                 return props;
+//             }
+//         }
+//     } else if (ast.type === 'ExpressionStatement') {
+//         const processedAst = await processAST(ast.expression, { ...props });
+//         props = { ...props, ...processedAst }
+//         return props;
+//     } else if (ast.type === 'AssignmentExpression') {
+//         if (ast.left?.object?.name === 'module' && ast.left?.object?.type === 'Identifier' &&
+//             ast.left?.property?.name === 'exports' && ast.left?.property?.type === 'Identifier') {
+
+//             if (ast.end === 238) {
+//                 console.log()
+//             }
+
+//             /**
+//              * Exported arrow function
+//              * e.g module.exports = (req, res, ...) => { ... }
+//              */
+//             const callbackFunction = await findCallbackFunction(ast.right, props);
+//             props.inheritedProperties = callbackFunction;
+
+//             if (ast.end === 238) {
+//                 console.log()
+//             }
+//             console.log()
+//             return props;
+//         }
+
+//     } else if (ast.type === 'FunctionDeclaration' && ast.id?.name === props.functionName) {
+//         /**
+//          * Regular function
+//          * e.g function foo(req, res, ...) { ... }
+//          */
+//         const callbackFunction = await findCallbackFunction(ast, props);
+//         props.inheritedProperties = callbackFunction;
+
+//         if (ast.end === 238) {
+//             console.log()
+//         }
+//         console.log()
+//         return props;
+//     } else if (ast.type === 'MemberExpression') {
+//         const processedAst = await processAST(ast.object, { ...props });
+//         processedAst.imports.forEach(imp => props.imports.add(imp));
+//         props.paths = deepMerge(props.paths, processedAst.paths);
+//         props.inheritedProperties = processedAst.inheritedProperties ? processedAst.inheritedProperties : null;
+//         return props;
+
+//     }
+
+//     return { ...props, inheritedProperties: {} };
+
+// }
 async function processAST(ast, props) {
 
     // TODO: Handle case: const router = new Router({ prefix: '/api/v1' });
@@ -70,6 +134,17 @@ async function processAST(ast, props) {
     let endpoint = {};
 
     if (props.isSearchingFunction) {
+        // if (ast.type === 'Program') {
+        //     for (let bodyIdx = 0; bodyIdx < ast.body.length; ++bodyIdx) {
+        //         let body = ast.body[bodyIdx];
+        //         if (body.type === 'FunctionDeclaration') {
+        //             const processedAst = await processAST(ast.body[bodyIdx], { ...props });
+        //             props.inheritedProperties = processedAst.inheritedProperties;
+        //             console.log()
+        //             return props;
+        //         }
+        //     }
+        // } else 
         if (ast.type === 'ExpressionStatement') {
             const processedAst = await processAST(ast.expression, { ...props });
             props = { ...props, ...processedAst }
@@ -96,12 +171,40 @@ async function processAST(ast, props) {
                 return props;
             }
 
-        }
+        } 
+        // else if (ast.type === 'FunctionDeclaration' && ast.id?.name === props.functionName) {
+        //     /**
+        //      * Regular function
+        //      * e.g function foo(req, res, ...) { ... }
+        //      */
+        //     const callbackFunction = await findCallbackFunction(ast, props);
+        //     props.inheritedProperties = callbackFunction;
+
+        //     if (ast.end === 238) {
+        //         console.log()
+        //     }
+        //     console.log()
+        //     return props;
+        // } else if (ast.type === 'MemberExpression') {
+        //     const processedAst = await processAST(ast.object, { ...props });
+        //     processedAst.imports.forEach(imp => props.imports.add(imp));
+        //     props.paths = deepMerge(props.paths, processedAst.paths);
+        //     props.inheritedProperties = processedAst.inheritedProperties ? processedAst.inheritedProperties : null;
+        //     return props;
+
+        // }
+
+        // return { ...props, inheritedProperties: {} };
     }
 
     if (ast.body) {
         for (let bodyIdx = 0; bodyIdx < ast.body.length; ++bodyIdx) {
+            if (bodyIdx === 11) {
+                console.log()
+            }
+            props.scopeStack.push(ast);
             const processedAst = await processAST(ast.body[bodyIdx], { ...props });
+            props.scopeStack.pop();
             processedAst.imports.forEach(imp => props.imports.add(imp));
             props.paths = deepMerge(props.paths, processedAst.paths);
             props.inheritedProperties = processedAst.inheritedProperties ? processedAst.inheritedProperties : null;
@@ -117,6 +220,9 @@ async function processAST(ast, props) {
         props.paths = deepMerge(props.paths, processedAst.paths);
         return props;
     } else if (ast.type === 'MemberExpression') {
+        // if (props.isLinkedMethods && ast.object.type === 'CallExpression' && ast.object.arguments.length === 1) {
+        //     props.isSearchingFunction = true;
+        // }
         const processedAst = await processAST(ast.object, { ...props });
         processedAst.imports.forEach(imp => props.imports.add(imp));
         props.paths = deepMerge(props.paths, processedAst.paths);
@@ -150,6 +256,9 @@ async function processAST(ast, props) {
              * e.g. router.use(...).get('/somePath', ...).post('/somePath', ...)
              */
             if (ast.callee?.object?.type === 'CallExpression') {
+                if (ast.end === 1548) {
+                    console.log()
+                }
                 props.isLinkedMethods = true;
                 const processedAst = await processAST(ast.callee, { ...props, isSearchingFunction: true });
                 props.paths = deepMerge(props.paths, processedAst.paths);
@@ -173,7 +282,7 @@ async function processAST(ast, props) {
             }
 
             path = formatPath(path);
-            
+
             if (path.includes('/xxx')) {
                 console.log()
             }
@@ -188,6 +297,10 @@ async function processAST(ast, props) {
             // if (endpoint[path][method].parameters.length > 0) {
             //     handledParameters.parameters = [...endpoint[path][method].parameters, ...handledParameters.parameters]
             // }
+            if (path.includes('/xxx')) {
+                console.log()
+            }
+
             endpoint[path][method] = { ...endpoint[path][method], ...handledParameters };
 
             if (props.isLinkedMethods) {
@@ -331,7 +444,6 @@ function createEndpoint(path, method, endpoint) {
  */
 async function handleRequestMethodParameters(ast, props) {
     let requestBody = {};
-    let responses = {};
     let comments = '';
     let endpoint = {
         parameters: [...props.endpoint.parameters],
@@ -352,14 +464,23 @@ async function handleRequestMethodParameters(ast, props) {
             endpoint.produces = [...new Set([...(endpoint.produces || []), ...callbackFunction.produces])];
         }
         requestBody = { ...requestBody, ...callbackFunction.requestBody };
-        responses = { ...responses, ...callbackFunction.responses };
+        if (callbackFunction.responses && endpoint.responses.default) {
+            delete endpoint.responses.default;
+        }
+        endpoint.responses = { ...endpoint.responses, ...callbackFunction.responses };
         comments += callbackFunction.comments;
         console.log()
     }
 
+    if (ast.end === 2441) {
+        console.log()
+    }
     // tratar comentarios do swagger aqui e sobrepor responses caso possua divergencia
     if (/#swagger\s*\./.test(comments)) {
         const handledComments = handleComments(comments, props);
+        if (handledComments.responses && endpoint.responses.default) {
+            delete endpoint.responses.default;
+        }
         endpoint = deepMerge(endpoint, handledComments)
         console.log()
     }
@@ -381,11 +502,6 @@ async function handleRequestMethodParameters(ast, props) {
             console.log()
         }
     }
-
-    if (Object.keys(responses).length > 0) {
-        endpoint.responses = responses;
-    }
-
 
     console.log()
     return endpoint;
@@ -415,6 +531,10 @@ async function findCallbackFunction(node, props) {
         console.log()
     }
 
+    if (node.end === 2082) {
+        console.log()
+    }
+
     if (node.type === 'ObjectExpression') {
         for (let idxProperty = 0; idxProperty < node.properties.length; ++idxProperty) {
             const property = node.properties[idxProperty];
@@ -433,7 +553,7 @@ async function findCallbackFunction(node, props) {
      * Explicit callback function
      * e.g. (req, res) => { ... }
      */
-    if ((node.type === 'ArrowFunctionExpression' || node.type === 'ObjectMethod') && node.params.length > 1) {
+    if (['ArrowFunctionExpression', 'ObjectMethod', 'FunctionDeclaration'].includes(node.type) && node.params.length > 1) {
         const functionParametersName = findFunctionParametersName(node);
         /**
          * Handling function's body
@@ -451,28 +571,30 @@ async function findCallbackFunction(node, props) {
 
         console.log()
     } else if (node.type === 'Identifier') {
-        if (node.end === 35) {
+        if (node.end === 2082) {    // parei aqui. buscar function 'store'. primeiro no arquivo (e a mais proxima da onde ela é chamada), caso nao encontrado, procurar nos imports 
             console.log()
         }
 
         // TODO: put in a function. See numArgs > 1
         // TODO: find first in the same file. If not found, try to find in the imports
+        // for (let idxScope = 0; idxScope < props.scopeStack.length; ++idxScope) {
+        //     const scope = props.scopeStack[idxScope];
+        //     const processedAst = await processAST(scope, { ...props, scopeStack: [], isSearchingFunction: true, functionName: node.name });
+        //     if (!isInheritedPropertiesEmpty(processedAst.inheritedProperties)) {
+        //         callback = deepMerge(callback, processedAst.inheritedProperties);
+        //         return { ...callback };
+        //     }
+        //     console.log()
+        // }
 
         let functionName = props.functionName;
         let route = imports.find(imp => imp.variableName === node.name);
         if (route) {
             const processedFile = await processFile(route.path, { functionName, isSearchingFunction: true });
-
             callback = deepMerge(callback, processedFile.inheritedProperties);
-            // if (processedFile.inheritedProperties?.requestBody) {
-            //     callback.requestBody = deepMerge(callback.requestBody, processedFile.inheritedProperties.requestBody);
-            // }
-            // if (processedFile.inheritedProperties?.responses) {
-            //     callback.responses = deepMerge(callback.responses, processedFile.inheritedProperties.responses);
-            // }
-            // if (processedFile.inheritedProperties?.comments) {
-            //     callback.comments += processedFile.inheritedProperties.comments;
-            // }
+            console.log()
+        } else {
+            // TODO: handle it
             console.log()
         }
         console.log()
@@ -496,25 +618,6 @@ async function findCallbackFunction(node, props) {
 
             callback = deepMerge(callback, processedFile.inheritedProperties);
             console.log()
-
-            // callback = deepMergeProperties(callback, processedFile.inheritedProperties);
-
-            // function deepMergeProperties(objA, ) {
-            //     if (processedFile.inheritedProperties) {
-
-            //     }
-            //     if (processedFile.inheritedProperties?.requestBody) {
-            //         callback.requestBody = deepMerge(callback.requestBody, processedFile.inheritedProperties.requestBody);
-            //     }
-            //     if (processedFile.inheritedProperties?.responses) {
-            //         callback.responses = deepMerge(callback.responses, processedFile.inheritedProperties.responses);
-            //     }
-            //     if (processedFile.inheritedProperties?.comments) {
-            //         callback.comments += processedFile.inheritedProperties.comments;
-            //     }
-            //     console.log()
-            // }
-
         }
         console.log()
     } else if (node.type === 'ObjectMethod') {
@@ -530,6 +633,27 @@ async function findCallbackFunction(node, props) {
     }
 
     return { ...callback };
+}
+
+function isInheritedPropertiesEmpty(object) {
+    if (!object) {
+        return object;
+    }
+
+    const values = Object.values(object);
+    for (let idxValue = 0; idxValue < values.length; ++idxValue) {
+        let value = values[idxValue];
+        let type = typeof value;
+        if (type === 'string' && value !== '') {
+            return false;
+        } else if (type === 'object' && Array.isArray(value) && value.length > 0) {
+            return false;
+        } else if (type === 'object' && Object.keys(value).length > 0) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 function isValidNode(ast) {
@@ -567,11 +691,11 @@ function handleComments(comments, props) {
         }
 
         if (comments.hasSwaggerProperty('parameters')) {
-            handleComments.parameters = getParameters(comments);
+            handleComments.parameters = getParameters(comments, props);
         }
 
         if (comments.hasSwaggerProperty('responses')) {
-            handleComments.responses = getResponses(comments);
+            handleComments.responses = getResponses(comments, props);
         }
 
         if (comments.hasSwaggerProperty('autoBody')) {
@@ -627,9 +751,51 @@ function getValueString(key, comments) {
     }
 }
 
-function getResponses(comments) {
+function getResponses(comments, props) {
+    let responses = {};
+    try {
+        const rawResponses = comments.split(getNonSingleSwaggerPropertyRegex('responses')).slice(1);
+        for (let idxParameter = 0; idxParameter < rawResponses.length; ++idxParameter) {
+            const rawResponse = rawResponses[idxParameter];
+            let statusCode = rawResponse.split(']')[0].trim();
+            let object = eval(`(${getBetweenSymbols(rawResponse, '{', '}')})`);
 
-    return null;
+            if (object?.schema && !object.schema.$ref) {
+                object.schema = swaggerTags.formatDefinitions(object.schema);  // TODO: change formatDefinitions function name
+            }
+
+            // Forcing convertion to OpenAPI 3.x
+            if (swaggerTags.getOpenAPI()) {
+                // objResponses[statusCode] = {
+                //     ...objResponses[statusCode],
+                //     content: {
+                //         'application/json': {
+                //             schema: objResponses[statusCode].schema
+                //         },
+                //         'application/xml': {
+                //             schema: objResponses[statusCode].schema
+                //         }
+                //     }
+                // };
+                // delete objResponses[statusCode].schema;
+                console.log()
+            } else {
+                responses[statusCode] = {
+                    ...object
+                };
+                console.log()
+            }
+
+            console.log()
+        }
+        console.log()
+        return responses;
+    } catch (err) {
+        if (true) { // TODO: put getDisableLogs()
+            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.responses' out of structure in:\nFile:'${props.filePath}'\nMethod: [${props.endpoint?.method?.toUpperCase()}] -> '${props.endpoint?.path}'`);
+        }
+    }
+    return [];
 }
 
 function getBetweenSymbols(data, startSymbol, endSymbol, keepSymbol = true) {
