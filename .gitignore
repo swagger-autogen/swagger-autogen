@@ -108,4 +108,5 @@ test/*.json
 swagger_output.json
 swagger.js
 .vscode/launch.json
-index.js
+.idea
+draft.txt
