@@ -11,6 +11,10 @@ import TabItem from '@theme/TabItem';
 <!-- # Swagger Autogen {#swagger-autogen} -->
 <!-- [![NPM Version](http://img.shields.io/npm/v/swagger-autogen.svg)](https://www.npmjs.com/package/swagger-autogen) -->
 
+<!-- <head>
+  <meta name="description" content="This module performs automatic construction of Swagger documentation. It can identify the endpoints and automatically capture methods such as get, post, put, and so on. It also identifies paths, routes, middlewares, response status codes and parameters. At the end, it generates the .json file containing the Swagger format specification."></meta>
+</head> -->
+
 ![image](/img/logo_name.svg)
 
 

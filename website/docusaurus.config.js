@@ -39,6 +39,14 @@ const config = {
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
 
+  scripts: [
+    {
+      async: true,
+      src: 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2500402008411858',
+      crossorigin: "anonymous",
+    },
+  ],
+
   // Even if you don't use internalization, you can use this field to set useful
   // metadata like html lang. For example, if your site is Chinese, you may want
   // to replace "en" with "zh-Hans".
@@ -161,6 +169,9 @@ const config = {
           }
         ],
       },
+      // metadata: [
+      //   {name: 'anyName', content: 'anyContent'},
+      // ],
       /*
       footer: {
         style: 'dark',

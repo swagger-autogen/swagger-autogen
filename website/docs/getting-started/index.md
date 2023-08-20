@@ -13,3 +13,9 @@ import DocCardList from '@theme/DocCardList';
 
 <DocCardList />
 ```
+
+```mdx-code-block
+<div style={{textAlign: 'right', fontSize: '10px', color: '#d9d9d9'}}>
+  v1.0.1
+</div>
+```
