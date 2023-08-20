@@ -148,22 +148,15 @@ const init = async (outputFile, endpointsFiles, data) => {
                 return false;
             }
 
-            let relativePath = filePath.split('/');
-            if (relativePath.length > 1) {
-                relativePath.pop();
-                relativePath = relativePath.join('/');
-            } else {
-                relativePath = null;
-            }
-
-            let obj = await handleFiles.readEndpointFile(filePath, '', relativePath, []);
+            let obj = await handleFiles.processFile(filePath);
+            console.log(obj)
             if (obj === false) {
                 if (!options.disableLogs) {
                     console.log('Swagger-autogen:', '\x1b[31m', 'Failed ' + symbols.failed, '\x1b[0m');
                 }
                 return false;
             }
-            objDoc.paths = { ...objDoc.paths, ...obj };
+            objDoc.paths = { ...objDoc.paths, ...obj.paths };
         }
         let constainXML = false;
         if (JSON.stringify(objDoc).includes('application/xml')) {
