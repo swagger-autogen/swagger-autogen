@@ -26,6 +26,44 @@ const overwriteMerge = (destinationArray, sourceArray, options) => {
 const recast = require('recast');
 const tsParser = require("recast/parsers/typescript");
 
+
+function getAstFromFile(filePath, props = {}) {
+    return new Promise(resolve => {
+        fs.readFile(filePath, 'utf8', async function (err, data) {
+            if (err || !data || data.trim() === '') {
+                return resolve(false);
+            }
+
+            const isTypeScript = /\.ts$/.test(filePath);
+
+            try {
+                const relativePath = filePath.includes('/') ? filePath.split('/').slice(0, -1).join('/') : filePath;
+                const ast = recast.parse(data, {
+                    parser: tsParser
+                });
+
+                console.log(ast);
+                const properties = {
+                    ...props,
+                    astRoot: ast,
+                    paths: {},
+                    relativePath,
+                    imports: new Set(),
+                    isTypeScript,
+                    filePath,
+                    scopeStack: []
+                };
+
+                console.log()
+                return resolve({ ast: ast.program, props: properties });
+
+            } catch (err) {
+                return resolve({});
+            }
+        });
+    });
+}
+
 function processFile(filePath, props = {}) {
     return new Promise(resolve => {
         fs.readFile(filePath, 'utf8', async function (err, data) {
@@ -63,88 +101,13 @@ function processFile(filePath, props = {}) {
     });
 }
 
-// async function findFunctioninAst(ast, props) {
-
-
-//     if (ast.type === 'Program') {
-//         for (let bodyIdx = 0; bodyIdx < ast.body.length; ++bodyIdx) {
-//             let body = ast.body[bodyIdx];
-//             if (body.type === 'FunctionDeclaration') {
-//                 const processedAst = await processAST(ast.body[bodyIdx], { ...props });
-//                 props.inheritedProperties = processedAst.inheritedProperties;
-//                 console.log()
-//                 return props;
-//             }
-//         }
-//     } else if (ast.type === 'ExpressionStatement') {
-//         const processedAst = await processAST(ast.expression, { ...props });
-//         props = { ...props, ...processedAst }
-//         return props;
-//     } else if (ast.type === 'AssignmentExpression') {
-//         if (ast.left?.object?.name === 'module' && ast.left?.object?.type === 'Identifier' &&
-//             ast.left?.property?.name === 'exports' && ast.left?.property?.type === 'Identifier') {
-
-//             if (ast.end === 238) {
-//                 console.log()
-//             }
-
-//             /**
-//              * Exported arrow function
-//              * e.g module.exports = (req, res, ...) => { ... }
-//              */
-//             const callbackFunction = await findCallbackFunction(ast.right, props);
-//             props.inheritedProperties = callbackFunction;
-
-//             if (ast.end === 238) {
-//                 console.log()
-//             }
-//             console.log()
-//             return props;
-//         }
-
-//     } else if (ast.type === 'FunctionDeclaration' && ast.id?.name === props.functionName) {
-//         /**
-//          * Regular function
-//          * e.g function foo(req, res, ...) { ... }
-//          */
-//         const callbackFunction = await findCallbackFunction(ast, props);
-//         props.inheritedProperties = callbackFunction;
-
-//         if (ast.end === 238) {
-//             console.log()
-//         }
-//         console.log()
-//         return props;
-//     } else if (ast.type === 'MemberExpression') {
-//         const processedAst = await processAST(ast.object, { ...props });
-//         processedAst.imports.forEach(imp => props.imports.add(imp));
-//         props.paths = deepMerge(props.paths, processedAst.paths);
-//         props.inheritedProperties = processedAst.inheritedProperties ? processedAst.inheritedProperties : null;
-//         return props;
-
-//     }
-
-//     return { ...props, inheritedProperties: {} };
-
-// }
 async function processAST(ast, props) {
 
     // TODO: Handle case: const router = new Router({ prefix: '/api/v1' });
 
     let endpoint = {};
 
-    if (props.isSearchingFunction) {
-        // if (ast.type === 'Program') {
-        //     for (let bodyIdx = 0; bodyIdx < ast.body.length; ++bodyIdx) {
-        //         let body = ast.body[bodyIdx];
-        //         if (body.type === 'FunctionDeclaration') {
-        //             const processedAst = await processAST(ast.body[bodyIdx], { ...props });
-        //             props.inheritedProperties = processedAst.inheritedProperties;
-        //             console.log()
-        //             return props;
-        //         }
-        //     }
-        // } else 
+    if (props.isSearchingFunction) {    // TODO: remove it. But findProduces depends on it. Check setHeader.
         if (ast.type === 'ExpressionStatement') {
             const processedAst = await processAST(ast.expression, { ...props });
             props = { ...props, ...processedAst }
@@ -171,7 +134,7 @@ async function processAST(ast, props) {
                 return props;
             }
 
-        } 
+        }
         // else if (ast.type === 'FunctionDeclaration' && ast.id?.name === props.functionName) {
         //     /**
         //      * Regular function
@@ -207,7 +170,7 @@ async function processAST(ast, props) {
             props.scopeStack.pop();
             processedAst.imports.forEach(imp => props.imports.add(imp));
             props.paths = deepMerge(props.paths, processedAst.paths);
-            props.inheritedProperties = processedAst.inheritedProperties ? processedAst.inheritedProperties : null;
+            props.inheritedProperties = processedAst.inheritedProperties;// ? processedAst.inheritedProperties : null;
             console.log()
         }
         return props;
@@ -220,13 +183,18 @@ async function processAST(ast, props) {
         props.paths = deepMerge(props.paths, processedAst.paths);
         return props;
     } else if (ast.type === 'MemberExpression') {
-        // if (props.isLinkedMethods && ast.object.type === 'CallExpression' && ast.object.arguments.length === 1) {
+        // if (props.isLinkedMethod && ast.object.type === 'CallExpression' && ast.object.arguments.length === 1) {
         //     props.isSearchingFunction = true;
         // }
+        if (ast?.object?.callee?.property?.type === 'Identifier' &&
+            ast?.object?.callee?.property?.name === 'use') {
+
+            console.log()
+        }
         const processedAst = await processAST(ast.object, { ...props });
         processedAst.imports.forEach(imp => props.imports.add(imp));
         props.paths = deepMerge(props.paths, processedAst.paths);
-        props.inheritedProperties = processedAst.inheritedProperties ? processedAst.inheritedProperties : null;
+        props.inheritedProperties = processedAst.inheritedProperties; // ? processedAst.inheritedProperties : null;
         return props;
     }
 
@@ -253,21 +221,33 @@ async function processAST(ast, props) {
 
             /**
              * Linked resquest methods
-             * e.g. router.use(...).get('/somePath', ...).post('/somePath', ...)
+             * e.g. router.use(someMiddleware).get('/somePath', ...).post('/somePath', ...)
              */
             if (ast.callee?.object?.type === 'CallExpression') {
-                if (ast.end === 1548) {
+                if (ast.end === 146) {
                     console.log()
                 }
-                props.isLinkedMethods = true;
-                const processedAst = await processAST(ast.callee, { ...props, isSearchingFunction: true });
+
+                if (ast.callee?.object?.callee?.property?.type === 'Identifier' &&
+                    ast.callee?.object?.callee?.property?.name === 'use') {
+                    const callbackFunction = await findCallbackFunction(ast.callee?.object?.arguments[0], props);
+                    props.inheritedProperties = callbackFunction;
+                    console.log()
+                }
+
+                if (ast.end === 607) {
+                    console.log()
+                }
+                props.isLinkedMethod = true;
+                const processedAst = await processAST(ast.callee, { ...props });
                 props.paths = deepMerge(props.paths, processedAst.paths);
-                props.inheritedProperties = processedAst.inheritedProperties ? processedAst.inheritedProperties : null;
+                // props.inheritedProperties = processedAst.inheritedProperties ? processedAst.inheritedProperties : null;
+                props.inheritedProperties = deepMerge(props.inheritedProperties || {}, processedAst.inheritedProperties || {});
                 console.log()
 
             }
 
-            if (ast.end === 2043) {
+            if (ast.end === 607) {
                 console.log()
             }
 
@@ -283,7 +263,7 @@ async function processAST(ast, props) {
 
             path = formatPath(path);
 
-            if (path.includes('/xxx')) {
+            if (path.includes('/test-post')) {
                 console.log()
             }
 
@@ -294,16 +274,14 @@ async function processAST(ast, props) {
             }
 
             const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
-            // if (endpoint[path][method].parameters.length > 0) {
-            //     handledParameters.parameters = [...endpoint[path][method].parameters, ...handledParameters.parameters]
-            // }
-            if (path.includes('/xxx')) {
+
+            if (path.includes('/test-post')) {
                 console.log()
             }
 
             endpoint[path][method] = { ...endpoint[path][method], ...handledParameters };
 
-            if (props.isLinkedMethods) {
+            if (props.isLinkedMethod) {
                 endpoint[path][method].responses = { ...props?.inheritedProperties?.responses, ...endpoint[path][method].responses }
             }
 
@@ -311,7 +289,7 @@ async function processAST(ast, props) {
 
 
             console.log()
-        } else if (isRoute(ast) && props.isLinkedMethods) {
+        } else if (isRoute(ast) && props.isLinkedMethod) {
             /**
              * Request method linked with route function
              * e.g. router.route('/path').get(someMiddleware, someCallback)
@@ -456,7 +434,7 @@ async function handleRequestMethodParameters(ast, props) {
 
     const nodes = ast.arguments;
     const numArgs = ast.arguments.length;
-    const start = props.inheritedProperties?.path && props.isLinkedMethods ? 0 : 1;
+    const start = props.inheritedProperties?.path && props.isLinkedMethod ? 0 : 1;
     for (let idxArgs = start; idxArgs < numArgs; ++idxArgs) {
         const node = nodes[idxArgs];
         const callbackFunction = await findCallbackFunction(node, props);    // TODO: change these names?
@@ -522,20 +500,38 @@ async function findCallbackFunction(node, props) {
      * const someFunction = require(...)
      * app.get(..., someFunction(...), ...)
      */
-    if (node.type === 'CallExpression') {
+
+
+    if (node.end === 2082) {
+        console.log()
+    }
+
+    if (node.type === 'Program') {
+        for (let bodyIdx = 0; bodyIdx < node.body.length; ++bodyIdx) {
+            let body = node.body[bodyIdx];
+            const processedAst = await findCallbackFunction(body, { ...props });
+            // props.inheritedProperties = processedAst.inheritedProperties;
+            console.log()
+            if (!isObjectEmpty(processedAst)) {
+                console.log()
+                callback = deepMerge(callback, processedAst);
+                return processedAst;
+            }
+            console.log()
+        }
+    } else if (node.type === 'ExpressionStatement') {
+        const processedAst = await findCallbackFunction(node.expression, { ...props });
+        // processedAst.imports.forEach(imp => props.imports.add(imp));     // TODO: check if it's necessary handle imports here
+        // props.paths = deepMerge(props.paths, processedAst.paths);
+        return processedAst;
+    } else if (node.type === 'CallExpression') {
         const functionName = node.name;
 
         // TODO: Try to find (down to top)
         // TODO: Try to find in other file
 
         console.log()
-    }
-
-    if (node.end === 2082) {
-        console.log()
-    }
-
-    if (node.type === 'ObjectExpression') {
+    } else if (node.type === 'ObjectExpression') {
         for (let idxProperty = 0; idxProperty < node.properties.length; ++idxProperty) {
             const property = node.properties[idxProperty];
             if (property.key?.name === props.functionName) {
@@ -546,96 +542,119 @@ async function findCallbackFunction(node, props) {
             console.log()
         }
         console.log()
-    }
+    } else if (node.type === 'AssignmentExpression') {
+        if (node.left?.object?.name === 'module' && node.left?.object?.type === 'Identifier' &&
+            node.left?.property?.name === 'exports' && node.left?.property?.type === 'Identifier') {
+
+            if (node.end === 202) {
+                console.log()
+            }
+
+            /**
+             * Exported arrow function
+             * e.g module.exports = (req, res, ...) => { ... }
+             */
+            const callbackFunction = await findCallbackFunction(node.right, props);
+            // props.inheritedProperties = callbackFunction;
+
+            if (node.end === 202) {
+                console.log()
+            }
+            console.log()
+            return callbackFunction;
+        }
+
+    } else
 
 
-    /**
-     * Explicit callback function
-     * e.g. (req, res) => { ... }
-     */
-    if (['ArrowFunctionExpression', 'ObjectMethod', 'FunctionDeclaration'].includes(node.type) && node.params.length > 1) {
-        const functionParametersName = findFunctionParametersName(node);
         /**
-         * Handling function's body
+         * Explicit callback function
+         * e.g. (req, res) => { ... }
          */
-        for (let idxBody = 0; idxBody < node.body.body.length; ++idxBody) {
-            let bodyNode = node.body.body[idxBody];
-            callback.requestBody = { ...callback.requestBody, ...findRequestBody(bodyNode, functionParametersName) };
-            callback.responses = { ...callback.responses, ...findStatusCode(bodyNode, functionParametersName) };
-            callback.produces = [...callback.produces, ...findProduces(bodyNode, functionParametersName)];
-            callback.comments += findComments(bodyNode);
-            // parei aqui
-            // get res.setHeader('Content-Type', 'application/json')
+        if (['ArrowFunctionExpression', 'ObjectMethod', 'FunctionDeclaration'].includes(node.type) && node.params.length > 1) {
+            const functionParametersName = findFunctionParametersName(node);
+            /**
+             * Handling function's body
+             */
+            for (let idxBody = 0; idxBody < node.body.body.length; ++idxBody) {
+                let bodyNode = node.body.body[idxBody];
+                callback.requestBody = { ...callback.requestBody, ...findRequestBody(bodyNode, functionParametersName) };
+                callback.responses = { ...callback.responses, ...findStatusCode(bodyNode, functionParametersName) };
+                callback.produces = [...callback.produces, ...findProduces(bodyNode, functionParametersName)];
+                callback.comments += findComments(bodyNode);
+                console.log()
+            }
+
             console.log()
-        }
+        } else if (node.type === 'Identifier') {
+            if (node.end === 2032) {    // parei aqui. buscar function 'store'. primeiro no arquivo (e a mais proxima da onde ela é chamada), caso nao encontrado, procurar nos imports 
+                console.log()
+            }
 
-        console.log()
-    } else if (node.type === 'Identifier') {
-        if (node.end === 2082) {    // parei aqui. buscar function 'store'. primeiro no arquivo (e a mais proxima da onde ela é chamada), caso nao encontrado, procurar nos imports 
+            // TODO: put in a function. See numArgs > 1
+            // TODO: find first in the same file. If not found, try to find in the imports
+            // for (let idxScope = 0; idxScope < props.scopeStack.length; ++idxScope) {
+            //     const scope = props.scopeStack[idxScope];
+            //     const processedAst = await processAST(scope, { ...props, scopeStack: [], isSearchingFunction: true, functionName: node.name });
+            //     if (!isInheritedPropertiesEmpty(processedAst.inheritedProperties)) {
+            //         callback = deepMerge(callback, processedAst.inheritedProperties);
+            //         return { ...callback };
+            //     }
+            //     console.log()
+            // }
+
+            let functionName = props.functionName;
+            let route = imports.find(imp => imp.variableName === node.name);
+            if (route) {
+                const externalAst = await getAstFromFile(route.path, { ...props })
+                const callback = await findCallbackFunction(externalAst.ast, { ...externalAst.props });
+                // const processedFile = await processFile(route.path, { functionName, isSearchingFunction: true });
+                // callback = deepMerge(callback, processedFile.inheritedProperties);
+                console.log()
+                return callback;
+            } else {
+                // TODO: handle it
+                console.log()
+            }
             console.log()
-        }
+        } else if (node.type === 'MemberExpression') {
 
-        // TODO: put in a function. See numArgs > 1
-        // TODO: find first in the same file. If not found, try to find in the imports
-        // for (let idxScope = 0; idxScope < props.scopeStack.length; ++idxScope) {
-        //     const scope = props.scopeStack[idxScope];
-        //     const processedAst = await processAST(scope, { ...props, scopeStack: [], isSearchingFunction: true, functionName: node.name });
-        //     if (!isInheritedPropertiesEmpty(processedAst.inheritedProperties)) {
-        //         callback = deepMerge(callback, processedAst.inheritedProperties);
-        //         return { ...callback };
-        //     }
-        //     console.log()
-        // }
+            if (node.end === 2032) {
+                console.log()
+            }
+            let route = imports.find(imp => imp.variableName === node.object?.name);
+            let functionName = null;
 
-        let functionName = props.functionName;
-        let route = imports.find(imp => imp.variableName === node.name);
-        if (route) {
-            const processedFile = await processFile(route.path, { functionName, isSearchingFunction: true });
-            callback = deepMerge(callback, processedFile.inheritedProperties);
+            if (node.property?.name) {
+                functionName = node.property?.name;
+            }
+            if (route) {
+                const processedFile = await processFile(route.path, { functionName, isSearchingFunction: true });
+
+                if (node.end === 2032) {
+                    console.log()
+                }
+
+                callback = deepMerge(callback, processedFile.inheritedProperties);
+                console.log()
+            }
+            console.log()
+        } else if (node.type === 'ObjectMethod') {
+            for (let idxBody = 0; idxBody < node.body.length; ++idxBody) {
+                const property = node.body[idxBody];
+                callback = await findCallbackFunction(property, { ...props });
+                console.log()
+            }
             console.log()
         } else {
             // TODO: handle it
             console.log()
         }
-        console.log()
-    } else if (node.type === 'MemberExpression') {
-
-        if (node.end === 2032) {
-            console.log()
-        }
-        let route = imports.find(imp => imp.variableName === node.object?.name);
-        let functionName = null;
-
-        if (node.property?.name) {
-            functionName = node.property?.name;
-        }
-        if (route) {
-            const processedFile = await processFile(route.path, { functionName, isSearchingFunction: true });
-
-            if (node.end === 2032) {
-                console.log()
-            }
-
-            callback = deepMerge(callback, processedFile.inheritedProperties);
-            console.log()
-        }
-        console.log()
-    } else if (node.type === 'ObjectMethod') {
-        for (let idxBody = 0; idxBody < node.body.length; ++idxBody) {
-            const property = node.body[idxBody];
-            callback = await findCallbackFunction(property, { ...props });
-            console.log()
-        }
-        console.log()
-    } else {
-        // TODO: handle it
-        console.log()
-    }
 
     return { ...callback };
 }
 
-function isInheritedPropertiesEmpty(object) {
+function isObjectEmpty(object) {
     if (!object) {
         return object;
     }
@@ -660,7 +679,7 @@ function isValidNode(ast) {
     return !!(ast?.arguments?.length) || false;
 }
 
-function deepMerge(objA, objB) {
+function deepMerge(objA = {}, objB = {}) {
     // Merging parameters in level 0
     if (objA?.parameters?.length > 0 && objB?.parameters?.length > 0) {
         objB.parameters = [...objA.parameters, ...objB.parameters];
