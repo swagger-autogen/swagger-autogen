@@ -446,20 +446,38 @@ async function findCallbackFunction(node, props) {
      */
 
 
-    if (node.end === 2032) {
+    if (node.end === 692) {
         console.log()
     }
 
     if (node.type === 'Program') {
         for (let bodyIdx = 0; bodyIdx < node.body.length; ++bodyIdx) {
             let body = node.body[bodyIdx];
-            const processedAst = await findCallbackFunction(body, { ...props });
-            // props.inheritedProperties = processedAst.inheritedProperties;
-            console.log()
-            if (!isObjectEmpty(processedAst)) {
+
+            if (!props.externalAst) {
+                const processedAst = await findCallbackFunction(body, { ...props });
+                // props.inheritedProperties = processedAst.inheritedProperties;
                 console.log()
-                return processedAst;
+                if (!isObjectEmpty(processedAst)) {
+                    console.log()
+                    return processedAst;
+                }
+                console.log()
+            } else if (isModuleExports(body)) {
+                /**
+                 * Searching for module.exports = ...
+                 */
+                const processedAst = await findCallbackFunction(body, { ...props, scopeStack: node });
+                // props.inheritedProperties = processedAst.inheritedProperties;
+                console.log()
+                if (!isObjectEmpty(processedAst)) {
+                    console.log()
+                    return processedAst;
+                }
+                console.log()
+
             }
+
             console.log()
         }
     } else if (node.type === 'ExpressionStatement') {
@@ -555,7 +573,7 @@ async function findCallbackFunction(node, props) {
             let route = imports.find(imp => imp.variableName === node.name);
             if (route) {
                 const externalAst = await getAstFromFile(route.path, { ...props })
-                const callback = await findCallbackFunction(externalAst.ast, { ...externalAst.props });
+                const callback = await findCallbackFunction(externalAst.ast, { ...externalAst.props, externalAst: true });
                 console.log()
                 return callback;
             } else {
@@ -576,7 +594,7 @@ async function findCallbackFunction(node, props) {
             }
             if (route) {
                 const externalAst = await getAstFromFile(route.path, { ...props })
-                const callback = await findCallbackFunction(externalAst.ast, { ...externalAst.props, functionName });
+                const callback = await findCallbackFunction(externalAst.ast, { ...externalAst.props, functionName, externalAst: true });
                 console.log()
                 return callback;
             }
@@ -594,6 +612,21 @@ async function findCallbackFunction(node, props) {
         }
 
     return { ...callback };
+}
+
+function isModuleExports(node) {
+    if (node.type === 'ExpressionStatement') {
+        let subNode = node.expression
+        if (subNode.type === 'AssignmentExpression' &&
+            subNode.left?.object?.name === 'module' &&
+            subNode.left?.object?.type === 'Identifier' &&
+            subNode.left?.property?.name === 'exports' &&
+            subNode.left?.property?.type === 'Identifier') {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function isValidArrowFunctionExpression(node) {
