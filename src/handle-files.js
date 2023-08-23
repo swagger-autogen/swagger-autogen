@@ -502,7 +502,7 @@ async function findCallbackFunction(node, props) {
      */
 
 
-    if (node.end === 2082) {
+    if (node.end === 6809) {
         console.log()
     }
 
@@ -514,7 +514,6 @@ async function findCallbackFunction(node, props) {
             console.log()
             if (!isObjectEmpty(processedAst)) {
                 console.log()
-                callback = deepMerge(callback, processedAst);
                 return processedAst;
             }
             console.log()
@@ -571,7 +570,14 @@ async function findCallbackFunction(node, props) {
          * Explicit callback function
          * e.g. (req, res) => { ... }
          */
-        if (['ArrowFunctionExpression', 'ObjectMethod', 'FunctionDeclaration'].includes(node.type) && node.params.length > 1) {
+        if (isValidArrowFunctionExpression(node) ||
+            isValidObjectMethod(node, props) ||
+            isValidFunctionDeclaration(node, props)) {
+
+            if (node.end === 2228) {
+                console.log()
+            }
+
             const functionParametersName = findFunctionParametersName(node);
             /**
              * Handling function's body
@@ -587,21 +593,20 @@ async function findCallbackFunction(node, props) {
 
             console.log()
         } else if (node.type === 'Identifier') {
-            if (node.end === 2032) {    // parei aqui. buscar function 'store'. primeiro no arquivo (e a mais proxima da onde ela é chamada), caso nao encontrado, procurar nos imports 
+            if (node.end === 2082) {   
                 console.log()
             }
 
             // TODO: put in a function. See numArgs > 1
             // TODO: find first in the same file. If not found, try to find in the imports
-            // for (let idxScope = 0; idxScope < props.scopeStack.length; ++idxScope) {
-            //     const scope = props.scopeStack[idxScope];
-            //     const processedAst = await processAST(scope, { ...props, scopeStack: [], isSearchingFunction: true, functionName: node.name });
-            //     if (!isInheritedPropertiesEmpty(processedAst.inheritedProperties)) {
-            //         callback = deepMerge(callback, processedAst.inheritedProperties);
-            //         return { ...callback };
-            //     }
-            //     console.log()
-            // }
+            for (let idxScope = 0; idxScope < props.scopeStack.length; ++idxScope) {
+                const scope = props.scopeStack[idxScope];
+                const callback = await findCallbackFunction(scope, { ...props, scopeStack: [], functionName: node.name });
+                if (!isObjectEmpty(callback)) {
+                    return { ...callback };
+                }
+                console.log()
+            }
 
             let functionName = props.functionName;
             let route = imports.find(imp => imp.variableName === node.name);
@@ -654,9 +659,29 @@ async function findCallbackFunction(node, props) {
     return { ...callback };
 }
 
+function isValidArrowFunctionExpression(node) {
+    return node.type === 'ArrowFunctionExpression' && node.params?.length > 1;
+}
+
+function isValidObjectMethod(node, props) {
+    if (node.type === 'ObjectMethod' && props.functionName && node.key?.name !== props.functionName) {
+        return false;
+    }
+
+    return node.type === 'ObjectMethod' && node.params?.length > 1;
+}
+
+function isValidFunctionDeclaration(node, props) {
+    if (node.type === 'FunctionDeclaration' && props.functionName && node.id?.name !== props.functionName) {
+        return false;
+    }
+
+    return node.type === 'FunctionDeclaration' && node.params?.length > 1;
+}
+
 function isObjectEmpty(object) {
     if (!object) {
-        return object;
+        return true;
     }
 
     const values = Object.values(object);
