@@ -107,59 +107,6 @@ async function processAST(ast, props) {
 
     let endpoint = {};
 
-    if (props.isSearchingFunction) {    // TODO: remove it. But findProduces depends on it. Check setHeader.
-        if (ast.type === 'ExpressionStatement') {
-            const processedAst = await processAST(ast.expression, { ...props });
-            props = { ...props, ...processedAst }
-            return props;
-        } else if (ast.type === 'AssignmentExpression') {
-            if (ast.left?.object?.name === 'module' && ast.left?.object?.type === 'Identifier' &&
-                ast.left?.property?.name === 'exports' && ast.left?.property?.type === 'Identifier') {
-
-                if (ast.end === 238) {
-                    console.log()
-                }
-
-                /**
-                 * Exported arrow function
-                 * e.g module.exports = (req, res, ...) => { ... }
-                 */
-                const callbackFunction = await findCallbackFunction(ast.right, props);
-                props.inheritedProperties = callbackFunction;
-
-                if (ast.end === 238) {
-                    console.log()
-                }
-                console.log()
-                return props;
-            }
-
-        }
-        // else if (ast.type === 'FunctionDeclaration' && ast.id?.name === props.functionName) {
-        //     /**
-        //      * Regular function
-        //      * e.g function foo(req, res, ...) { ... }
-        //      */
-        //     const callbackFunction = await findCallbackFunction(ast, props);
-        //     props.inheritedProperties = callbackFunction;
-
-        //     if (ast.end === 238) {
-        //         console.log()
-        //     }
-        //     console.log()
-        //     return props;
-        // } else if (ast.type === 'MemberExpression') {
-        //     const processedAst = await processAST(ast.object, { ...props });
-        //     processedAst.imports.forEach(imp => props.imports.add(imp));
-        //     props.paths = deepMerge(props.paths, processedAst.paths);
-        //     props.inheritedProperties = processedAst.inheritedProperties ? processedAst.inheritedProperties : null;
-        //     return props;
-
-        // }
-
-        // return { ...props, inheritedProperties: {} };
-    }
-
     if (ast.body) {
         for (let bodyIdx = 0; bodyIdx < ast.body.length; ++bodyIdx) {
             if (bodyIdx === 11) {
@@ -183,9 +130,6 @@ async function processAST(ast, props) {
         props.paths = deepMerge(props.paths, processedAst.paths);
         return props;
     } else if (ast.type === 'MemberExpression') {
-        // if (props.isLinkedMethod && ast.object.type === 'CallExpression' && ast.object.arguments.length === 1) {
-        //     props.isSearchingFunction = true;
-        // }
         if (ast?.object?.callee?.property?.type === 'Identifier' &&
             ast?.object?.callee?.property?.name === 'use') {
 
@@ -263,7 +207,7 @@ async function processAST(ast, props) {
 
             path = formatPath(path);
 
-            if (path.includes('/test-post')) {
+            if (path.includes('/test-get')) {
                 console.log()
             }
 
@@ -275,7 +219,7 @@ async function processAST(ast, props) {
 
             const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
 
-            if (path.includes('/test-post')) {
+            if (path.includes('/test-get')) {
                 console.log()
             }
 
@@ -502,7 +446,7 @@ async function findCallbackFunction(node, props) {
      */
 
 
-    if (node.end === 6809) {
+    if (node.end === 2032) {
         console.log()
     }
 
@@ -593,7 +537,7 @@ async function findCallbackFunction(node, props) {
 
             console.log()
         } else if (node.type === 'Identifier') {
-            if (node.end === 2082) {   
+            if (node.end === 2082) {
                 console.log()
             }
 
@@ -608,13 +552,10 @@ async function findCallbackFunction(node, props) {
                 console.log()
             }
 
-            let functionName = props.functionName;
             let route = imports.find(imp => imp.variableName === node.name);
             if (route) {
                 const externalAst = await getAstFromFile(route.path, { ...props })
                 const callback = await findCallbackFunction(externalAst.ast, { ...externalAst.props });
-                // const processedFile = await processFile(route.path, { functionName, isSearchingFunction: true });
-                // callback = deepMerge(callback, processedFile.inheritedProperties);
                 console.log()
                 return callback;
             } else {
@@ -634,14 +575,10 @@ async function findCallbackFunction(node, props) {
                 functionName = node.property?.name;
             }
             if (route) {
-                const processedFile = await processFile(route.path, { functionName, isSearchingFunction: true });
-
-                if (node.end === 2032) {
-                    console.log()
-                }
-
-                callback = deepMerge(callback, processedFile.inheritedProperties);
+                const externalAst = await getAstFromFile(route.path, { ...props })
+                const callback = await findCallbackFunction(externalAst.ast, { ...externalAst.props, functionName });
                 console.log()
+                return callback;
             }
             console.log()
         } else if (node.type === 'ObjectMethod') {
@@ -1030,7 +967,7 @@ async function handleMiddleware(ast, props) {
                     functionName = route?.variableName.split('.')[1];
                 }
                 if (route) {
-                    const processedFile = await processFile(route.path, { functionName, isSearchingFunction: props.isSearchingFunction, routeProperties });
+                    const processedFile = await processFile(route.path, { functionName, routeProperties });
                     props.paths = deepMerge(props.paths, processedFile.paths);
                     props.inheritedProperties = processedFile.inheritedProperties ? processedFile.inheritedProperties : null;
                     console.log()
