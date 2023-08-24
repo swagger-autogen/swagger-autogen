@@ -203,7 +203,7 @@ async function processAST(ast, props) {
 
             path = formatPath(path);
 
-            if (path.includes('/v4')) {
+            if (path.includes('/body_test')) {
                 console.log()
             }
 
@@ -215,7 +215,7 @@ async function processAST(ast, props) {
 
             const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
 
-            if (path.includes('/v4')) {
+            if (path.includes('/body_test')) {
                 console.log()
             }
 
@@ -505,7 +505,7 @@ async function findCallbackFunction(node, props) {
         isValidObjectMethod(node, props) ||
         isValidFunctionDeclaration(node, props)) {
 
-        if (node.end === 305) {
+        if (node.end === 2811) {
             console.log()
         }
 
@@ -1158,6 +1158,10 @@ function findStatusCode(node, functionParametersName) {
 
     console.log(node)
 
+    if (node.end === 2808) {
+        console.log()
+    }
+
     if (node.type === 'TryStatement') {
         const blockResponse = findStatusCode(node.block, functionParametersName);
         const handlerResponse = findStatusCode(node.handler, functionParametersName);
@@ -1167,8 +1171,8 @@ function findStatusCode(node, functionParametersName) {
         // TODO: handle it
         // responses = {...responses, ...response};
         console.log()
-    } else if (node.type === 'CatchClause') {
-        for (let idxBody = 0; idxBody < node.body.body.length; ++idxBody) {
+    } else if (node.type === 'CatchClause' || node.type === 'ArrowFunctionExpression') {
+        for (let idxBody = 0; idxBody < node.body.body.length; ++idxBody) { // TODO: pass to BlockStatement
             const bodyNode = node.body.body[idxBody];
             const response = findStatusCode(bodyNode, functionParametersName);
             responses = { ...responses, ...response };
@@ -1181,12 +1185,17 @@ function findStatusCode(node, functionParametersName) {
     } else if (node.type === 'CallExpression') {
         const response = findStatusCode(node.callee, functionParametersName);
         responses = { ...responses, ...response };
+        if (node.callee?.property?.name === 'then' && node.arguments?.length > 0) {
+            let response = findStatusCode(node.arguments[0], functionParametersName);
+            responses = { ...responses, ...response };
+            console.log()
+        }
         console.log()
     } else if (node.type === 'ExpressionStatement') {
         const response = findStatusCode(node.expression, functionParametersName);
         responses = { ...responses, ...response };
         console.log()
-    }
+    } 
 
     /**
      * Handling status code
