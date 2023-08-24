@@ -203,7 +203,7 @@ async function processAST(ast, props) {
 
             path = formatPath(path);
 
-            if (path.includes('/test-2-3')) {
+            if (path.includes('/v4')) {
                 console.log()
             }
 
@@ -215,7 +215,7 @@ async function processAST(ast, props) {
 
             const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
 
-            if (path.includes('/test-2-3')) {
+            if (path.includes('/v4')) {
                 console.log()
             }
 
@@ -382,7 +382,7 @@ async function handleRequestMethodParameters(ast, props) {
         console.log()
     }
 
-    if (ast.end === 2441) {
+    if (ast.end === 798) {
         console.log()
     }
 
@@ -391,7 +391,7 @@ async function handleRequestMethodParameters(ast, props) {
         if (handledComments.responses && endpoint.responses.default) {
             delete endpoint.responses.default;
         }
-        endpoint = deepMerge(endpoint, handledComments)
+        endpoint = deepMerge({ ...endpoint }, { ...handledComments })
         console.log()
     }
 
@@ -647,9 +647,21 @@ function isValidNode(ast) {
 }
 
 function deepMerge(objA = {}, objB = {}) {
-    // Merging parameters in level 0
+    // Merging parameters at level 0
     if (objA?.parameters?.length > 0 && objB?.parameters?.length > 0) {
-        objB.parameters = [...objA.parameters, ...objB.parameters];
+        let mergedParameters = [...objA?.parameters];
+        for (let idxObjB = 0; idxObjB < objB.parameters.length; ++idxObjB) {
+            let objBParameter = objB.parameters[idxObjB];
+            let parameterIndex = mergedParameters.findIndex(param => param.name === objBParameter.name);
+            if (parameterIndex > -1) {
+                let mergedParameter = deepMerge({ ...mergedParameters[parameterIndex] }, { ...objBParameter });
+                mergedParameters[parameterIndex] = mergedParameter;
+            } else {
+                mergedParameters.push(objBParameter);
+            }
+            console.log()
+        }
+        objB.parameters = mergedParameters;
     }
     return merge(objA, objB, {
         arrayMerge: overwriteMerge  // Do not disable it. Cause bad performance
