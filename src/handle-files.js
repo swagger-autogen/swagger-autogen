@@ -1168,16 +1168,17 @@ function findStatusCode(node, functionParametersName) {
         responses = { ...responses, ...blockResponse, ...handlerResponse };
         console.log()
     } else if (node.type === 'BlockStatement') {
-        // TODO: handle it
-        // responses = {...responses, ...response};
-        console.log()
-    } else if (node.type === 'CatchClause' || node.type === 'ArrowFunctionExpression') {
-        for (let idxBody = 0; idxBody < node.body.body.length; ++idxBody) { // TODO: pass to BlockStatement
-            const bodyNode = node.body.body[idxBody];
+        for (let idxBody = 0; idxBody < node.body.length; ++idxBody) { // TODO: pass to BlockStatement
+            const bodyNode = node.body[idxBody];
             const response = findStatusCode(bodyNode, functionParametersName);
             responses = { ...responses, ...response };
             console.log()
         }
+        console.log()
+    } else if (['CatchClause', 'ArrowFunctionExpression'].includes(node.type)) {
+        const response = findStatusCode(node.body, functionParametersName);
+        responses = { ...responses, ...response };
+        console.log()
     } else if (node.type === 'ReturnStatement') {
         const response = findStatusCode(node.argument, functionParametersName);
         responses = { ...responses, ...response };
@@ -1195,7 +1196,7 @@ function findStatusCode(node, functionParametersName) {
         const response = findStatusCode(node.expression, functionParametersName);
         responses = { ...responses, ...response };
         console.log()
-    } 
+    }
 
     /**
      * Handling status code
