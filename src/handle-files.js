@@ -1240,16 +1240,33 @@ function findRequestBody(node, functionParametersName) {
     let requestBody = {};
     for (let idxDeclaration = 0; idxDeclaration < node.declarations?.length; ++idxDeclaration) {
         const declaration = node.declarations[idxDeclaration];
+        if (declaration.end === 2562) {
+            console.log()
+        }
         if (declaration.type === 'VariableDeclarator' &&
             declaration.init?.object?.object?.name === functionParametersName.request &&
             declaration.init.object.property?.name === 'body') {
 
-            if (declaration.init.property.type === 'Identifier') {
+            if (declaration.init.property.type === 'Identifier') {  // Refact
                 requestBody[declaration.init.property.name] = {
                     example: 'any'
                 };
             }
             console.log()
+        } else if (declaration.type === 'VariableDeclarator' &&     // Refact
+            declaration.init?.object?.name === functionParametersName.request &&
+            declaration.init.property?.name === 'body' &&
+            declaration.id?.properties?.length > 0) {
+
+            console.log()
+
+            for (let idxProperty = 0; idxProperty < declaration.id.properties.length; ++idxProperty) {
+                let property = declaration.id.properties[idxProperty];
+                if (property.type === 'ObjectProperty') {
+                    console.log()   // parei aqui
+                }
+                console.log()
+            }
         }
     }
     return requestBody;
