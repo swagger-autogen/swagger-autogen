@@ -203,7 +203,7 @@ async function processAST(ast, props) {
 
             path = formatPath(path);
 
-            if (path.includes('/body_auto_complex')) {
+            if (path.includes('/body_auto_and_increase_001')) {
                 console.log()
             }
 
@@ -215,7 +215,7 @@ async function processAST(ast, props) {
 
             const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
 
-            if (path.includes('/body_auto_complex')) {
+            if (path.includes('/body_auto_and_increase_001')) {
                 console.log()
             }
 
@@ -401,14 +401,22 @@ async function handleRequestMethodParameters(ast, props) {
             console.log()
         } else {
             // Swagger 2.0
+            const idxParameter = endpoint.parameters.findIndex(p => p.in?.toLowerCase() === 'body');
+
             endpoint.parameters.push({
                 name: 'body',
                 in: 'body',
                 schema: {
                     type: 'object',
                     properties: { ...requestBody }
-                }
+                },
+                ...endpoint.parameters[idxParameter] || {}
             });
+
+            if (idxParameter > -1) {
+                endpoint.parameters.splice(idxParameter, 1)
+            }
+
             console.log()
         }
     }
@@ -1244,7 +1252,7 @@ function findRequestBody(node, functionParametersName) {
         }
 
         if (node.type === 'MemberExpression') {
-            console.log(node) 
+            console.log(node)
             if (node.object?.object?.name === functionParametersName.request &&
                 node.object?.property?.name === 'body' &&
                 node.property?.type === 'Identifier') {
