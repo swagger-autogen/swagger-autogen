@@ -203,7 +203,7 @@ async function processAST(ast, props) {
 
             path = formatPath(path);
 
-            if (path.includes('/body_test')) {
+            if (path.includes('/body_auto_complex')) {
                 console.log()
             }
 
@@ -215,7 +215,7 @@ async function processAST(ast, props) {
 
             const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
 
-            if (path.includes('/body_test')) {
+            if (path.includes('/body_auto_complex')) {
                 console.log()
             }
 
@@ -505,7 +505,7 @@ async function findCallbackFunction(node, props) {
         isValidObjectMethod(node, props) ||
         isValidFunctionDeclaration(node, props)) {
 
-        if (node.end === 2811) {
+        if (node.end === 4038) {
             console.log()
         }
 
@@ -1239,7 +1239,7 @@ function findStatusCode(node, functionParametersName) {
 function findRequestBody(node, functionParametersName) {
     let requestBody = {};
     try {
-        if (node.end === 2808) {
+        if (node.end === 3270) {
             console.log(node)
         }
 
@@ -1299,7 +1299,7 @@ function findRequestBody(node, functionParametersName) {
             if (node.init?.object?.object?.name === functionParametersName.request &&
                 node.init.object.property?.name === 'body') {
 
-                if (node.init.property.type === 'Identifier') {  // Refact
+                if (node.init.property.type === 'Identifier') {  // Refact? Call the function?
                     requestBody[node.init.property.name] = {
                         example: 'any'
                     };
@@ -1314,7 +1314,7 @@ function findRequestBody(node, functionParametersName) {
                 for (let idxProperty = 0; idxProperty < node.id.properties.length; ++idxProperty) {
                     let property = node.id.properties[idxProperty];
                     if (property.type === 'ObjectProperty') {
-                        if (property.key.type === 'Identifier') {  // Refact. 
+                        if (property.key.type === 'Identifier') {  // Refact?  Call the function?
                             requestBody[property.key.name] = {
                                 example: 'any'
                             };
@@ -1324,6 +1324,9 @@ function findRequestBody(node, functionParametersName) {
                     console.log()
                 }
             }
+
+            const response = findRequestBody(node.init, functionParametersName);
+            requestBody = { ...requestBody, ...response };
         } else if (node.type === 'VariableDeclaration') {
             for (let idxDeclaration = 0; idxDeclaration < node.declarations?.length; ++idxDeclaration) {
                 const declaration = node.declarations[idxDeclaration];
