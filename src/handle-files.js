@@ -544,8 +544,9 @@ async function findCallbackFunction(node, props) {
          */
         for (let idxBody = 0; idxBody < node.body.body.length; ++idxBody) {
             let bodyNode = node.body.body[idxBody];
-            callback.requestBody = { ...callback.requestBody, ...findRequestBody(bodyNode, functionParametersName) };
-            callback.queryParameters = [...callback.queryParameters, ...findQueryParameters(bodyNode, functionParametersName)];
+            let attributes = findAttributes(bodyNode, functionParametersName)
+            callback.requestBody = { ...callback.requestBody, ...attributes.body };
+            callback.queryParameters = [...callback.queryParameters, ...attributes.query];
             callback.responses = { ...callback.responses, ...findStatusCode(bodyNode, functionParametersName) };
             callback.produces = [...callback.produces, ...findProduces(bodyNode, functionParametersName)];
             callback.comments += findComments(bodyNode);
@@ -1193,7 +1194,7 @@ function findStatusCode(node, functionParametersName) {
     console.log(node)
 
     if (node.end === 6852) {
-        console.log() 
+        console.log()
     }
 
     if (node.type === 'TryStatement') {
@@ -1279,149 +1280,129 @@ function findStatusCode(node, functionParametersName) {
 }
 
 
-function findQueryParameters(node, functionParametersName) {
-    let requestBody = [];
-    try {
-        if (node.end === 6686) {
-            console.log(node)
-        }
-
-        if (node.type === 'MemberExpression') {
-            console.log(node)
-            if (node.object?.object?.name === functionParametersName.request &&
-                node.object?.property?.name === 'query' &&
-                node.property?.type === 'Identifier') {
-
-                requestBody.push({
-                    name: node.property.name,
-                    in: 'query',
-                    type: 'string'
-                });
-                console.log()
-            }
-
-            let response = findQueryParameters(node.object, functionParametersName);
-            requestBody = [...requestBody, ...response];
-
-            console.log()
-        } else if (node.type === 'ObjectProperty') {
-            if (node.value?.object?.object?.name === functionParametersName.request &&
-                node.value?.object?.property?.name === 'query' &&
-                node.value?.property.type === 'Identifier') {
-
-                requestBody[node.value.property.name] = {
-                    example: 'any'
-                };
-
-                console.log()
-            }
-            console.log()
-        } else if (node.type === 'ObjectExpression') {
-            for (let idxProperty = 0; idxProperty < node.properties.length; ++idxProperty) {
-                let response = findQueryParameters(node.properties[idxProperty], functionParametersName);
-                requestBody = [...requestBody, ...response];
-                console.log()
-            }
-            console.log()
-        } else if (node.type === 'CallExpression') {
-            console.log(node.callee)
-            let response = findQueryParameters(node.callee, functionParametersName);
-            requestBody = [...requestBody, ...response];
-            // if (node.callee?.property?.name === 'then' && node.arguments?.length > 0) {     // TODO: search in arguments regardless of outcome?
-            for (let idxArgument = 0; idxArgument < node.arguments?.length; ++idxArgument) {
-                response = findQueryParameters(node.arguments[idxArgument], functionParametersName);
-                requestBody = [...requestBody, ...response];
-                console.log()
-            }
-            console.log()
-        } else if (node.type === 'ExpressionStatement') {
-            const response = findQueryParameters(node.expression, functionParametersName);
-            requestBody = [...requestBody, ...response];
-            console.log()
-        } else if (node.type === 'Identifier') {
-            console.log()
-        } else if (node.type === 'VariableDeclarator') {
-            if (node.init?.object?.object?.name === functionParametersName.request &&
-                node.init.object.property?.name === 'query') {
-
-                if (node.init.property.type === 'Identifier') {  // Refact? Call the function?
-                    requestBody.push({
-                        name: node.init.property.name,
-                        in: 'query',
-                        type: 'string'
-                    });
-                }
-                console.log()
-            } else if (node.init?.object?.name === functionParametersName.request &&
-                node.init.property?.name === 'query' &&
-                node.id?.properties?.length > 0) {
-
-                console.log()
-
-                for (let idxProperty = 0; idxProperty < node.id.properties.length; ++idxProperty) {
-                    let property = node.id.properties[idxProperty];
-                    if (property.type === 'ObjectProperty') {
-                        if (property.key.type === 'Identifier') {  // Refact?  Call the function?
-                            requestBody.push({
-                                name: property.key.name,
-                                in: 'query',
-                                type: 'string'
-                            });
-                        }
-                        console.log()
-                    }
-                    console.log()
-                }
-            }
-
-            const response = findQueryParameters(node.init, functionParametersName);
-            requestBody = [...requestBody, ...response];
-        } else if (node.type === 'VariableDeclaration') {
-            for (let idxDeclaration = 0; idxDeclaration < node.declarations?.length; ++idxDeclaration) {
-                const declaration = node.declarations[idxDeclaration];
-                if (declaration.end === 6685) {
-                    console.log()
-                }
-
-                const response = findQueryParameters(declaration, functionParametersName);
-                // requestBody = deepMerge(response, requestBody);
-                requestBody = [...requestBody, ...response];
-                console.log()
-
-            }
-        } else if (node.type === 'ReturnStatement') {
-            const response = findQueryParameters(node.argument, functionParametersName);
-            // requestBody = deepMerge(response, requestBody);
-            requestBody = [...requestBody, ...response];
-            console.log()
-        } else if (node.type === 'BlockStatement') {
-            for (let idxBody = 0; idxBody < node.body.length; ++idxBody) {
-                const bodyNode = node.body[idxBody];
-                const response = findQueryParameters(bodyNode, functionParametersName);
-                // requestBody = deepMerge(response, requestBody);
-                requestBody = [...requestBody, ...response];
-                console.log()
-            }
-            console.log()
-        } else if (node.type === 'ArrowFunctionExpression') {
-            const response = findQueryParameters(node.body, functionParametersName);
-            // requestBody = deepMerge(response, requestBody);
-            requestBody = [...requestBody, ...response];
-            console.log()
-        }
-
-        return requestBody;
-    } catch (err) {
-        return {};
-    }
-}
 
 /**
  * Handling body parameters
  * e.g.: <...> = req.body.<...>
  */
-function findRequestBody(node, functionParametersName) {
-    let requestBody = {};
+function findBodyAttributes(node, functionParametersName) {
+    let body = {};
+
+    if (node.object?.object?.name === functionParametersName.request &&
+        node.object?.property?.name === 'body' &&
+        node.property?.type === 'Identifier') {
+
+        body[node.property.name] = {
+            example: 'any'
+        };
+        console.log()
+    } else if (node.value?.object?.object?.name === functionParametersName.request &&
+        node.value?.object?.property?.name === 'body' &&
+        node.value?.property.type === 'Identifier') {
+
+        body[node.value.property.name] = {
+            example: 'any'
+        };
+
+        console.log()
+    } else if (node.init?.object?.object?.name === functionParametersName.request &&
+        node.init.object.property?.name === 'body') {
+
+        if (node.init.property.type === 'Identifier') {  // Refact? Call the function?
+            body[node.init.property.name] = {
+                example: 'any'
+            };
+        }
+        console.log()
+    } else if (node.init?.object?.name === functionParametersName.request &&
+        node.init.property?.name === 'body' &&
+        node.id?.properties?.length > 0) {
+
+        console.log()
+
+        for (let idxProperty = 0; idxProperty < node.id.properties.length; ++idxProperty) {
+            let property = node.id.properties[idxProperty];
+            if (property.type === 'ObjectProperty') {
+                if (property.key.type === 'Identifier') {  // Refact?  Call the function?
+                    body[property.key.name] = {
+                        example: 'any'
+                    };
+                }
+                console.log()
+            }
+            console.log()
+        }
+    }
+
+    return body;
+}
+
+function findQueryAttributes(node, functionParametersName) {
+    let query = [];
+
+    if (node.object?.object?.name === functionParametersName.request &&
+        node.object?.property?.name === 'query' &&
+        node.property?.type === 'Identifier') {
+
+        query.push({
+            name: node.property.name,
+            in: 'query',
+            type: 'string'
+        });
+        console.log()
+    } else if (node.value?.object?.object?.name === functionParametersName.request &&
+        node.value?.object?.property?.name === 'query' &&
+        node.value?.property.type === 'Identifier') {
+
+        query.push({
+            name: node.value.property.name,
+            in: 'query',
+            type: 'string'
+        });
+
+        console.log()
+    } else if (node.init?.object?.object?.name === functionParametersName.request &&
+        node.init.object.property?.name === 'query') {
+
+        if (node.init.property.type === 'Identifier') {  // Refact? Call the function?
+            query.push({
+                name: node.init.property.name,
+                in: 'query',
+                type: 'string'
+            });
+        }
+        console.log()
+    } else if (node.init?.object?.name === functionParametersName.request &&
+        node.init.property?.name === 'query' &&
+        node.id?.properties?.length > 0) {
+
+        console.log()
+
+        for (let idxProperty = 0; idxProperty < node.id.properties.length; ++idxProperty) {
+            let property = node.id.properties[idxProperty];
+            if (property.type === 'ObjectProperty') {
+                if (property.key.type === 'Identifier') {  // Refact?  Call the function?
+                    query.push({
+                        name: property.key.name,
+                        in: 'query',
+                        type: 'string'
+                    });
+                }
+                console.log()
+            }
+            console.log()
+        }
+    }
+
+    return query;
+
+}
+
+function findAttributes(node, functionParametersName) {
+    let attributes = {
+        body: {},
+        query: []
+    };
     try {
         if (node.end === 3270) {
             console.log(node)
@@ -1429,88 +1410,57 @@ function findRequestBody(node, functionParametersName) {
 
         if (node.type === 'MemberExpression') {
             console.log(node)
-            if (node.object?.object?.name === functionParametersName.request &&
-                node.object?.property?.name === 'body' &&
-                node.property?.type === 'Identifier') {
 
-                requestBody[node.property.name] = {
-                    example: 'any'
-                };
-                console.log()
-            }
+            attributes.body = { ...attributes.body, ...findBodyAttributes(node, functionParametersName) };
+            attributes.query = [...attributes.query, ...findQueryAttributes(node, functionParametersName)];
 
-            let response = findRequestBody(node.object, functionParametersName);
-            requestBody = { ...requestBody, ...response };
+            let response = findAttributes(node.object, functionParametersName);
+            attributes.body = { ...attributes.body, ...response.body };
+            attributes.query = [...attributes.query, ...response.query];
 
             console.log()
         } else if (node.type === 'ObjectProperty') {
-            if (node.value?.object?.object?.name === functionParametersName.request &&
-                node.value?.object?.property?.name === 'body' &&
-                node.value?.property.type === 'Identifier') {
 
-                requestBody[node.value.property.name] = {
-                    example: 'any'
-                };
+            attributes.body = { ...attributes.body, ...findBodyAttributes(node, functionParametersName) };
+            attributes.query = [...attributes.query, ...findQueryAttributes(node, functionParametersName)];
 
-                console.log()
-            }
             console.log()
         } else if (node.type === 'ObjectExpression') {
             for (let idxProperty = 0; idxProperty < node.properties.length; ++idxProperty) {
-                let response = findRequestBody(node.properties[idxProperty], functionParametersName);
-                requestBody = { ...requestBody, ...response };
+                let response = findAttributes(node.properties[idxProperty], functionParametersName);
+                attributes.body = { ...attributes.body, ...response.body };
+                attributes.query = [...attributes.query, ...response.query];
                 console.log()
             }
             console.log()
         } else if (node.type === 'CallExpression') {
             console.log(node.callee)
-            let response = findRequestBody(node.callee, functionParametersName);
-            requestBody = { ...requestBody, ...response };
+            let response = findAttributes(node.callee, functionParametersName);
+            attributes.body = { ...attributes.body, ...response.body };
+            attributes.query = [...attributes.query, ...response.query];
             // if (node.callee?.property?.name === 'then' && node.arguments?.length > 0) {     // TODO: search in arguments regardless of outcome?
             for (let idxArgument = 0; idxArgument < node.arguments?.length; ++idxArgument) {
-                response = findRequestBody(node.arguments[idxArgument], functionParametersName);
-                requestBody = { ...requestBody, ...response };
+                response = findAttributes(node.arguments[idxArgument], functionParametersName);
+                attributes.body = { ...attributes.body, ...response.body };
+                attributes.query = [...attributes.query, ...response.query];
                 console.log()
             }
             console.log()
         } else if (node.type === 'ExpressionStatement') {
-            const response = findRequestBody(node.expression, functionParametersName);
-            requestBody = { ...requestBody, ...response };
+            const response = findAttributes(node.expression, functionParametersName);
+            attributes.body = { ...attributes.body, ...response.body };
+            attributes.query = [...attributes.query, ...response.query];
             console.log()
         } else if (node.type === 'Identifier') {
             console.log()
         } else if (node.type === 'VariableDeclarator') {
-            if (node.init?.object?.object?.name === functionParametersName.request &&
-                node.init.object.property?.name === 'body') {
 
-                if (node.init.property.type === 'Identifier') {  // Refact? Call the function?
-                    requestBody[node.init.property.name] = {
-                        example: 'any'
-                    };
-                }
-                console.log()
-            } else if (node.init?.object?.name === functionParametersName.request &&
-                node.init.property?.name === 'body' &&
-                node.id?.properties?.length > 0) {
+            attributes.body = { ...attributes.body, ...findBodyAttributes(node, functionParametersName) };
+            attributes.query = [...attributes.query, ...findQueryAttributes(node, functionParametersName)];
 
-                console.log()
-
-                for (let idxProperty = 0; idxProperty < node.id.properties.length; ++idxProperty) {
-                    let property = node.id.properties[idxProperty];
-                    if (property.type === 'ObjectProperty') {
-                        if (property.key.type === 'Identifier') {  // Refact?  Call the function?
-                            requestBody[property.key.name] = {
-                                example: 'any'
-                            };
-                        }
-                        console.log()
-                    }
-                    console.log()
-                }
-            }
-
-            const response = findRequestBody(node.init, functionParametersName);
-            requestBody = { ...requestBody, ...response };
+            const response = findAttributes(node.init, functionParametersName);
+            attributes.body = { ...attributes.body, ...response.body };
+            attributes.query = [...attributes.query, ...response.query];
         } else if (node.type === 'VariableDeclaration') {
             for (let idxDeclaration = 0; idxDeclaration < node.declarations?.length; ++idxDeclaration) {
                 const declaration = node.declarations[idxDeclaration];
@@ -1518,87 +1468,42 @@ function findRequestBody(node, functionParametersName) {
                     console.log()
                 }
 
-                const response = findRequestBody(declaration, functionParametersName);
+                const response = findAttributes(declaration, functionParametersName);
                 // requestBody = deepMerge(response, requestBody);
-                requestBody = { ...requestBody, ...response };
+                attributes.body = { ...attributes.body, ...response.body };
+                attributes.query = [...attributes.query, ...response.query];
                 console.log()
 
             }
         } else if (node.type === 'ReturnStatement') {
-            const response = findRequestBody(node.argument, functionParametersName);
+            const response = findAttributes(node.argument, functionParametersName);
             // requestBody = deepMerge(response, requestBody);
-            requestBody = { ...requestBody, ...response };
+            attributes.body = { ...attributes.body, ...response.body };
+            attributes.query = [...attributes.query, ...response.query];
             console.log()
         } else if (node.type === 'BlockStatement') {
             for (let idxBody = 0; idxBody < node.body.length; ++idxBody) {
                 const bodyNode = node.body[idxBody];
-                const response = findRequestBody(bodyNode, functionParametersName);
+                const response = findAttributes(bodyNode, functionParametersName);
                 // requestBody = deepMerge(response, requestBody);
-                requestBody = { ...requestBody, ...response };
+                attributes.body = { ...attributes.body, ...response.body };
+                attributes.query = [...attributes.query, ...response.query];
                 console.log()
             }
             console.log()
         } else if (node.type === 'ArrowFunctionExpression') {
-            const response = findRequestBody(node.body, functionParametersName);
+            const response = findAttributes(node.body, functionParametersName);
             // requestBody = deepMerge(response, requestBody);
-            requestBody = { ...requestBody, ...response };
+            attributes.body = { ...attributes.body, ...response.body };
+            attributes.query = [...attributes.query, ...response.query];
             console.log()
         }
 
-        return requestBody;
+        return attributes;
     } catch (err) {
         return {};
     }
 }
-
-function findRequestBody2(node, functionParametersName) {
-    let requestBody = {};
-
-    // if (node.type === 'ObjectProperty') {
-
-    // } else if (node.type === 'Identifier') {
-
-    // }
-
-    for (let idxDeclaration = 0; idxDeclaration < node.declarations?.length; ++idxDeclaration) {
-        const declaration = node.declarations[idxDeclaration];
-        if (declaration.end === 2562) {
-            console.log()
-        }
-        if (declaration.type === 'VariableDeclarator' &&
-            declaration.init?.object?.object?.name === functionParametersName.request &&
-            declaration.init.object.property?.name === 'body') {
-
-            if (declaration.init.property.type === 'Identifier') {  // Refact
-                requestBody[declaration.init.property.name] = {
-                    example: 'any'
-                };
-            }
-            console.log()
-        } else if (declaration.type === 'VariableDeclarator' &&     // Refact
-            declaration.init?.object?.name === functionParametersName.request &&
-            declaration.init.property?.name === 'body' &&
-            declaration.id?.properties?.length > 0) {
-
-            console.log()
-
-            for (let idxProperty = 0; idxProperty < declaration.id.properties.length; ++idxProperty) {
-                let property = declaration.id.properties[idxProperty];
-                if (property.type === 'ObjectProperty') {
-                    if (property.key.type === 'Identifier') {  // Refact
-                        requestBody[property.key.name] = {
-                            example: 'any'
-                        };
-                    }
-                    console.log()
-                }
-                console.log()
-            }
-        }
-    }
-    return requestBody;
-}
-
 
 function findFunctionParametersName(node) {
     /**
