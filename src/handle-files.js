@@ -1316,6 +1316,42 @@ function findProducesAttributes(node, functionParametersName) {
     return produces;
 }
 
+function findAndMergeAttributes(node, functionParametersName, attributes, response) {
+    let handled = {
+        body: {},
+        query: [],
+        responses: {},
+        produces: []
+    }
+
+    if (!response) {
+        response = { ...handled };
+    }
+
+    handled.body = { ...attributes.body, ...response.body, ...findBodyAttributes(node, functionParametersName) };
+    handled.query = [...attributes.query, ...response.query, ...findQueryAttributes(node, functionParametersName)];
+    handled.responses = { ...attributes.responses, ...response.responses, ...findStatusCodeAttributes(node, functionParametersName) };
+    handled.produces = [...attributes.produces, ...response.produces, ...findProducesAttributes(node, functionParametersName)];
+
+    return handled;
+}
+
+function mergeAttributes(attributes, response) {
+    let handled = {
+        body: {},
+        query: [],
+        responses: {},
+        produces: []
+    }
+
+    handled.body = { ...attributes.body, ...response.body };
+    handled.query = [...attributes.query, ...response.query];
+    handled.responses = { ...attributes.responses, ...response.responses };
+    handled.produces = [...attributes.produces, ...response.produces];
+
+    return handled;
+}
+
 function findAttributes(node, functionParametersName) {
     let attributes = {
         body: {},
@@ -1330,88 +1366,48 @@ function findAttributes(node, functionParametersName) {
 
         if (node.type === 'TryStatement') {
             const blockResponse = findAttributes(node.block, functionParametersName);
-            attributes.body = { ...attributes.body, ...blockResponse.body, ...findBodyAttributes(node, functionParametersName) };
-            attributes.query = [...attributes.query, ...blockResponse.query, ...findQueryAttributes(node, functionParametersName)];
-            attributes.responses = { ...attributes.responses, ...blockResponse.responses, ...findStatusCodeAttributes(node, functionParametersName) };
-            attributes.produces = [...attributes.produces, ...blockResponse.produces, ...findProducesAttributes(node, functionParametersName)];
-
+            attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes }, blockResponse)
             const handlerResponse = findAttributes(node.handler, functionParametersName);
-            attributes.body = { ...attributes.body, ...handlerResponse.body, ...findBodyAttributes(node, functionParametersName) };
-            attributes.query = [...attributes.query, ...handlerResponse.query, ...findQueryAttributes(node, functionParametersName)];
-            attributes.responses = { ...attributes.responses, ...handlerResponse.responses, ...findStatusCodeAttributes(node, functionParametersName) };
-            attributes.produces = [...attributes.produces, ...handlerResponse.produces, ...findProducesAttributes(node, functionParametersName)];
-
+            attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes }, handlerResponse)
             console.log()
         } else if (node.type === 'MemberExpression') {
             console.log(node)
-
-            attributes.body = { ...attributes.body, ...findBodyAttributes(node, functionParametersName) };
-            attributes.query = [...attributes.query, ...findQueryAttributes(node, functionParametersName)];
-            attributes.responses = { ...attributes.responses, ...findStatusCodeAttributes(node, functionParametersName) };
-            attributes.produces = [...attributes.produces, ...findProducesAttributes(node, functionParametersName)];
-
+            attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes })
             let response = findAttributes(node.object, functionParametersName);
-            attributes.body = { ...attributes.body, ...response.body };
-            attributes.query = [...attributes.query, ...response.query];
-            attributes.responses = { ...attributes.responses, ...response.responses };
-            attributes.produces = [...attributes.produces, ...response.produces];
-
+            attributes = mergeAttributes(attributes, response);
             console.log()
         } else if (node.type === 'ObjectProperty') {
-
-            attributes.body = { ...attributes.body, ...findBodyAttributes(node, functionParametersName) };
-            attributes.query = [...attributes.query, ...findQueryAttributes(node, functionParametersName)];
-            attributes.responses = { ...attributes.responses, ...findStatusCodeAttributes(node, functionParametersName) };
-            attributes.produces = [...attributes.produces, ...findProducesAttributes(node, functionParametersName)];
-
+            attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes })
             console.log()
         } else if (node.type === 'ObjectExpression') {
             for (let idxProperty = 0; idxProperty < node.properties.length; ++idxProperty) {
                 let response = findAttributes(node.properties[idxProperty], functionParametersName);
-                attributes.body = { ...attributes.body, ...response.body };
-                attributes.query = [...attributes.query, ...response.query];
-                attributes.responses = { ...attributes.responses, ...response.responses };
-                attributes.produces = [...attributes.produces, ...response.produces];
+                attributes = mergeAttributes(attributes, response);
                 console.log()
             }
             console.log()
         } else if (node.type === 'CallExpression') {
             console.log(node.callee)
             let response = findAttributes(node.callee, functionParametersName);
-            attributes.body = { ...attributes.body, ...response.body };
-            attributes.query = [...attributes.query, ...response.query];
-            attributes.responses = { ...attributes.responses, ...response.responses };
+            attributes = mergeAttributes(attributes, response);
             attributes.produces = [...attributes.produces, ...response.produces, ...findProducesAttributes(node, functionParametersName)];
 
             for (let idxArgument = 0; idxArgument < node.arguments?.length; ++idxArgument) {
                 response = findAttributes(node.arguments[idxArgument], functionParametersName);
-                attributes.body = { ...attributes.body, ...response.body };
-                attributes.query = [...attributes.query, ...response.query];
-                attributes.responses = { ...attributes.responses, ...response.responses };
-                attributes.produces = [...attributes.produces, ...response.produces];
+                attributes = mergeAttributes(attributes, response);
                 console.log()
             }
             console.log()
         } else if (node.type === 'ExpressionStatement') {
             const response = findAttributes(node.expression, functionParametersName);
-            attributes.body = { ...attributes.body, ...response.body };
-            attributes.query = [...attributes.query, ...response.query];
-            attributes.responses = { ...attributes.responses, ...response.responses };
-            attributes.produces = [...attributes.produces, ...response.produces];
+            attributes = mergeAttributes(attributes, response);
             console.log()
         } else if (node.type === 'Identifier') {
             console.log()
         } else if (node.type === 'VariableDeclarator') {
-
-            attributes.body = { ...attributes.body, ...findBodyAttributes(node, functionParametersName) };
-            attributes.query = [...attributes.query, ...findQueryAttributes(node, functionParametersName)];
-            attributes.responses = { ...attributes.responses, ...findStatusCodeAttributes(node, functionParametersName) };
-            attributes.produces = [...attributes.produces, ...findProducesAttributes(node, functionParametersName)];
-
+            attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes })
             const response = findAttributes(node.init, functionParametersName);
-            attributes.body = { ...attributes.body, ...response.body };
-            attributes.query = [...attributes.query, ...response.query];
-            // ??? add responses and produces
+            attributes = mergeAttributes(attributes, response);
         } else if (node.type === 'VariableDeclaration') {
             for (let idxDeclaration = 0; idxDeclaration < node.declarations?.length; ++idxDeclaration) {
                 const declaration = node.declarations[idxDeclaration];
@@ -1420,37 +1416,24 @@ function findAttributes(node, functionParametersName) {
                 }
 
                 const response = findAttributes(declaration, functionParametersName);
-                attributes.body = { ...attributes.body, ...response.body };
-                attributes.query = [...attributes.query, ...response.query];
-                attributes.responses = { ...attributes.responses, ...response.responses };
-                attributes.produces = [...attributes.produces, ...response.produces];
+                attributes = mergeAttributes(attributes, response);
                 console.log()
-
             }
         } else if (node.type === 'ReturnStatement') {
             const response = findAttributes(node.argument, functionParametersName);
-            attributes.body = { ...attributes.body, ...response.body };
-            attributes.query = [...attributes.query, ...response.query];
-            attributes.responses = { ...attributes.responses, ...response.responses };
-            attributes.produces = [...attributes.produces, ...response.produces];
+            attributes = mergeAttributes(attributes, response);
             console.log()
         } else if (node.type === 'BlockStatement') {
             for (let idxBody = 0; idxBody < node.body.length; ++idxBody) {
                 const bodyNode = node.body[idxBody];
                 const response = findAttributes(bodyNode, functionParametersName);
-                attributes.body = { ...attributes.body, ...response.body };
-                attributes.query = [...attributes.query, ...response.query];
-                attributes.responses = { ...attributes.responses, ...response.responses };
-                attributes.produces = [...attributes.produces, ...response.produces];
+                attributes = mergeAttributes(attributes, response);
                 console.log()
             }
             console.log()
         } else if (['CatchClause', 'ArrowFunctionExpression'].includes(node.type)) {
             const response = findAttributes(node.body, functionParametersName);
-            attributes.body = { ...attributes.body, ...response.body };
-            attributes.query = [...attributes.query, ...response.query];
-            attributes.responses = { ...attributes.responses, ...response.responses };
-            attributes.produces = [...attributes.produces, ...response.produces];
+            attributes = mergeAttributes(attributes, response);
             console.log()
         }
 
