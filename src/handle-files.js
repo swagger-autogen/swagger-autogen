@@ -203,7 +203,7 @@ async function processAST(ast, props) {
 
             path = formatPath(path);
 
-            if (path.includes('/body_auto_and_increase_001')) {
+            if (path.includes('/body_ignored_schema_direct')) {
                 console.log()
             }
 
@@ -215,7 +215,7 @@ async function processAST(ast, props) {
 
             const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
 
-            if (path.includes('/body_auto_and_increase_001')) {
+            if (path.includes('/body_ignored_schema_direct')) {
                 console.log()
             }
 
@@ -403,15 +403,27 @@ async function handleRequestMethodParameters(ast, props) {
             // Swagger 2.0
             const idxParameter = endpoint.parameters.findIndex(p => p.in?.toLowerCase() === 'body');
 
-            endpoint.parameters.push({
+            let parameter = {
                 name: 'body',
                 in: 'body',
+                description: '',
                 schema: {
                     type: 'object',
                     properties: { ...requestBody }
                 },
                 ...endpoint.parameters[idxParameter] || {}
-            });
+            };
+
+            parameter = sanitizeParameter({ ...parameter })
+
+            /**
+             * Format schema put directly.
+             * e.g. schema: { $name: "Jhon Doe", age: 29 }
+             */
+            if (Object.keys(parameter.schema).length > 1 && !parameter.schema.properties) {
+                parameter.schema = swaggerTags.formatDefinitions(parameter.schema);
+            }
+            endpoint.parameters.push(parameter);
 
             if (idxParameter > -1) {
                 endpoint.parameters.splice(idxParameter, 1)
@@ -918,6 +930,10 @@ function sanitizeParameter(object) {
     try {
         if (sanitizedObject.in?.toLowerCase() === 'body' && sanitizedObject.type) {
             delete sanitizedObject.type;
+        }
+
+        if (sanitizedObject.description === '') {
+            delete sanitizedObject.description;
         }
     } catch (err) {
         return object;
