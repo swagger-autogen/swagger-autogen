@@ -385,10 +385,10 @@ async function handleRequestMethodParameters(ast, props) {
 
     // Eliminate duplicated objects
     endpoint.parameters = endpoint.parameters.filter((value, index, self) =>
-    index === self.findIndex((p) => (
-        p.name === value.name && p.in === value.in
-    ))
-)
+        index === self.findIndex((p) => (
+            p.name === value.name && p.in === value.in
+        ))
+    )
 
     if (ast.end === 798) {
         console.log()
@@ -1192,8 +1192,8 @@ function findStatusCode(node, functionParametersName) {
 
     console.log(node)
 
-    if (node.end === 2808) {
-        console.log()
+    if (node.end === 6852) {
+        console.log() 
     }
 
     if (node.type === 'TryStatement') {
@@ -1230,37 +1230,49 @@ function findStatusCode(node, functionParametersName) {
         const response = findStatusCode(node.expression, functionParametersName);
         responses = { ...responses, ...response };
         console.log()
-    }
+    } else if (node.type === 'MemberExpression') {
+        /**
+         * Handling status code
+         * e.g.: const foo = res.status(...).<...>
+         */
+        if (node.object?.callee?.object?.name == functionParametersName.response &&
+            node.object.callee.property?.name === 'status') { // TODO: handle other cases such as: 
 
-    /**
-     * Handling status code
-     * e.g.: const foo = res.status(...).<...>
-     */
-    else if (node.type === 'MemberExpression' &&
-        node.object?.callee?.object?.name == functionParametersName.response &&
-        node.object.callee.property?.name === 'status') { // TODO: handle other cases such as: 
+            if (node.object.arguments[0].type === 'NumericLiteral') {
+                const statusCode = node.object.arguments[0].extra.raw;
+                if (swaggerTags.getOpenAPI()) { // TODO: improve this. put in a better place
+                    // TODO: handle it
+                    console.log()
+                } else {
+                    // Swagger 2.0
+                    responses[statusCode] = {
+                        description: tables.getStatusCodeDescription(statusCode, swaggerTags.getLanguage())
+                    };
+                    console.log()
+                }
 
-        if (node.object.arguments[0].type === 'NumericLiteral') {
-            const statusCode = node.object.arguments[0].extra.raw;
+                console.log()
+            } else {
+                // TODO: handle it
+                console.log()
+            }
+        } else if (node.object?.name == functionParametersName.response &&
+            node.property?.name === 'json') { // TODO: handle other cases such as: 
+
             if (swaggerTags.getOpenAPI()) { // TODO: improve this. put in a better place
                 // TODO: handle it
                 console.log()
             } else {
                 // Swagger 2.0
+                let statusCode = 200;
                 responses[statusCode] = {
                     description: tables.getStatusCodeDescription(statusCode, swaggerTags.getLanguage())
                 };
                 console.log()
             }
-
-            console.log()
-        } else {
-            // TODO: handle it
             console.log()
         }
-
         console.log()
-
     }
 
     return responses;
