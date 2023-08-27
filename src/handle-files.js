@@ -547,7 +547,7 @@ async function findCallbackFunction(node, props) {
             let attributes = findAttributes(bodyNode, functionParametersName)
             callback.requestBody = { ...callback.requestBody, ...attributes.body };
             callback.queryParameters = [...callback.queryParameters, ...attributes.query];
-            callback.responses = { ...callback.responses, ...findStatusCode(bodyNode, functionParametersName) };
+            callback.responses = { ...callback.responses, ...attributes.responses };
             callback.produces = [...callback.produces, ...findProduces(bodyNode, functionParametersName)];
             callback.comments += findComments(bodyNode);
             console.log()
@@ -1188,97 +1188,6 @@ function findProduces(node, functionParametersName) {
     return produces;
 }
 
-function findStatusCode(node, functionParametersName) {
-    let responses = {};
-
-    console.log(node)
-
-    if (node.end === 6852) {
-        console.log()
-    }
-
-    if (node.type === 'TryStatement') {
-        const blockResponse = findStatusCode(node.block, functionParametersName);
-        const handlerResponse = findStatusCode(node.handler, functionParametersName);
-        responses = { ...responses, ...blockResponse, ...handlerResponse };
-        console.log()
-    } else if (node.type === 'BlockStatement') {
-        for (let idxBody = 0; idxBody < node.body.length; ++idxBody) { // TODO: pass to BlockStatement
-            const bodyNode = node.body[idxBody];
-            const response = findStatusCode(bodyNode, functionParametersName);
-            responses = { ...responses, ...response };
-            console.log()
-        }
-        console.log()
-    } else if (['CatchClause', 'ArrowFunctionExpression'].includes(node.type)) {
-        const response = findStatusCode(node.body, functionParametersName);
-        responses = { ...responses, ...response };
-        console.log()
-    } else if (node.type === 'ReturnStatement') {
-        const response = findStatusCode(node.argument, functionParametersName);
-        responses = { ...responses, ...response };
-        console.log()
-    } else if (node.type === 'CallExpression') {
-        const response = findStatusCode(node.callee, functionParametersName);
-        responses = { ...responses, ...response };
-        if (node.callee?.property?.name === 'then' && node.arguments?.length > 0) {
-            let response = findStatusCode(node.arguments[0], functionParametersName);
-            responses = { ...responses, ...response };
-            console.log()
-        }
-        console.log()
-    } else if (node.type === 'ExpressionStatement') {
-        const response = findStatusCode(node.expression, functionParametersName);
-        responses = { ...responses, ...response };
-        console.log()
-    } else if (node.type === 'MemberExpression') {
-        /**
-         * Handling status code
-         * e.g.: const foo = res.status(...).<...>
-         */
-        if (node.object?.callee?.object?.name == functionParametersName.response &&
-            node.object.callee.property?.name === 'status') { // TODO: handle other cases such as: 
-
-            if (node.object.arguments[0].type === 'NumericLiteral') {
-                const statusCode = node.object.arguments[0].extra.raw;
-                if (swaggerTags.getOpenAPI()) { // TODO: improve this. put in a better place
-                    // TODO: handle it
-                    console.log()
-                } else {
-                    // Swagger 2.0
-                    responses[statusCode] = {
-                        description: tables.getStatusCodeDescription(statusCode, swaggerTags.getLanguage())
-                    };
-                    console.log()
-                }
-
-                console.log()
-            } else {
-                // TODO: handle it
-                console.log()
-            }
-        } else if (node.object?.name == functionParametersName.response &&
-            node.property?.name === 'json') { // TODO: handle other cases such as: 
-
-            if (swaggerTags.getOpenAPI()) { // TODO: improve this. put in a better place
-                // TODO: handle it
-                console.log()
-            } else {
-                // Swagger 2.0
-                let statusCode = 200;
-                responses[statusCode] = {
-                    description: tables.getStatusCodeDescription(statusCode, swaggerTags.getLanguage())
-                };
-                console.log()
-            }
-            console.log()
-        }
-        console.log()
-    }
-
-    return responses;
-}
-
 
 
 /**
@@ -1398,31 +1307,95 @@ function findQueryAttributes(node, functionParametersName) {
 
 }
 
+/**
+ * Handling status code
+ * e.g.: const foo = res.status(...).<...>
+ */
+function findStatusCodeAttributes(node, functionParametersName) {
+    let responses = {};
+
+    if (node.object?.callee?.object?.name == functionParametersName.response &&
+        node.object.callee.property?.name === 'status') { // TODO: handle other cases such as: 
+
+        if (node.object.arguments[0].type === 'NumericLiteral') {
+            const statusCode = node.object.arguments[0].extra.raw;
+            if (swaggerTags.getOpenAPI()) { // TODO: improve this. put in a better place
+                // TODO: handle it
+                console.log()
+            } else {
+                // Swagger 2.0
+                responses[statusCode] = {
+                    description: tables.getStatusCodeDescription(statusCode, swaggerTags.getLanguage())
+                };
+                console.log()
+            }
+
+            console.log()
+        } else {
+            // TODO: handle it
+            console.log()
+        }
+    } else if (node.object?.name == functionParametersName.response &&
+        node.property?.name === 'json') { // TODO: handle other cases such as: 
+
+        if (swaggerTags.getOpenAPI()) { // TODO: improve this. put in a better place
+            // TODO: handle it
+            console.log()
+        } else {
+            // Swagger 2.0
+            let statusCode = 200;
+            responses[statusCode] = {
+                description: tables.getStatusCodeDescription(statusCode, swaggerTags.getLanguage())
+            };
+            console.log()
+        }
+        console.log()
+    }
+
+    return responses;
+}
+
 function findAttributes(node, functionParametersName) {
     let attributes = {
         body: {},
-        query: []
+        query: [],
+        responses: {}
     };
     try {
         if (node.end === 3270) {
             console.log(node)
         }
 
-        if (node.type === 'MemberExpression') {
+        if (node.type === 'TryStatement') {
+            const blockResponse = findAttributes(node.block, functionParametersName);
+            attributes.body = { ...attributes.body, ...blockResponse.body, ...findBodyAttributes(node, functionParametersName) };
+            attributes.query = [...attributes.query, ...blockResponse.query, ...findQueryAttributes(node, functionParametersName)];
+            attributes.responses = { ...attributes.responses, ...blockResponse.responses, ...findStatusCodeAttributes(node, functionParametersName) };
+
+            const handlerResponse = findAttributes(node.handler, functionParametersName);
+            attributes.body = { ...attributes.body, ...handlerResponse.body, ...findBodyAttributes(node, functionParametersName) };
+            attributes.query = [...attributes.query, ...handlerResponse.query, ...findQueryAttributes(node, functionParametersName)];
+            attributes.responses = { ...attributes.responses, ...handlerResponse.responses, ...findStatusCodeAttributes(node, functionParametersName) };
+
+            console.log()
+        } else if (node.type === 'MemberExpression') {
             console.log(node)
 
             attributes.body = { ...attributes.body, ...findBodyAttributes(node, functionParametersName) };
             attributes.query = [...attributes.query, ...findQueryAttributes(node, functionParametersName)];
+            attributes.responses = { ...attributes.responses, ...findStatusCodeAttributes(node, functionParametersName) };
 
             let response = findAttributes(node.object, functionParametersName);
             attributes.body = { ...attributes.body, ...response.body };
             attributes.query = [...attributes.query, ...response.query];
+            attributes.responses = { ...attributes.responses, ...response.responses };
 
             console.log()
         } else if (node.type === 'ObjectProperty') {
 
             attributes.body = { ...attributes.body, ...findBodyAttributes(node, functionParametersName) };
             attributes.query = [...attributes.query, ...findQueryAttributes(node, functionParametersName)];
+            attributes.responses = { ...attributes.responses, ...findStatusCodeAttributes(node, functionParametersName) };
 
             console.log()
         } else if (node.type === 'ObjectExpression') {
@@ -1430,6 +1403,7 @@ function findAttributes(node, functionParametersName) {
                 let response = findAttributes(node.properties[idxProperty], functionParametersName);
                 attributes.body = { ...attributes.body, ...response.body };
                 attributes.query = [...attributes.query, ...response.query];
+                attributes.responses = { ...attributes.responses, ...response.responses };
                 console.log()
             }
             console.log()
@@ -1438,11 +1412,13 @@ function findAttributes(node, functionParametersName) {
             let response = findAttributes(node.callee, functionParametersName);
             attributes.body = { ...attributes.body, ...response.body };
             attributes.query = [...attributes.query, ...response.query];
+            attributes.responses = { ...attributes.responses, ...response.responses };
             // if (node.callee?.property?.name === 'then' && node.arguments?.length > 0) {     // TODO: search in arguments regardless of outcome?
             for (let idxArgument = 0; idxArgument < node.arguments?.length; ++idxArgument) {
                 response = findAttributes(node.arguments[idxArgument], functionParametersName);
                 attributes.body = { ...attributes.body, ...response.body };
                 attributes.query = [...attributes.query, ...response.query];
+                attributes.responses = { ...attributes.responses, ...response.responses };
                 console.log()
             }
             console.log()
@@ -1450,6 +1426,7 @@ function findAttributes(node, functionParametersName) {
             const response = findAttributes(node.expression, functionParametersName);
             attributes.body = { ...attributes.body, ...response.body };
             attributes.query = [...attributes.query, ...response.query];
+            attributes.responses = { ...attributes.responses, ...response.responses };
             console.log()
         } else if (node.type === 'Identifier') {
             console.log()
@@ -1457,6 +1434,7 @@ function findAttributes(node, functionParametersName) {
 
             attributes.body = { ...attributes.body, ...findBodyAttributes(node, functionParametersName) };
             attributes.query = [...attributes.query, ...findQueryAttributes(node, functionParametersName)];
+            attributes.responses = { ...attributes.responses, ...findStatusCodeAttributes(node, functionParametersName) };
 
             const response = findAttributes(node.init, functionParametersName);
             attributes.body = { ...attributes.body, ...response.body };
@@ -1472,6 +1450,7 @@ function findAttributes(node, functionParametersName) {
                 // requestBody = deepMerge(response, requestBody);
                 attributes.body = { ...attributes.body, ...response.body };
                 attributes.query = [...attributes.query, ...response.query];
+                attributes.responses = { ...attributes.responses, ...response.responses };
                 console.log()
 
             }
@@ -1480,6 +1459,7 @@ function findAttributes(node, functionParametersName) {
             // requestBody = deepMerge(response, requestBody);
             attributes.body = { ...attributes.body, ...response.body };
             attributes.query = [...attributes.query, ...response.query];
+            attributes.responses = { ...attributes.responses, ...response.responses };
             console.log()
         } else if (node.type === 'BlockStatement') {
             for (let idxBody = 0; idxBody < node.body.length; ++idxBody) {
@@ -1488,14 +1468,16 @@ function findAttributes(node, functionParametersName) {
                 // requestBody = deepMerge(response, requestBody);
                 attributes.body = { ...attributes.body, ...response.body };
                 attributes.query = [...attributes.query, ...response.query];
+                attributes.responses = { ...attributes.responses, ...response.responses };
                 console.log()
             }
             console.log()
-        } else if (node.type === 'ArrowFunctionExpression') {
+        } else if (['CatchClause', 'ArrowFunctionExpression'].includes(node.type)) {
             const response = findAttributes(node.body, functionParametersName);
             // requestBody = deepMerge(response, requestBody);
             attributes.body = { ...attributes.body, ...response.body };
             attributes.query = [...attributes.query, ...response.query];
+            attributes.responses = { ...attributes.responses, ...response.responses };
             console.log()
         }
 
