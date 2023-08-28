@@ -117,7 +117,7 @@ async function processAST(ast, props) {
             props.scopeStack.pop();
             processedAst.imports.forEach(imp => props.imports.add(imp));
             props.paths = deepMerge(props.paths, processedAst.paths);
-            props.inheritedProperties = processedAst.inheritedProperties;// ? processedAst.inheritedProperties : null;
+            props.inheritedProperties = processedAst.inheritedProperties;
             console.log()
         }
         return props;
@@ -129,15 +129,10 @@ async function processAST(ast, props) {
         props.paths = deepMerge(props.paths, processedAst.paths);
         return props;
     } else if (ast.type === 'MemberExpression') {
-        if (ast?.object?.callee?.property?.type === 'Identifier' &&
-            ast?.object?.callee?.property?.name === 'use') {
-
-            console.log()
-        }
         const processedAst = await processAST(ast.object, { ...props });
         processedAst.imports.forEach(imp => props.imports.add(imp));
         props.paths = deepMerge(props.paths, processedAst.paths);
-        props.inheritedProperties = processedAst.inheritedProperties; // ? processedAst.inheritedProperties : null;
+        props.inheritedProperties = processedAst.inheritedProperties;
         return props;
     }
 
@@ -180,6 +175,7 @@ async function processAST(ast, props) {
                 if (ast.end === 607) {
                     console.log()
                 }
+
                 props.isLinkedMethod = true;
                 const processedAst = await processAST(ast.callee, { ...props });
                 props.paths = deepMerge(props.paths, processedAst.paths);
@@ -258,27 +254,8 @@ function findPathParameters(path) {
     try {
         path.split('/{').slice(1).forEach(subPath => {
             // TODO: handle paths that use regex
-
             let parameterName = subPath.split('}')[0];
-            pathParameters.push()
-            if (swaggerTags.getOpenAPI()) {
-                // Checks if the parameter name already exists
-                pathParameters.push({
-                    name: parameterName,
-                    in: 'path',
-                    required: true,
-                    schema: {
-                        type: 'string'
-                    }
-                })
-            } else {
-                pathParameters.push({
-                    name: parameterName,
-                    in: 'path',
-                    required: true,
-                    type: 'string'
-                });
-            }
+            pathParameters = buildPathParameter(parameterName, pathParameters);
         });
     } catch (err) {
         return [];
@@ -462,7 +439,6 @@ async function findCallbackFunction(node, props) {
      * app.get(..., someFunction(...), ...)
      */
 
-
     if (node.end === 672) {
         console.log()
     }
@@ -586,6 +562,7 @@ async function findCallbackFunction(node, props) {
         if (node.end === 2032) {
             console.log()
         }
+
         let route = imports.find(imp => imp.variableName === node.object?.name);
         let functionName = null;
 
@@ -1042,7 +1019,6 @@ async function handleMiddleware(ast, props) {
     return props;
 }
 
-
 async function findImports(ast, props) {
     let imports = [];
     /**
@@ -1128,30 +1104,53 @@ function isRoute(ast) {
     return !!(ast?.callee?.property?.name === 'route');
 }
 
-function handleBody(name, body) {
-    let handledBody = { ...body };
-    handledBody[name] = {
-        example: 'any'
-    };
-    return handledBody;
+function buildPathParameter(name, pathParameters) {
+    let builtPathParameters = [...pathParameters];
+    if (swaggerTags.getOpenAPI()) {
+        builtPathParameters.push({
+            name: name,
+            in: 'path',
+            required: true,
+            schema: {
+                type: 'string'
+            }
+        });
+    } else {
+        builtPathParameters.push({
+            name: name,
+            in: 'path',
+            required: true,
+            type: 'string'
+        });
+    }
+
+    return builtPathParameters;
 }
 
-function handleQuery(name, query) {
-    let handledQuery = [...query];
-    handledQuery.push({
+function buildBodyParamter(name, body) {
+    let builtBody = { ...body };
+    builtBody[name] = {
+        example: 'any'
+    };
+    return builtBody;
+}
+
+function buildQueryParameter(name, query) {
+    let buildQuery = [...query];
+    buildQuery.push({
         name: name,
         in: 'query',
         type: 'string'
     });
-    return handledQuery;
+    return buildQuery;
 }
 
-function handleResponses(statusCode, responses) {
-    let handledResponses = { ...responses };
-    handledResponses[statusCode] = {
+function buildResponsesParameter(statusCode, responses) {
+    let builtResponses = { ...responses };
+    builtResponses[statusCode] = {
         description: tables.getStatusCodeDescription(statusCode, swaggerTags.getLanguage())
     };
-    return handledResponses;
+    return builtResponses;
 }
 
 /**
@@ -1165,19 +1164,19 @@ function findBodyAttributes(node, functionParametersName) {
         node.object?.property?.name === 'body' &&
         node.property?.type === 'Identifier') {
 
-        body = handleBody(node.property.name, body);
+        body = buildBodyParamter(node.property.name, body);
         console.log()
     } else if (node.value?.object?.object?.name === functionParametersName.request &&
         node.value?.object?.property?.name === 'body' &&
         node.value?.property.type === 'Identifier') {
 
-        body = handleBody(node.value.property.name, body);
+        body = buildBodyParamter(node.value.property.name, body);
         console.log()
     } else if (node.init?.object?.object?.name === functionParametersName.request &&
         node.init.object.property?.name === 'body' &&
         node.init.property.type === 'Identifier') {
 
-        body = handleBody(node.init.property.name, body);
+        body = buildBodyParamter(node.init.property.name, body);
         console.log()
     } else if (node.init?.object?.name === functionParametersName.request &&
         node.init.property?.name === 'body' &&
@@ -1185,7 +1184,7 @@ function findBodyAttributes(node, functionParametersName) {
         for (let idxProperty = 0; idxProperty < node.id.properties.length; ++idxProperty) {
             let property = node.id.properties[idxProperty];
             if (property.type === 'ObjectProperty' && property.key.type === 'Identifier') {
-                body = handleBody(property.key.name, body);
+                body = buildBodyParamter(property.key.name, body);
                 console.log()
             }
             console.log()
@@ -1202,18 +1201,18 @@ function findQueryAttributes(node, functionParametersName) {
         node.object?.property?.name === 'query' &&
         node.property?.type === 'Identifier') {
 
-        query = handleQuery(node.property.name, query);
+        query = buildQueryParameter(node.property.name, query);
         console.log()
     } else if (node.value?.object?.object?.name === functionParametersName.request &&
         node.value?.object?.property?.name === 'query' &&
         node.value?.property.type === 'Identifier') {
 
-        query = handleQuery(node.value.property.name, query);
+        query = buildQueryParameter(node.value.property.name, query);
         console.log()
     } else if (node.init?.object?.object?.name === functionParametersName.request &&
         node.init.object.property?.name === 'query' &&
         node.init.property.type === 'Identifier') {
-        query = handleQuery(node.init.property.name, query);
+        query = buildQueryParameter(node.init.property.name, query);
         console.log()
     } else if (node.init?.object?.name === functionParametersName.request &&
         node.init.property?.name === 'query' &&
@@ -1221,7 +1220,7 @@ function findQueryAttributes(node, functionParametersName) {
         for (let idxProperty = 0; idxProperty < node.id.properties.length; ++idxProperty) {
             let property = node.id.properties[idxProperty];
             if (property.type === 'ObjectProperty' && property.key.type === 'Identifier') {
-                query = handleQuery(property.key.name, query);
+                query = buildQueryParameter(property.key.name, query);
                 console.log()
             }
             console.log()
@@ -1248,7 +1247,7 @@ function findStatusCodeAttributes(node, functionParametersName) {
                 console.log()
             } else {
                 // Swagger 2.0
-                responses = handleResponses(statusCode, responses);
+                responses = buildResponsesParameter(statusCode, responses);
                 console.log()
             }
             console.log()
@@ -1264,7 +1263,7 @@ function findStatusCodeAttributes(node, functionParametersName) {
             console.log()
         } else {
             // Swagger 2.0
-            responses = handleResponses(200, responses);
+            responses = buildResponsesParameter(200, responses);
             console.log()
         }
         console.log()
@@ -1290,7 +1289,6 @@ function findProducesAttributes(node, functionParametersName) {
         }
 
         console.log()
-
     }
 
     return produces;
