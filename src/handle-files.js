@@ -21,7 +21,7 @@ const overwriteMerge = (destinationArray, sourceArray, options) => {
 
 // TODO: implement cache system to functions, e.g. sentToCache('/filePath', 'functionName') and always find in the cache. When it found, save in the cache. 
 // Becaution about local function. Try to find localy and after in the cache and afer try to find in other file, maybe.
-
+// TODO: create option (maybe  'contentResponseType') for default 'content' to responses. Default: ['json'], but it's possible add more value such as: ['json', 'xml', ...]
 
 const recast = require('recast');
 const tsParser = require("recast/parsers/typescript");
@@ -42,7 +42,6 @@ function getAstFromFile(filePath, props = {}) {
                     parser: tsParser
                 });
 
-                console.log(ast);
                 const properties = {
                     ...props,
                     astRoot: ast,
@@ -54,7 +53,7 @@ function getAstFromFile(filePath, props = {}) {
                     scopeStack: []
                 };
 
-                console.log()
+                var debug = null;
                 return resolve({ ast: ast.program, props: properties });
 
             } catch (err) {
@@ -79,7 +78,6 @@ function processFile(filePath, props = {}) {
                     parser: tsParser
                 });
 
-                console.log(ast);
                 const response = await processAST(ast.program, {
                     astRoot: ast,
                     paths: {},
@@ -91,7 +89,7 @@ function processFile(filePath, props = {}) {
                     ...props
                 });
                 response.imports = new Set();
-                console.log()
+                var debug = null;
                 return resolve(response);
 
             } catch (err) {
@@ -107,10 +105,10 @@ async function processAST(ast, props) {
 
     let endpoint = {};
 
-    if (ast.body) {
+    if (ast.type === 'Program') {
         for (let bodyIdx = 0; bodyIdx < ast.body.length; ++bodyIdx) {
             if (bodyIdx === 11) {
-                console.log()
+                var debug = null;
             }
             props.scopeStack.push(ast);
             const processedAst = await processAST(ast.body[bodyIdx], { ...props });
@@ -118,12 +116,10 @@ async function processAST(ast, props) {
             processedAst.imports.forEach(imp => props.imports.add(imp));
             props.paths = deepMerge(props.paths, processedAst.paths);
             props.inheritedProperties = processedAst.inheritedProperties;
-            console.log()
+            var debug = null;
         }
         return props;
-    }
-
-    if (ast.type === 'ExpressionStatement') {
+    } else if (ast.type === 'ExpressionStatement') {
         const processedAst = await processAST(ast.expression, { ...props });
         processedAst.imports.forEach(imp => props.imports.add(imp));
         props.paths = deepMerge(props.paths, processedAst.paths);
@@ -133,6 +129,31 @@ async function processAST(ast, props) {
         processedAst.imports.forEach(imp => props.imports.add(imp));
         props.paths = deepMerge(props.paths, processedAst.paths);
         props.inheritedProperties = processedAst.inheritedProperties;
+        return props;
+    } else if (ast.type === 'AssignmentExpression') {
+        if (isModuleExports(ast)) {
+            const processedAst = await processAST(ast.right, { ...props });
+            processedAst.imports.forEach(imp => props.imports.add(imp));
+            props.paths = deepMerge(props.paths, processedAst.paths);
+            props.inheritedProperties = processedAst.inheritedProperties;
+        }
+        return props;
+    } else if (ast.type === 'FunctionExpression') {
+        const processedAst = await processAST(ast.body, { ...props });
+        processedAst.imports.forEach(imp => props.imports.add(imp));
+        props.paths = deepMerge(props.paths, processedAst.paths);
+        props.inheritedProperties = processedAst.inheritedProperties;
+        return props;
+    } else if (ast.type === 'BlockStatement') {
+        props.scopeStack.push(ast);
+        for (let bodyIdx = 0; bodyIdx < ast.body.length; ++bodyIdx) {
+            const processedAst = await processAST(ast.body[bodyIdx], { ...props });
+            processedAst.imports.forEach(imp => props.imports.add(imp));
+            props.paths = deepMerge(props.paths, processedAst.paths);
+            props.inheritedProperties = processedAst.inheritedProperties;
+            var debug = null;
+        }
+        props.scopeStack.pop();
         return props;
     }
 
@@ -153,7 +174,7 @@ async function processAST(ast, props) {
             }
 
             if (ast.end === 2043) {
-                console.log()
+                var debug = null;
             }
 
             /**
@@ -162,29 +183,29 @@ async function processAST(ast, props) {
              */
             if (ast.callee?.object?.type === 'CallExpression') {
                 if (ast.end === 146) {
-                    console.log()
+                    var debug = null;
                 }
 
                 if (ast.callee?.object?.callee?.property?.type === 'Identifier' &&
                     ast.callee?.object?.callee?.property?.name === 'use') {
                     const callbackFunction = await findCallbackFunction(ast.callee?.object?.arguments[0], props);
                     props.inheritedProperties = callbackFunction;
-                    console.log()
+                    var debug = null;
                 }
 
                 if (ast.end === 607) {
-                    console.log()
+                    var debug = null;
                 }
 
                 props.isLinkedMethod = true;
                 const processedAst = await processAST(ast.callee, { ...props });
                 props.paths = deepMerge(props.paths, processedAst.paths);
                 props.inheritedProperties = deepMerge(props.inheritedProperties || {}, processedAst.inheritedProperties || {});
-                console.log()
+                var debug = null;
             }
 
             if (ast.end === 607) {
-                console.log()
+                var debug = null;
             }
 
             let path = findPath(ast) || props.inheritedProperties?.path;
@@ -200,7 +221,7 @@ async function processAST(ast, props) {
             path = formatPath(path);
 
             if (path.includes('/me')) {
-                console.log()
+                var debug = null;
             }
 
             endpoint = createEndpoint(path, method, { ...endpoint });
@@ -212,7 +233,7 @@ async function processAST(ast, props) {
             const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
 
             if (path.includes('/me')) {
-                console.log()
+                var debug = null;
             }
 
             endpoint[path][method] = { ...endpoint[path][method], ...handledParameters };
@@ -224,7 +245,7 @@ async function processAST(ast, props) {
             endpoint[path][method] = deleteUnusedProperties({ ...endpoint[path][method] });
 
 
-            console.log()
+            var debug = null;
         } else if (isRoute(ast) && props.isLinkedMethod) {
             /**
              * Request method linked with route function
@@ -234,10 +255,10 @@ async function processAST(ast, props) {
                 path: findPath(ast)
             };
 
-            console.log()
+            var debug = null;
         } else {
             // TODO: handle it 
-            console.log()
+            var debug = null;
         }
     }
 
@@ -298,7 +319,7 @@ function deleteUnusedProperties(endpoint) {
             } else if (value !== undefined) {
                 sanitizedEntpoint[key] = value;
             }
-            console.log()
+            var debug = null;
         })
 
     } catch (err) {
@@ -357,7 +378,7 @@ async function handleRequestMethodParameters(ast, props) {
         }
         endpoint.responses = { ...endpoint.responses, ...callbackFunction.responses };
         comments += callbackFunction.comments;
-        console.log()
+        var debug = null;
     }
 
     // Eliminate duplicated objects
@@ -368,7 +389,7 @@ async function handleRequestMethodParameters(ast, props) {
     )
 
     if (ast.end === 798) {
-        console.log()
+        var debug = null;
     }
 
     if (/#swagger\s*\./.test(comments)) {
@@ -377,13 +398,13 @@ async function handleRequestMethodParameters(ast, props) {
             delete endpoint.responses.default;
         }
         endpoint = deepMerge({ ...endpoint }, { ...handledComments })
-        console.log()
+        var debug = null;
     }
 
     if (Object.keys(requestBody).length > 0) {
         if (swaggerTags.getOpenAPI()) { // TODO: improve this. put in a better place
             // TODO: handle it
-            console.log()
+            var debug = null;
         } else {
             // Swagger 2.0
             const idxParameter = endpoint.parameters.findIndex(p => p.in?.toLowerCase() === 'body');
@@ -414,11 +435,11 @@ async function handleRequestMethodParameters(ast, props) {
                 endpoint.parameters.splice(idxParameter, 1)
             }
 
-            console.log()
+            var debug = null;
         }
     }
 
-    console.log()
+    var debug = null;
     return endpoint;
 }
 
@@ -440,7 +461,7 @@ async function findCallbackFunction(node, props) {
      */
 
     if (node.end === 672) {
-        console.log()
+        var debug = null;
     }
 
     if (node.type === 'Program') {
@@ -449,27 +470,22 @@ async function findCallbackFunction(node, props) {
 
             if (!props.externalAst) {
                 const processedAst = await findCallbackFunction(body, { ...props });
-                console.log()
                 if (!isObjectEmpty(processedAst)) {
-                    console.log()
                     return processedAst;
                 }
-                console.log()
+                var debug = null;
             } else if (isModuleExports(body)) {
                 /**
                  * Searching for module.exports = ...
                  */
                 const processedAst = await findCallbackFunction(body, { ...props, scopeStack: [node] });
-                console.log()
                 if (!isObjectEmpty(processedAst)) {
-                    console.log()
                     return processedAst;
                 }
-                console.log()
-
+                var debug = null;
             }
 
-            console.log()
+            var debug = null;
         }
     } else if (node.type === 'ExpressionStatement') {
         const processedAst = await findCallbackFunction(node.expression, { ...props });
@@ -479,18 +495,18 @@ async function findCallbackFunction(node, props) {
             const property = node.properties[idxProperty];
             if (property.key?.name === props.functionName) {
                 const callback = await findCallbackFunction(property, { ...props });
-                console.log()
+                var debug = null;
                 return { ...callback };
             }
-            console.log()
+            var debug = null;
         }
-        console.log()
+        var debug = null;
     } else if (node.type === 'AssignmentExpression') {
         if (node.left?.object?.name === 'module' && node.left?.object?.type === 'Identifier' &&
             node.left?.property?.name === 'exports' && node.left?.property?.type === 'Identifier') {
 
             if (node.end === 202) {
-                console.log()
+                var debug = null;
             }
 
             /**
@@ -500,9 +516,9 @@ async function findCallbackFunction(node, props) {
             const callbackFunction = await findCallbackFunction(node.right, props);
 
             if (node.end === 202) {
-                console.log()
+                var debug = null;
             }
-            console.log()
+            var debug = null;
             return callbackFunction;
         }
 
@@ -511,7 +527,7 @@ async function findCallbackFunction(node, props) {
         isValidFunctionDeclaration(node, props)) {
 
         if (node.end === 4038) {
-            console.log()
+            var debug = null;
         }
 
         const functionParametersName = findFunctionParametersName(node);
@@ -526,13 +542,13 @@ async function findCallbackFunction(node, props) {
             callback.responses = { ...callback.responses, ...attributes.responses };
             callback.produces = [...callback.produces, ...attributes.produces];
             callback.comments += findComments(bodyNode);
-            console.log()
+            var debug = null;
         }
 
-        console.log()
+        var debug = null;
     } else if (node.type === 'Identifier') {
         if (node.end === 672) {
-            console.log()
+            var debug = null;
         }
 
         // TODO: put in a function. See numArgs > 1
@@ -543,24 +559,24 @@ async function findCallbackFunction(node, props) {
             if (!isObjectEmpty(callback)) {
                 return { ...callback };
             }
-            console.log()
+            var debug = null;
         }
 
         let route = imports.find(imp => imp.variableName === node.name);
         if (route) {
             const externalAst = await getAstFromFile(route.path, { ...props })
             const callback = await findCallbackFunction(externalAst.ast, { ...externalAst.props, externalAst: true });
-            console.log()
+            var debug = null;
             return callback;
         } else {
             // TODO: handle it
-            console.log()
+            var debug = null;
         }
-        console.log()
+        var debug = null;
     } else if (node.type === 'MemberExpression') {
 
         if (node.end === 2032) {
-            console.log()
+            var debug = null;
         }
 
         let route = imports.find(imp => imp.variableName === node.object?.name);
@@ -572,36 +588,40 @@ async function findCallbackFunction(node, props) {
         if (route) {
             const externalAst = await getAstFromFile(route.path, { ...props })
             const callback = await findCallbackFunction(externalAst.ast, { ...externalAst.props, functionName, externalAst: true });
-            console.log()
+            var debug = null;
             return callback;
         }
-        console.log()
+        var debug = null;
     } else if (node.type === 'ObjectMethod') {
         for (let idxBody = 0; idxBody < node.body.length; ++idxBody) {
             const property = node.body[idxBody];
             callback = await findCallbackFunction(property, { ...props });
-            console.log()
+            var debug = null;
         }
-        console.log()
+        var debug = null;
     } else if (node.type === 'ObjectProperty') {
         const processedAst = await findCallbackFunction(node.value, { ...props });
         return processedAst;
     } else {
         // TODO: handle it
-        console.log()
+        var debug = null;
     }
 
     return { ...callback };
 }
 
 function isModuleExports(node) {
+    let auxNode = { ...node };
     if (node.type === 'ExpressionStatement') {
-        let subNode = node.expression
-        if (subNode.type === 'AssignmentExpression' &&
-            subNode.left?.object?.name === 'module' &&
-            subNode.left?.object?.type === 'Identifier' &&
-            subNode.left?.property?.name === 'exports' &&
-            subNode.left?.property?.type === 'Identifier') {
+        auxNode = { ...node.expression };
+    }
+
+    if (auxNode.type === 'AssignmentExpression') {
+        if (auxNode.type === 'AssignmentExpression' &&
+            auxNode.left?.object?.name === 'module' &&
+            auxNode.left?.object?.type === 'Identifier' &&
+            auxNode.left?.property?.name === 'exports' &&
+            auxNode.left?.property?.type === 'Identifier') {
             return true;
         }
     }
@@ -667,7 +687,7 @@ function deepMerge(objA = {}, objB = {}) {
             } else {
                 mergedParameters.push(objBParameter);
             }
-            console.log()
+            var debug = null;
         }
         objB.parameters = mergedParameters;
     }
@@ -705,38 +725,38 @@ function handleComments(comments, props) {
         }
 
         if (comments.hasSwaggerProperty('autoBody')) {
-            console.log()
+            var debug = null;
         }
 
         if (comments.hasSwaggerProperty('autoQuery')) {
-            console.log()
+            var debug = null;
         }
 
         if (comments.hasSwaggerProperty('autoHeaders')) {
-            console.log()
+            var debug = null;
         }
 
         if (comments.hasSwaggerProperty('auto')) {
-            console.log()
+            var debug = null;
         }
 
         if (comments.hasSwaggerProperty('produces')) {
-            console.log()
+            var debug = null;
         }
 
         if (comments.hasSwaggerProperty('consumes')) {
-            console.log()
+            var debug = null;
         }
 
         if (comments.hasSwaggerProperty('security')) {
-            console.log()
+            var debug = null;
         }
 
         if (comments.hasSwaggerProperty('deprecated')) {
-            console.log()
+            var debug = null;
         }
 
-        console.log()
+        var debug = null;
     } catch (err) {
         if (true) { // TODO: put getDisableLogs()
             console.error(`[swagger-autogen]: File:'${props.filePath}'\nMethod: [${props.endpoint?.method?.toUpperCase() || ''}] -> '${props.endpoint?.path || ''}'`);
@@ -784,17 +804,17 @@ function getResponses(comments, props) {
                 //     }
                 // };
                 // delete objResponses[statusCode].schema;
-                console.log()
+                var debug = null;
             } else {
                 responses[statusCode] = {
                     ...object
                 };
-                console.log()
+                var debug = null;
             }
 
-            console.log()
+            var debug = null;
         }
-        console.log()
+        var debug = null;
         return responses;
     } catch (err) {
         if (true) { // TODO: put getDisableLogs()
@@ -861,9 +881,9 @@ function getParameters(comments, props) {
                 name: parameterName,
                 ...object
             });
-            console.log()
+            var debug = null;
         }
-        console.log()
+        var debug = null;
         return parameters;
     } catch (err) {
         if (true) { // TODO: put getDisableLogs()
@@ -937,7 +957,7 @@ function findComments(node) {
             let comment = node.comments[idxComment];
             allComments += '\n' + comment.value;
         }
-        console.log()
+        var debug = null;
     }
     return allComments;
 }
@@ -963,12 +983,12 @@ async function handleMiddleware(ast, props) {
                 const processedFile = await processFile(route.path, { functionName, isSearchingFunction: props.isSearchingFunction });
                 props.paths = deepMerge(props.paths, processedFile.paths);
                 props.inheritedProperties = processedFile.inheritedProperties ? processedFile.inheritedProperties : null;
-                console.log()
+                var debug = null;
             }
-            console.log()
+            var debug = null;
         } else {
             // TODO: handle it
-            console.log()
+            var debug = null;
         }
         // const response = routeCall()
     } else if (numArgs > 1) {
@@ -981,10 +1001,10 @@ async function handleMiddleware(ast, props) {
         const argument = ast.arguments[0];
         if (argument.type === 'StringLiteral') {
             routeProperties.path = argument.value;
-            console.log()
+            var debug = null;
         } else {
             // TODO: handle it
-            console.log()
+            var debug = null;
         }
 
         for (let idxArg = 1; idxArg < numArgs; ++idxArg) {
@@ -999,21 +1019,21 @@ async function handleMiddleware(ast, props) {
                     const processedFile = await processFile(route.path, { functionName, routeProperties });
                     props.paths = deepMerge(props.paths, processedFile.paths);
                     props.inheritedProperties = processedFile.inheritedProperties ? processedFile.inheritedProperties : null;
-                    console.log()
+                    var debug = null;
                 }
-                console.log()
+                var debug = null;
             } else {
                 // TODO: handle it
-                console.log()
+                var debug = null;
             }
-            console.log()
+            var debug = null;
         }
 
 
-        console.log()
+        var debug = null;
     } else {
         // TODO: handle it
-        console.log()
+        var debug = null;
     }
 
     return props;
@@ -1028,7 +1048,7 @@ async function findImports(ast, props) {
         const numDeclarations = ast.declarations ? ast.declarations.length : 0
         if (numDeclarations === 1) {
             const node = ast.declarations[0];
-            if (node.init.callee.name === 'require') {
+            if (node.init?.callee?.name === 'require') {
                 let variableName;
                 if (node.id.name) {
                     variableName = node.id.name
@@ -1049,7 +1069,7 @@ async function findImports(ast, props) {
                 }
 
                 if (path.includes('./')) {
-                    console.log()
+                    var debug = null;
                 }
                 path = await pathSolver(path, props.relativePath);
 
@@ -1059,12 +1079,12 @@ async function findImports(ast, props) {
                 })
 
             }
-            console.log()
+            var debug = null;
         } else {
             // TODO: handle it
         }
 
-        console.log()
+        var debug = null;
     }
 
     return new Set([...props.imports, ...imports]);;
@@ -1082,7 +1102,7 @@ function findPath(ast) {
         path = ast.arguments[0].value;
     } else {
         // TODO: solve variable value
-        console.log()
+        var debug = null;
     }
 
     return path;
@@ -1165,19 +1185,19 @@ function findBodyAttributes(node, functionParametersName) {
         node.property?.type === 'Identifier') {
 
         body = buildBodyParamter(node.property.name, body);
-        console.log()
+        var debug = null;
     } else if (node.value?.object?.object?.name === functionParametersName.request &&
         node.value?.object?.property?.name === 'body' &&
         node.value?.property.type === 'Identifier') {
 
         body = buildBodyParamter(node.value.property.name, body);
-        console.log()
+        var debug = null;
     } else if (node.init?.object?.object?.name === functionParametersName.request &&
         node.init.object.property?.name === 'body' &&
         node.init.property.type === 'Identifier') {
 
         body = buildBodyParamter(node.init.property.name, body);
-        console.log()
+        var debug = null;
     } else if (node.init?.object?.name === functionParametersName.request &&
         node.init.property?.name === 'body' &&
         node.id?.properties?.length > 0) {
@@ -1185,9 +1205,9 @@ function findBodyAttributes(node, functionParametersName) {
             let property = node.id.properties[idxProperty];
             if (property.type === 'ObjectProperty' && property.key.type === 'Identifier') {
                 body = buildBodyParamter(property.key.name, body);
-                console.log()
+                var debug = null;
             }
-            console.log()
+            var debug = null;
         }
     }
 
@@ -1202,18 +1222,18 @@ function findQueryAttributes(node, functionParametersName) {
         node.property?.type === 'Identifier') {
 
         query = buildQueryParameter(node.property.name, query);
-        console.log()
+        var debug = null;
     } else if (node.value?.object?.object?.name === functionParametersName.request &&
         node.value?.object?.property?.name === 'query' &&
         node.value?.property.type === 'Identifier') {
 
         query = buildQueryParameter(node.value.property.name, query);
-        console.log()
+        var debug = null;
     } else if (node.init?.object?.object?.name === functionParametersName.request &&
         node.init.object.property?.name === 'query' &&
         node.init.property.type === 'Identifier') {
         query = buildQueryParameter(node.init.property.name, query);
-        console.log()
+        var debug = null;
     } else if (node.init?.object?.name === functionParametersName.request &&
         node.init.property?.name === 'query' &&
         node.id?.properties?.length > 0) {
@@ -1221,9 +1241,9 @@ function findQueryAttributes(node, functionParametersName) {
             let property = node.id.properties[idxProperty];
             if (property.type === 'ObjectProperty' && property.key.type === 'Identifier') {
                 query = buildQueryParameter(property.key.name, query);
-                console.log()
+                var debug = null;
             }
-            console.log()
+            var debug = null;
         }
     }
 
@@ -1244,29 +1264,29 @@ function findStatusCodeAttributes(node, functionParametersName) {
             const statusCode = node.object.arguments[0].extra.raw;
             if (swaggerTags.getOpenAPI()) { // TODO: improve this. put in a better place
                 // TODO: handle it
-                console.log()
+                var debug = null;
             } else {
                 // Swagger 2.0
                 responses = buildResponsesParameter(statusCode, responses);
-                console.log()
+                var debug = null;
             }
-            console.log()
+            var debug = null;
         } else {
             // TODO: handle it
-            console.log()
+            var debug = null;
         }
     } else if (node.object?.name == functionParametersName.response &&
         node.property?.name === 'json') { // TODO: handle other cases such as: 
 
         if (swaggerTags.getOpenAPI()) { // TODO: improve this. put in a better place
             // TODO: handle it
-            console.log()
+            var debug = null;
         } else {
             // Swagger 2.0
             responses = buildResponsesParameter(200, responses);
-            console.log()
+            var debug = null;
         }
-        console.log()
+        var debug = null;
     }
 
     return responses;
@@ -1281,14 +1301,14 @@ function findProducesAttributes(node, functionParametersName) {
 
         if (node.arguments[1]?.type === 'StringLiteral') {
             produces.push(node.arguments[1].value);
-            console.log()
+            var debug = null;
 
         } else {
             // TODO: handle it
-            console.log()
+            var debug = null;
         }
 
-        console.log()
+        var debug = null;
     }
 
     return produces;
@@ -1339,7 +1359,7 @@ function findAttributes(node, functionParametersName) {
     };
     try {
         if (node.end === 3270) {
-            console.log(node)
+            var debug = null;
         }
 
         if (node.type === 'TryStatement') {
@@ -1347,25 +1367,23 @@ function findAttributes(node, functionParametersName) {
             attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes }, blockResponse)
             const handlerResponse = findAttributes(node.handler, functionParametersName);
             attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes }, handlerResponse)
-            console.log()
+            var debug = null;
         } else if (node.type === 'MemberExpression') {
-            console.log(node)
             attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes })
             let response = findAttributes(node.object, functionParametersName);
             attributes = mergeAttributes(attributes, response);
-            console.log()
+            var debug = null;
         } else if (node.type === 'ObjectProperty') {
             attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes })
-            console.log()
+            var debug = null;
         } else if (node.type === 'ObjectExpression') {
             for (let idxProperty = 0; idxProperty < node.properties.length; ++idxProperty) {
                 let response = findAttributes(node.properties[idxProperty], functionParametersName);
                 attributes = mergeAttributes(attributes, response);
-                console.log()
+                var debug = null;
             }
-            console.log()
+            var debug = null;
         } else if (node.type === 'CallExpression') {
-            console.log(node.callee)
             let response = findAttributes(node.callee, functionParametersName);
             attributes = mergeAttributes(attributes, response);
             attributes.produces = [...attributes.produces, ...response.produces, ...findProducesAttributes(node, functionParametersName)];
@@ -1373,15 +1391,15 @@ function findAttributes(node, functionParametersName) {
             for (let idxArgument = 0; idxArgument < node.arguments?.length; ++idxArgument) {
                 response = findAttributes(node.arguments[idxArgument], functionParametersName);
                 attributes = mergeAttributes(attributes, response);
-                console.log()
+                var debug = null;
             }
-            console.log()
+            var debug = null;
         } else if (node.type === 'ExpressionStatement') {
             const response = findAttributes(node.expression, functionParametersName);
             attributes = mergeAttributes(attributes, response);
-            console.log()
+            var debug = null;
         } else if (node.type === 'Identifier') {
-            console.log()
+            var debug = null;
         } else if (node.type === 'VariableDeclarator') {
             attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes })
             const response = findAttributes(node.init, functionParametersName);
@@ -1390,29 +1408,29 @@ function findAttributes(node, functionParametersName) {
             for (let idxDeclaration = 0; idxDeclaration < node.declarations?.length; ++idxDeclaration) {
                 const declaration = node.declarations[idxDeclaration];
                 if (declaration.end === 2562) {
-                    console.log()
+                    var debug = null;
                 }
 
                 const response = findAttributes(declaration, functionParametersName);
                 attributes = mergeAttributes(attributes, response);
-                console.log()
+                var debug = null;
             }
         } else if (node.type === 'ReturnStatement') {
             const response = findAttributes(node.argument, functionParametersName);
             attributes = mergeAttributes(attributes, response);
-            console.log()
+            var debug = null;
         } else if (node.type === 'BlockStatement') {
             for (let idxBody = 0; idxBody < node.body.length; ++idxBody) {
                 const bodyNode = node.body[idxBody];
                 const response = findAttributes(bodyNode, functionParametersName);
                 attributes = mergeAttributes(attributes, response);
-                console.log()
+                var debug = null;
             }
-            console.log()
+            var debug = null;
         } else if (['CatchClause', 'ArrowFunctionExpression'].includes(node.type)) {
             const response = findAttributes(node.body, functionParametersName);
             attributes = mergeAttributes(attributes, response);
-            console.log()
+            var debug = null;
         }
 
         return attributes;
