@@ -1128,6 +1128,32 @@ function isRoute(ast) {
     return !!(ast?.callee?.property?.name === 'route');
 }
 
+function handleBody(name, body) {
+    let handledBody = { ...body };
+    handledBody[name] = {
+        example: 'any'
+    };
+    return handledBody;
+}
+
+function handleQuery(name, query) {
+    let handledQuery = [...query];
+    handledQuery.push({
+        name: name,
+        in: 'query',
+        type: 'string'
+    });
+    return handledQuery;
+}
+
+function handleResponses(statusCode, responses) {
+    let handledResponses = { ...responses };
+    handledResponses[statusCode] = {
+        description: tables.getStatusCodeDescription(statusCode, swaggerTags.getLanguage())
+    };
+    return handledResponses;
+}
+
 /**
  * Handling body parameters
  * e.g.: <...> = req.body.<...>
@@ -1139,42 +1165,27 @@ function findBodyAttributes(node, functionParametersName) {
         node.object?.property?.name === 'body' &&
         node.property?.type === 'Identifier') {
 
-        body[node.property.name] = {
-            example: 'any'
-        };
+        body = handleBody(node.property.name, body);
         console.log()
     } else if (node.value?.object?.object?.name === functionParametersName.request &&
         node.value?.object?.property?.name === 'body' &&
         node.value?.property.type === 'Identifier') {
 
-        body[node.value.property.name] = {
-            example: 'any'
-        };
-
+        body = handleBody(node.value.property.name, body);
         console.log()
     } else if (node.init?.object?.object?.name === functionParametersName.request &&
-        node.init.object.property?.name === 'body') {
+        node.init.object.property?.name === 'body' &&
+        node.init.property.type === 'Identifier') {
 
-        if (node.init.property.type === 'Identifier') {  // Refact? Call the function?
-            body[node.init.property.name] = {
-                example: 'any'
-            };
-        }
+        body = handleBody(node.init.property.name, body);
         console.log()
     } else if (node.init?.object?.name === functionParametersName.request &&
         node.init.property?.name === 'body' &&
         node.id?.properties?.length > 0) {
-
-        console.log()
-
         for (let idxProperty = 0; idxProperty < node.id.properties.length; ++idxProperty) {
             let property = node.id.properties[idxProperty];
-            if (property.type === 'ObjectProperty') {
-                if (property.key.type === 'Identifier') {  // Refact?  Call the function?
-                    body[property.key.name] = {
-                        example: 'any'
-                    };
-                }
+            if (property.type === 'ObjectProperty' && property.key.type === 'Identifier') {
+                body = handleBody(property.key.name, body);
                 console.log()
             }
             console.log()
@@ -1191,50 +1202,26 @@ function findQueryAttributes(node, functionParametersName) {
         node.object?.property?.name === 'query' &&
         node.property?.type === 'Identifier') {
 
-        query.push({
-            name: node.property.name,
-            in: 'query',
-            type: 'string'
-        });
+        query = handleQuery(node.property.name, query);
         console.log()
     } else if (node.value?.object?.object?.name === functionParametersName.request &&
         node.value?.object?.property?.name === 'query' &&
         node.value?.property.type === 'Identifier') {
 
-        query.push({
-            name: node.value.property.name,
-            in: 'query',
-            type: 'string'
-        });
-
+        query = handleQuery(node.value.property.name, query);
         console.log()
     } else if (node.init?.object?.object?.name === functionParametersName.request &&
-        node.init.object.property?.name === 'query') {
-
-        if (node.init.property.type === 'Identifier') {  // Refact? Call the function?
-            query.push({
-                name: node.init.property.name,
-                in: 'query',
-                type: 'string'
-            });
-        }
+        node.init.object.property?.name === 'query' &&
+        node.init.property.type === 'Identifier') {
+        query = handleQuery(node.init.property.name, query);
         console.log()
     } else if (node.init?.object?.name === functionParametersName.request &&
         node.init.property?.name === 'query' &&
         node.id?.properties?.length > 0) {
-
-        console.log()
-
         for (let idxProperty = 0; idxProperty < node.id.properties.length; ++idxProperty) {
             let property = node.id.properties[idxProperty];
-            if (property.type === 'ObjectProperty') {
-                if (property.key.type === 'Identifier') {  // Refact?  Call the function?
-                    query.push({
-                        name: property.key.name,
-                        in: 'query',
-                        type: 'string'
-                    });
-                }
+            if (property.type === 'ObjectProperty' && property.key.type === 'Identifier') {
+                query = handleQuery(property.key.name, query);
                 console.log()
             }
             console.log()
@@ -1242,7 +1229,6 @@ function findQueryAttributes(node, functionParametersName) {
     }
 
     return query;
-
 }
 
 /**
@@ -1262,12 +1248,9 @@ function findStatusCodeAttributes(node, functionParametersName) {
                 console.log()
             } else {
                 // Swagger 2.0
-                responses[statusCode] = {
-                    description: tables.getStatusCodeDescription(statusCode, swaggerTags.getLanguage())
-                };
+                responses = handleResponses(statusCode, responses);
                 console.log()
             }
-
             console.log()
         } else {
             // TODO: handle it
@@ -1281,10 +1264,7 @@ function findStatusCodeAttributes(node, functionParametersName) {
             console.log()
         } else {
             // Swagger 2.0
-            let statusCode = 200;
-            responses[statusCode] = {
-                description: tables.getStatusCodeDescription(statusCode, swaggerTags.getLanguage())
-            };
+            responses = handleResponses(200, responses);
             console.log()
         }
         console.log()
