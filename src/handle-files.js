@@ -110,9 +110,9 @@ async function processAST(ast, props) {
             if (bodyIdx === 11) {
                 var debug = null;
             }
-            props.scopeStack.push(ast);
+            props.scopeStack.unshift(ast);
             const processedAst = await processAST(ast.body[bodyIdx], { ...props });
-            props.scopeStack.pop();
+            props.scopeStack.shift();
             processedAst.imports.forEach(imp => props.imports.add(imp));
             props.paths = deepMerge(props.paths, processedAst.paths);
             props.inheritedProperties = processedAst.inheritedProperties;
@@ -145,7 +145,7 @@ async function processAST(ast, props) {
         props.inheritedProperties = processedAst.inheritedProperties;
         return props;
     } else if (ast.type === 'BlockStatement') {
-        props.scopeStack.push(ast);
+        props.scopeStack.unshift(ast);
         for (let bodyIdx = 0; bodyIdx < ast.body.length; ++bodyIdx) {
             const processedAst = await processAST(ast.body[bodyIdx], { ...props });
             processedAst.imports.forEach(imp => props.imports.add(imp));
@@ -153,7 +153,7 @@ async function processAST(ast, props) {
             props.inheritedProperties = processedAst.inheritedProperties;
             var debug = null;
         }
-        props.scopeStack.pop();
+        props.scopeStack.shift();
         return props;
     }
 
