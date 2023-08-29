@@ -220,7 +220,7 @@ async function processAST(ast, props) {
 
             path = formatPath(path);
 
-            if (path.includes('/me')) {
+            if (path.includes('/testepost0')) {
                 var debug = null;
             }
 
@@ -232,7 +232,7 @@ async function processAST(ast, props) {
 
             const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
 
-            if (path.includes('/me')) {
+            if (path.includes('/testepost0')) {
                 var debug = null;
             }
 
@@ -536,7 +536,7 @@ async function findCallbackFunction(node, props) {
          */
         for (let idxBody = 0; idxBody < node.body.body.length; ++idxBody) {
             let bodyNode = node.body.body[idxBody];
-            let attributes = findAttributes(bodyNode, functionParametersName)
+            let attributes = findAttributes(bodyNode, functionParametersName, { ...props, scopeStack: [node.body] })
             callback.requestBody = { ...callback.requestBody, ...attributes.body };
             callback.queryParameters = [...callback.queryParameters, ...attributes.query];
             callback.responses = { ...callback.responses, ...attributes.responses };
@@ -848,7 +848,9 @@ function getBetweenSymbols(data, startSymbol, endSymbol, keepSymbol = true) {
 
             if (rec == 1) strVect.push(c);
 
-            if ((idx === data.length - 1 && rec == 1) || (idx === data.length - 1 && rec == 0)) return resolve(null);
+            if ((idx === data.length - 1 && rec == 1) || (idx === data.length - 1 && rec == 0)) {
+                return null;
+            }
 
             if (idx === data.length - 1 || rec == 2) {
                 strVect = strVect.join('');
@@ -1177,7 +1179,7 @@ function buildResponsesParameter(statusCode, responses) {
  * Handling body parameters
  * e.g.: <...> = req.body.<...>
  */
-function findBodyAttributes(node, functionParametersName) {
+function findBodyAttributes(node, functionParametersName, props) {
     let body = {};
 
     if (node.object?.object?.name === functionParametersName.request &&
@@ -1209,10 +1211,68 @@ function findBodyAttributes(node, functionParametersName) {
             }
             var debug = null;
         }
+    } else if (node.object?.type === 'Identifier' && node.property?.type === 'Identifier') {
+        /**
+         * Indirect body variable.
+         * e.g: 
+         * const foo1 = req.body
+         * const foo2 = foo.someAtrribute
+         */
+        if (node.end === 592) {
+            var debug = null;
+        }
+
+        for (let idxScope = 0; idxScope < props.scopeStack.length; ++idxScope) {
+            let scope = props.scopeStack[idxScope];
+            let solvedVariable = solveVariable(scope, node.object);
+
+            if (solvedVariable?.init?.object?.name === functionParametersName.request &&
+                solvedVariable.init.property?.name === 'body'
+            ) {
+                body = buildBodyParamter(node.property.name, body);
+                var debug = null;
+            }
+            var debug = null;
+        }
     }
 
     return body;
 }
+
+function solveVariable(node, identifier) {
+    if (node.end === 536) {
+        var debug = null;
+    }
+
+    if (node.type === 'BlockStatement') {
+        for (let idxBody = node.body.length - 1; idxBody >= 0; --idxBody) {
+            const bodyNode = node.body[idxBody];
+            if (identifier.start > bodyNode.start) {
+                let solved = solveVariable(bodyNode, identifier);
+                if (solved?.init?.type === 'Identifier' && idxBody > 0) {
+                    solved = solveVariable(node.body[idxBody - 1], solved.init);
+                }
+                if (solved) {
+                    return solved;
+                }
+            }
+        }
+    } else if (node.type === 'VariableDeclaration') {
+        for (let idxDeclaration = 0; idxDeclaration < node.declarations?.length; ++idxDeclaration) {
+            const declaration = node.declarations[idxDeclaration];
+            return solveVariable(declaration, identifier);
+        }
+        var debug = null;
+    } else if (node.type === 'VariableDeclarator') {
+        if (node.id.name === identifier.name) {
+            return node;
+        }
+        return solveVariable(node.init, identifier);
+    }
+
+    return null;
+}
+
 
 function findQueryAttributes(node, functionParametersName) {
     let query = [];
@@ -1257,6 +1317,10 @@ function findQueryAttributes(node, functionParametersName) {
 function findStatusCodeAttributes(node, functionParametersName) {
     let responses = {};
 
+    if (node.end === 1695) {
+        var debug = null;
+    }
+
     if (node.object?.callee?.object?.name == functionParametersName.response &&
         node.object.callee.property?.name === 'status') { // TODO: handle other cases such as: 
 
@@ -1276,7 +1340,7 @@ function findStatusCodeAttributes(node, functionParametersName) {
             var debug = null;
         }
     } else if (node.object?.name == functionParametersName.response &&
-        node.property?.name === 'json') { // TODO: handle other cases such as: 
+        ['send', 'json'].includes(node.property?.name)) { // TODO: handle other cases such as: 
 
         if (swaggerTags.getOpenAPI()) { // TODO: improve this. put in a better place
             // TODO: handle it
@@ -1314,7 +1378,7 @@ function findProducesAttributes(node, functionParametersName) {
     return produces;
 }
 
-function findAndMergeAttributes(node, functionParametersName, attributes, response) {
+function findAndMergeAttributes(node, functionParametersName, attributes, response, props) {
     let handled = {
         body: {},
         query: [],
@@ -1322,11 +1386,15 @@ function findAndMergeAttributes(node, functionParametersName, attributes, respon
         produces: []
     }
 
+    if (node.end === 560) {
+        var debug = null;
+    }
+
     if (!response) {
         response = { ...handled };
     }
 
-    handled.body = { ...attributes.body, ...response.body, ...findBodyAttributes(node, functionParametersName) };
+    handled.body = { ...attributes.body, ...response.body, ...findBodyAttributes(node, functionParametersName, props) };
     handled.query = [...attributes.query, ...response.query, ...findQueryAttributes(node, functionParametersName)];
     handled.responses = { ...attributes.responses, ...response.responses, ...findStatusCodeAttributes(node, functionParametersName) };
     handled.produces = [...attributes.produces, ...response.produces, ...findProducesAttributes(node, functionParametersName)];
@@ -1350,7 +1418,7 @@ function mergeAttributes(attributes, response) {
     return handled;
 }
 
-function findAttributes(node, functionParametersName) {
+function findAttributes(node, functionParametersName, props) {
     let attributes = {
         body: {},
         query: [],
@@ -1363,46 +1431,46 @@ function findAttributes(node, functionParametersName) {
         }
 
         if (node.type === 'TryStatement') {
-            const blockResponse = findAttributes(node.block, functionParametersName);
-            attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes }, blockResponse)
-            const handlerResponse = findAttributes(node.handler, functionParametersName);
-            attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes }, handlerResponse)
+            const blockResponse = findAttributes(node.block, functionParametersName, props);
+            attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes }, blockResponse, props)
+            const handlerResponse = findAttributes(node.handler, functionParametersName, props);
+            attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes }, handlerResponse, props)
             var debug = null;
         } else if (node.type === 'MemberExpression') {
-            attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes })
-            let response = findAttributes(node.object, functionParametersName);
+            attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes }, null, props)
+            let response = findAttributes(node.object, functionParametersName, props);
             attributes = mergeAttributes(attributes, response);
             var debug = null;
         } else if (node.type === 'ObjectProperty') {
-            attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes })
+            attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes }, null, props)
             var debug = null;
         } else if (node.type === 'ObjectExpression') {
             for (let idxProperty = 0; idxProperty < node.properties.length; ++idxProperty) {
-                let response = findAttributes(node.properties[idxProperty], functionParametersName);
+                let response = findAttributes(node.properties[idxProperty], functionParametersName, props);
                 attributes = mergeAttributes(attributes, response);
                 var debug = null;
             }
             var debug = null;
         } else if (node.type === 'CallExpression') {
-            let response = findAttributes(node.callee, functionParametersName);
+            let response = findAttributes(node.callee, functionParametersName, props);
             attributes = mergeAttributes(attributes, response);
             attributes.produces = [...attributes.produces, ...response.produces, ...findProducesAttributes(node, functionParametersName)];
 
             for (let idxArgument = 0; idxArgument < node.arguments?.length; ++idxArgument) {
-                response = findAttributes(node.arguments[idxArgument], functionParametersName);
+                response = findAttributes(node.arguments[idxArgument], functionParametersName, props);
                 attributes = mergeAttributes(attributes, response);
                 var debug = null;
             }
             var debug = null;
         } else if (node.type === 'ExpressionStatement') {
-            const response = findAttributes(node.expression, functionParametersName);
+            const response = findAttributes(node.expression, functionParametersName, props);
             attributes = mergeAttributes(attributes, response);
             var debug = null;
         } else if (node.type === 'Identifier') {
             var debug = null;
         } else if (node.type === 'VariableDeclarator') {
-            attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes })
-            const response = findAttributes(node.init, functionParametersName);
+            attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes }, null, props)
+            const response = findAttributes(node.init, functionParametersName, props);
             attributes = mergeAttributes(attributes, response);
         } else if (node.type === 'VariableDeclaration') {
             for (let idxDeclaration = 0; idxDeclaration < node.declarations?.length; ++idxDeclaration) {
@@ -1411,31 +1479,31 @@ function findAttributes(node, functionParametersName) {
                     var debug = null;
                 }
 
-                const response = findAttributes(declaration, functionParametersName);
+                const response = findAttributes(declaration, functionParametersName, props);
                 attributes = mergeAttributes(attributes, response);
                 var debug = null;
             }
         } else if (node.type === 'ReturnStatement') {
-            const response = findAttributes(node.argument, functionParametersName);
+            const response = findAttributes(node.argument, functionParametersName, props);
             attributes = mergeAttributes(attributes, response);
             var debug = null;
         } else if (node.type === 'BlockStatement') {
             for (let idxBody = 0; idxBody < node.body.length; ++idxBody) {
                 const bodyNode = node.body[idxBody];
-                const response = findAttributes(bodyNode, functionParametersName);
+                const response = findAttributes(bodyNode, functionParametersName, props);
                 attributes = mergeAttributes(attributes, response);
                 var debug = null;
             }
             var debug = null;
         } else if (['CatchClause', 'ArrowFunctionExpression'].includes(node.type)) {
-            const response = findAttributes(node.body, functionParametersName);
+            const response = findAttributes(node.body, functionParametersName, props);
             attributes = mergeAttributes(attributes, response);
             var debug = null;
         }
 
         return attributes;
     } catch (err) {
-        return {};
+        return attributes;
     }
 }
 
