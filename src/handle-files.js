@@ -217,7 +217,7 @@ async function processAST(ast, props) {
 
             path = formatPath(path);
 
-            if (path == '/automatic_and_incremented/users/{id}') {
+            if (path == '/automatic_and_incremented/users') {
                 var debug = null;
             }
 
@@ -229,7 +229,7 @@ async function processAST(ast, props) {
 
             const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
 
-            if (path == '/automatic_and_incremented/users/{id}') {
+            if (path == '/automatic_and_incremented/users') {
                 var debug = null;
             }
 
@@ -783,7 +783,7 @@ function getResponses(comments, props) {
             let statusCode = rawResponse.split(']')[0].trim();
             let object = eval(`(${getBetweenSymbols(rawResponse, '{', '}')})`);
 
-            if (object && typeof object.schema !== undefined && !object.schema?.$ref) {
+            if (hasSchema(object) && !object.schema?.$ref) {
                 object.schema = swaggerTags.formatDefinitions(object.schema);  // TODO: change formatDefinitions function name
             }
 
@@ -826,6 +826,14 @@ function getResponses(comments, props) {
     }
     return [];
 }
+
+function hasSchema(object) {
+    if (!object) {
+        return false;
+    }
+    return Object.keys(object).includes('schema')
+}
+
 
 function getBetweenSymbols(data, startSymbol, endSymbol, keepSymbol = true) {
     try {
