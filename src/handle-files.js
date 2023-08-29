@@ -22,6 +22,12 @@ const overwriteMerge = (destinationArray, sourceArray, options) => {
 // TODO: implement cache system to functions, e.g. sentToCache('/filePath', 'functionName') and always find in the cache. When it found, save in the cache. 
 // Becaution about local function. Try to find localy and after in the cache and afer try to find in other file, maybe.
 // TODO: create option (maybe  'contentResponseType') for default 'content' to responses. Default: ['json'], but it's possible add more value such as: ['json', 'xml', ...]
+// TODO: create tag #swagger.contentType to generate responses with specific content type. e.g: #swagger.contentType = ['json', 'xml']
+
+/* Deprecated:
+    #swagger.start and #swagger.end
+    xml as default
+*/
 
 const recast = require('recast');
 const tsParser = require("recast/parsers/typescript");
@@ -220,7 +226,7 @@ async function processAST(ast, props) {
 
             path = formatPath(path);
 
-            if (path.includes('/testepost0')) {
+            if (path == '/automatic/users') {
                 var debug = null;
             }
 
@@ -232,7 +238,7 @@ async function processAST(ast, props) {
 
             const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
 
-            if (path.includes('/testepost0')) {
+            if (path == '/automatic/users') {
                 var debug = null;
             }
 
@@ -381,7 +387,7 @@ async function handleRequestMethodParameters(ast, props) {
         var debug = null;
     }
 
-    // Eliminate duplicated objects
+    // Eliminate duplicated objects. // TODO: put in a function
     endpoint.parameters = endpoint.parameters.filter((value, index, self) =>
         index === self.findIndex((p) => (
             p.name === value.name && p.in === value.in
@@ -786,10 +792,16 @@ function getResponses(comments, props) {
             let statusCode = rawResponse.split(']')[0].trim();
             let object = eval(`(${getBetweenSymbols(rawResponse, '{', '}')})`);
 
-            if (object?.schema && !object.schema.$ref) {
+            if (object && typeof object.schema !== undefined && !object.schema?.$ref) {
                 object.schema = swaggerTags.formatDefinitions(object.schema);  // TODO: change formatDefinitions function name
             }
 
+            if (!object?.description) {
+                object = {
+                    description: tables.getStatusCodeDescription(statusCode, swaggerTags.getLanguage()),
+                    ...object
+                }
+            }
             // Forcing convertion to OpenAPI 3.x
             if (swaggerTags.getOpenAPI()) {
                 // objResponses[statusCode] = {
@@ -1317,14 +1329,14 @@ function findQueryAttributes(node, functionParametersName) {
 function findStatusCodeAttributes(node, functionParametersName) {
     let responses = {};
 
-    if (node.end === 1695) {
+    if (node.end === 3789) {
         var debug = null;
     }
 
     if (node.object?.callee?.object?.name == functionParametersName.response &&
         node.object.callee.property?.name === 'status') { // TODO: handle other cases such as: 
 
-        if (node.object.arguments[0].type === 'NumericLiteral') {
+        if (node.object.arguments[0]?.type === 'NumericLiteral') {
             const statusCode = node.object.arguments[0].extra.raw;
             if (swaggerTags.getOpenAPI()) { // TODO: improve this. put in a better place
                 // TODO: handle it
@@ -1339,7 +1351,7 @@ function findStatusCodeAttributes(node, functionParametersName) {
             // TODO: handle it
             var debug = null;
         }
-    } else if (node.object?.name == functionParametersName.response &&
+    } else if (node.object?.name === functionParametersName.response &&
         ['send', 'json'].includes(node.property?.name)) { // TODO: handle other cases such as: 
 
         if (swaggerTags.getOpenAPI()) { // TODO: improve this. put in a better place
@@ -1350,6 +1362,24 @@ function findStatusCodeAttributes(node, functionParametersName) {
             responses = buildResponsesParameter(200, responses);
             var debug = null;
         }
+        var debug = null;
+    } else if (node.callee?.object.name === functionParametersName.response &&
+        node.callee?.property.name === 'status') { // TODO: handle other cases such as: 
+        if (node.arguments[0]?.type === 'NumericLiteral') {
+            if (swaggerTags.getOpenAPI()) { // TODO: improve this. put in a better place
+                // TODO: handle it
+                var debug = null;
+            } else {
+                // Swagger 2.0
+                const statusCode = node.arguments[0].extra.raw;
+                responses = buildResponsesParameter(statusCode, responses);
+                var debug = null;
+            }
+        } else {
+            // TODO: handle it
+            var debug = null;
+        }
+
         var debug = null;
     }
 
@@ -1364,7 +1394,7 @@ function findProducesAttributes(node, functionParametersName) {
         node.arguments[0]?.value?.toLowerCase() == 'content-type') { // TODO: handle other cases such as: 
 
         if (node.arguments[1]?.type === 'StringLiteral') {
-            produces.push(node.arguments[1].value);
+            produces.push(node.arguments[1].value.toLowerCase());
             var debug = null;
 
         } else {
@@ -1426,7 +1456,7 @@ function findAttributes(node, functionParametersName, props) {
         produces: []
     };
     try {
-        if (node.end === 3270) {
+        if (node.end === 3789) {
             var debug = null;
         }
 
@@ -1435,6 +1465,10 @@ function findAttributes(node, functionParametersName, props) {
             attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes }, blockResponse, props)
             const handlerResponse = findAttributes(node.handler, functionParametersName, props);
             attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes }, handlerResponse, props)
+            var debug = null;
+        } else if (node.type === 'IfStatement') {
+            const response = findAttributes(node.consequent, functionParametersName, props);
+            attributes = mergeAttributes(attributes, response);
             var debug = null;
         } else if (node.type === 'MemberExpression') {
             attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes }, null, props)
@@ -1452,9 +1486,9 @@ function findAttributes(node, functionParametersName, props) {
             }
             var debug = null;
         } else if (node.type === 'CallExpression') {
+            attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes }, null, props)
             let response = findAttributes(node.callee, functionParametersName, props);
             attributes = mergeAttributes(attributes, response);
-            attributes.produces = [...attributes.produces, ...response.produces, ...findProducesAttributes(node, functionParametersName)];
 
             for (let idxArgument = 0; idxArgument < node.arguments?.length; ++idxArgument) {
                 response = findAttributes(node.arguments[idxArgument], functionParametersName, props);
