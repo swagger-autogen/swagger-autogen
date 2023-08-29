@@ -217,7 +217,7 @@ async function processAST(ast, props) {
 
             path = formatPath(path);
 
-            if (path == '/automatic/users') {
+            if (path == '/automatic_and_incremented/users/{id}') {
                 var debug = null;
             }
 
@@ -229,7 +229,7 @@ async function processAST(ast, props) {
 
             const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
 
-            if (path == '/automatic/users') {
+            if (path == '/automatic_and_incremented/users/{id}') {
                 var debug = null;
             }
 
@@ -538,7 +538,7 @@ async function findCallbackFunction(node, props) {
             callback.queryParameters = [...callback.queryParameters, ...attributes.query];
             callback.responses = { ...callback.responses, ...attributes.responses };
             callback.produces = [...callback.produces, ...attributes.produces];
-            callback.comments += findComments(bodyNode);
+            callback.comments += attributes.comments;
             var debug = null;
         }
 
@@ -1404,7 +1404,8 @@ function findAndMergeAttributes(node, functionParametersName, attributes, respon
         body: {},
         query: [],
         responses: {},
-        produces: []
+        produces: [],
+        comments: ''
     }
 
     if (node.end === 560) {
@@ -1419,6 +1420,7 @@ function findAndMergeAttributes(node, functionParametersName, attributes, respon
     handled.query = [...attributes.query, ...response.query, ...findQueryAttributes(node, functionParametersName)];
     handled.responses = { ...attributes.responses, ...response.responses, ...findStatusCodeAttributes(node, functionParametersName) };
     handled.produces = [...attributes.produces, ...response.produces, ...findProducesAttributes(node, functionParametersName)];
+    handled.comments = attributes.comments + response.comments;
 
     return handled;
 }
@@ -1428,13 +1430,15 @@ function mergeAttributes(attributes, response) {
         body: {},
         query: [],
         responses: {},
-        produces: []
+        produces: [],
+        comments: ''
     }
 
     handled.body = { ...attributes.body, ...response.body };
     handled.query = [...attributes.query, ...response.query];
     handled.responses = { ...attributes.responses, ...response.responses };
     handled.produces = [...attributes.produces, ...response.produces];
+    handled.comments = attributes.comments + response.comments;
 
     return handled;
 }
@@ -1444,12 +1448,15 @@ function findAttributes(node, functionParametersName, props) {
         body: {},
         query: [],
         responses: {},
-        produces: []
+        produces: [],
+        comments: ''
     };
     try {
         if (node.end === 3789) {
             var debug = null;
         }
+
+        attributes.comments = findComments(node);
 
         if (node.type === 'TryStatement') {
             const blockResponse = findAttributes(node.block, functionParametersName, props);
