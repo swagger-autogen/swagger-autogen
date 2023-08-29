@@ -105,6 +105,15 @@ function processFile(filePath, props = {}) {
     });
 }
 
+async function processAndMergeAST(ast, props) {
+    let newProps = { ...props };
+    const processedAst = await processAST(ast, { ...props });
+    processedAst.imports.forEach(imp => newProps.imports.add(imp));
+    newProps.paths = deepMerge(newProps.paths, processedAst.paths);
+    newProps.inheritedProperties = processedAst.inheritedProperties;
+    return newProps;
+}
+
 async function processAST(ast, props) {
 
     // TODO: Handle case: const router = new Router({ prefix: '/api/v1' });
@@ -126,38 +135,20 @@ async function processAST(ast, props) {
         }
         return props;
     } else if (ast.type === 'ExpressionStatement') {
-        const processedAst = await processAST(ast.expression, { ...props });
-        processedAst.imports.forEach(imp => props.imports.add(imp));
-        props.paths = deepMerge(props.paths, processedAst.paths);
-        return props;
+        return await processAndMergeAST(ast.expression, props);
     } else if (ast.type === 'MemberExpression') {
-        const processedAst = await processAST(ast.object, { ...props });
-        processedAst.imports.forEach(imp => props.imports.add(imp));
-        props.paths = deepMerge(props.paths, processedAst.paths);
-        props.inheritedProperties = processedAst.inheritedProperties;
-        return props;
+        return await processAndMergeAST(ast.object, props);
     } else if (ast.type === 'AssignmentExpression') {
         if (isModuleExports(ast)) {
-            const processedAst = await processAST(ast.right, { ...props });
-            processedAst.imports.forEach(imp => props.imports.add(imp));
-            props.paths = deepMerge(props.paths, processedAst.paths);
-            props.inheritedProperties = processedAst.inheritedProperties;
+            return await processAndMergeAST(ast.right, props);
         }
         return props;
     } else if (ast.type === 'FunctionExpression') {
-        const processedAst = await processAST(ast.body, { ...props });
-        processedAst.imports.forEach(imp => props.imports.add(imp));
-        props.paths = deepMerge(props.paths, processedAst.paths);
-        props.inheritedProperties = processedAst.inheritedProperties;
-        return props;
+        return await processAndMergeAST(ast.body, props);
     } else if (ast.type === 'BlockStatement') {
         props.scopeStack.unshift(ast);
         for (let bodyIdx = 0; bodyIdx < ast.body.length; ++bodyIdx) {
-            const processedAst = await processAST(ast.body[bodyIdx], { ...props });
-            processedAst.imports.forEach(imp => props.imports.add(imp));
-            props.paths = deepMerge(props.paths, processedAst.paths);
-            props.inheritedProperties = processedAst.inheritedProperties;
-            var debug = null;
+            props = await processAndMergeAST(ast.body[bodyIdx], props);
         }
         props.scopeStack.shift();
         return props;
