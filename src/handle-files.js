@@ -24,6 +24,7 @@ const overwriteMerge = (destinationArray, sourceArray, options) => {
 // TODO: create option (maybe  'contentResponseType') for default 'content' to responses. Default: ['json'], but it's possible add more value such as: ['json', 'xml', ...]
 // TODO: create tag #swagger.contentType to generate responses with specific content type. e.g: #swagger.contentType = ['json', 'xml']
 // TODO: check error messages
+// TODO: Automaticaly recognise 'tags' based on path. e.g.: /api/users  -> tags = ['Users'] OR /v1/auth/.../ -> tags = ['Auth']
 
 /* Deprecated:
     #swagger.start and #swagger.end
@@ -218,7 +219,7 @@ async function processAST(ast, props) {
 
             path = formatPath(path);
 
-            if (path == '/notmanual/users/{id}') {
+            if (path == '/array_required/users') {
                 var debug = null;
             }
 
@@ -230,7 +231,7 @@ async function processAST(ast, props) {
 
             const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
 
-            if (path == '/notmanual/users/{id}') {
+            if (path == '/array_required/users') {
                 var debug = null;
             }
 
@@ -284,8 +285,7 @@ function changeToManualAttributes(handledParameters) {
     delete handledParameters.method;
     delete handledParameters.path;
 
-    // parei aqui. definir ordem para caso de #swagger.auto === false
-    return handledParameters;
+    return { ...buildEmptyEndpoint(), ...handledParameters };
 }
 
 function findPathParameters(path) {
@@ -353,7 +353,14 @@ function deleteUnusedProperties(endpoint) {
 
 function createEndpoint(path, method, endpoint) {
     endpoint[path] = {}
-    endpoint[path][method] = {
+    endpoint[path][method] = buildEmptyEndpoint();
+
+    return endpoint;
+}
+
+function buildEmptyEndpoint() {
+    return {
+        deprecated: undefined,
         tags: undefined,
         summary: undefined,
         description: '',
@@ -364,8 +371,6 @@ function createEndpoint(path, method, endpoint) {
         responses: undefined,
         security: undefined
     };
-
-    return endpoint;
 }
 
 /**
@@ -395,7 +400,7 @@ async function handleRequestMethodParameters(ast, props) {
             endpoint.produces = [...new Set([...(endpoint.produces || []), ...callbackFunction.produces])];
         }
         requestBody = { ...requestBody, ...callbackFunction.requestBody };
-        if (callbackFunction.responses && endpoint.responses.default) {
+        if (Object.keys(callbackFunction.responses).length > 0 && endpoint.responses.default) {
             delete endpoint.responses.default;
         }
         endpoint.responses = { ...endpoint.responses, ...callbackFunction.responses };
@@ -557,6 +562,10 @@ async function findCallbackFunction(node, props) {
         }
 
         const functionParametersName = findFunctionParametersName(node);
+
+        for (let idxComment = 0; idxComment < node.body.comments?.length; ++idxComment) {
+            callback.comments += node.body.comments[idxComment].value;
+        }
         /**
          * Handling body, query, produces and status code
          */
@@ -784,7 +793,7 @@ function handleComments(comments, props) {
         }
 
         if (comments.hasSwaggerProperty('security')) {
-            var debug = null;
+            handleComments.security = getValueArray('security', comments);
         }
 
         if (comments.hasSwaggerProperty('summary')) {
@@ -946,6 +955,16 @@ function getBetweenSymbols(data, startSymbol, endSymbol, keepSymbol = true) {
     }
 }
 
+function createDefaultAtrributes(object) {
+    if (object?.in === 'path') {
+        if (!object.type) { // TODO: check case openApi 3
+            object.type = "string"
+        }
+    }
+
+    return object;
+}
+
 function getParameters(comments, props) {
     let parameters = [];
     try {
@@ -956,6 +975,7 @@ function getParameters(comments, props) {
             let object = eval(`(${getBetweenSymbols(rawParameter, '{', '}')})`);
 
             object = sanitizeParameter({ ...object });
+            object = createDefaultAtrributes({ ...object });
 
             parameters.push({
                 name: parameterName,
@@ -1429,8 +1449,8 @@ function findStatusCodeAttributes(node, functionParametersName) {
             var debug = null;
         }
         var debug = null;
-    } else if (node.callee?.object.name === functionParametersName.response &&
-        node.callee?.property.name === 'status') { // TODO: handle other cases such as: 
+    } else if (node.callee?.object?.name === functionParametersName.response &&
+        node.callee.property?.name === 'status') { // TODO: handle other cases such as: 
         if (node.arguments[0]?.type === 'NumericLiteral') {
             if (swaggerTags.getOpenAPI()) { // TODO: improve this. put in a better place
                 // TODO: handle it
