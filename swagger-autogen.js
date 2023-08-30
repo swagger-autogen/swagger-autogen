@@ -149,7 +149,6 @@ const init = async (outputFile, endpointsFiles, data) => {
             }
 
             let obj = await handleFiles.processFile(filePath);
-            console.log(obj)
             if (obj === false) {
                 if (!options.disableLogs) {
                     console.log('Swagger-autogen:', '\x1b[31m', 'Failed ' + symbols.failed, '\x1b[0m');
