@@ -217,7 +217,7 @@ async function processAST(ast, props) {
 
             path = formatPath(path);
 
-            if (path == '/automatic_and_incremented/users') {
+            if (path == '/notmanual/users/') {
                 var debug = null;
             }
 
@@ -229,8 +229,12 @@ async function processAST(ast, props) {
 
             const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
 
-            if (path == '/automatic_and_incremented/users') {
+            if (path == '/notmanual/users/') {
                 var debug = null;
+            }
+
+            if (handledParameters.ignore === true) {
+                return props;
             }
 
             endpoint[path][method] = { ...endpoint[path][method], ...handledParameters };
@@ -697,16 +701,37 @@ function handleComments(comments, props) {
     let handleComments = {};
 
     try {
-        if (comments.hasSwaggerProperty('tags')) {
-            handleComments.tags = getTags(comments, props);
+
+        if (comments.hasSwaggerProperty('auto')) {
+            var debug = null;
         }
 
-        if (comments.hasSwaggerProperty('summary')) {
-            handleComments.summary = getValueString('summary', comments);
+        if (comments.hasSwaggerProperty('autoBody')) {
+            var debug = null;
+        }
+
+        if (comments.hasSwaggerProperty('autoHeaders')) {
+            var debug = null;
+        }
+
+        if (comments.hasSwaggerProperty('autoQuery')) {
+            var debug = null;
+        }
+
+        if (comments.hasSwaggerProperty('consumes')) {
+            var debug = null;
+        }
+
+        if (comments.hasSwaggerProperty('deprecated')) {
+            var debug = null;
         }
 
         if (comments.hasSwaggerProperty('description')) {
             handleComments.description = getValueString('description', comments);
+        }
+
+        if (comments.hasSwaggerProperty('ignore')) {
+            handleComments.ignore = getValueBoolean('ignore', comments);
         }
 
         if (comments.hasSwaggerProperty('operationId')) {
@@ -717,40 +742,24 @@ function handleComments(comments, props) {
             handleComments.parameters = getParameters(comments, props);
         }
 
-        if (comments.hasSwaggerProperty('responses')) {
-            handleComments.responses = getResponses(comments, props);
-        }
-
-        if (comments.hasSwaggerProperty('autoBody')) {
-            var debug = null;
-        }
-
-        if (comments.hasSwaggerProperty('autoQuery')) {
-            var debug = null;
-        }
-
-        if (comments.hasSwaggerProperty('autoHeaders')) {
-            var debug = null;
-        }
-
-        if (comments.hasSwaggerProperty('auto')) {
-            var debug = null;
-        }
-
         if (comments.hasSwaggerProperty('produces')) {
             var debug = null;
         }
 
-        if (comments.hasSwaggerProperty('consumes')) {
-            var debug = null;
+        if (comments.hasSwaggerProperty('responses')) {
+            handleComments.responses = getResponses(comments, props);
         }
 
         if (comments.hasSwaggerProperty('security')) {
             var debug = null;
         }
 
-        if (comments.hasSwaggerProperty('deprecated')) {
-            var debug = null;
+        if (comments.hasSwaggerProperty('summary')) {
+            handleComments.summary = getValueString('summary', comments);
+        }
+
+        if (comments.hasSwaggerProperty('tags')) {
+            handleComments.tags = getTags(comments, props);
         }
 
         var debug = null;
@@ -765,8 +774,19 @@ function handleComments(comments, props) {
 
 function getValueString(key, comments) {
     try {
-        const rawDescription = comments.split(getSingleSwaggerPropertyRegex(key))[1];
-        return utils.popString(rawDescription);
+        const rawValue = comments.split(getSingleSwaggerPropertyRegex(key))[1];
+        return utils.popString(rawValue);
+    } catch (err) {
+        if (true) { // TODO: put getDisableLogs()
+            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.${key}' out of structure in:`);
+        }
+    }
+}
+
+function getValueBoolean(key, comments) {
+    try {
+        const rawValue = comments.split(getSingleSwaggerPropertyRegex(key))[1];
+        return rawValue === 'true';
     } catch (err) {
         if (true) { // TODO: put getDisableLogs()
             console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.${key}' out of structure in:`);
