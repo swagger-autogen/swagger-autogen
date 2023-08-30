@@ -113,6 +113,8 @@ async function processAndMergeAST(ast, props) {
     processedAst.imports.forEach(imp => newProps.imports.add(imp));
     newProps.paths = deepMerge(newProps.paths, processedAst.paths);
     newProps.inheritedProperties = processedAst.inheritedProperties;
+    newProps.linkedInheritedProperties = processedAst.linkedInheritedProperties;
+
     return newProps;
 }
 
@@ -165,7 +167,7 @@ async function processAST(ast, props) {
         if (isMiddleware(ast)) {
             const handledMiddleware = await handleMiddleware(ast, { ...props });
             props.paths = deepMerge(props.paths, handledMiddleware.paths);
-            props.inheritedProperties = handledMiddleware.inheritedProperties ? handledMiddleware.inheritedProperties : null;
+            props.inheritedProperties = handledMiddleware.inheritedProperties;
             return props;
         } else if (isHttpRequestMethod(ast)) {
             if (!isValidNode(ast)) {
@@ -188,7 +190,7 @@ async function processAST(ast, props) {
                 if (ast.callee?.object?.callee?.property?.type === 'Identifier' &&
                     ast.callee?.object?.callee?.property?.name === 'use') {
                     const callbackFunction = await findCallbackFunction(ast.callee?.object?.arguments[0], props);
-                    props.inheritedProperties = callbackFunction;
+                    props.linkedInheritedProperties = callbackFunction;
                     var debug = null;
                 }
 
@@ -199,7 +201,7 @@ async function processAST(ast, props) {
                 props.isLinkedMethod = true;
                 const processedAst = await processAST(ast.callee, { ...props });
                 props.paths = deepMerge(props.paths, processedAst.paths);
-                props.inheritedProperties = deepMerge(props.inheritedProperties || {}, processedAst.inheritedProperties || {});
+                props.linkedInheritedProperties = deepMerge(props.linkedInheritedProperties || {}, processedAst.linkedInheritedProperties || {});
                 var debug = null;
             }
 
@@ -207,7 +209,7 @@ async function processAST(ast, props) {
                 var debug = null;
             }
 
-            let path = findPath(ast) || props.inheritedProperties?.path;
+            let path = findPath(ast) || props.linkedInheritedProperties?.path;
             let method = findMethod(ast);
             if (!path || !method) {
                 return props;
@@ -219,7 +221,7 @@ async function processAST(ast, props) {
 
             path = formatPath(path);
 
-            if (path == '/array_required/users') {
+            if (path == '/issue_128b') {
                 var debug = null;
             }
 
@@ -231,7 +233,7 @@ async function processAST(ast, props) {
 
             const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
 
-            if (path == '/array_required/users') {
+            if (path == '/issue_128b') {
                 var debug = null;
             }
 
@@ -252,11 +254,20 @@ async function processAST(ast, props) {
                 endpoint[path][method] = { ...endpoint[path][method], ...handledParameters };
             }
 
-            if (props.isLinkedMethod) {
-                endpoint[path][method].responses = { ...props?.inheritedProperties?.responses, ...endpoint[path][method].responses }
+            if (ast.end === 404) {
+                var debug = null;
             }
 
-            endpoint[path][method] = deleteUnusedProperties({ ...endpoint[path][method] });
+            if (props.isLinkedMethod) {
+                // TODO: inherit another properties such as: parameters, tags, descriptions, etc...
+                endpoint[path][method].responses = { ...props.linkedInheritedProperties?.responses, ...endpoint[path][method].responses }
+            }
+
+            if (props.inheritedProperties) {
+                endpoint[path][method] = deepMerge(props.inheritedProperties, endpoint[path][method]);
+            }
+
+            endpoint[path][method] = deleteUnusedProperties({ ...buildEmptyEndpoint(), ...endpoint[path][method] });
 
 
             var debug = null;
@@ -265,7 +276,7 @@ async function processAST(ast, props) {
              * Request method linked with route function
              * e.g. router.route('/path').get(someMiddleware, someCallback)
              */
-            props.inheritedProperties = {
+            props.linkedInheritedProperties = {
                 path: findPath(ast)
             };
 
@@ -329,6 +340,10 @@ function formatPath(path) {
     return formattedPath;
 }
 
+function isObjectEmpty(obj) {
+    return Object.keys(obj).length === 0;
+}
+
 function deleteUnusedProperties(endpoint) {
     let sanitizedEntpoint = {}
     try {
@@ -336,7 +351,11 @@ function deleteUnusedProperties(endpoint) {
             const key = property[0];
             const value = property[1];
 
-            if (value && Array.isArray(value) && value.length == 0) {
+            if (['comments'].includes(key)) {
+                return;
+            } else if (value && Array.isArray(value) && value.length == 0) {
+                return;
+            } else if (typeof value === 'object' && isObjectEmpty(value) && key !== 'description') {
                 return;
             } else if (value !== undefined) {
                 sanitizedEntpoint[key] = value;
@@ -391,7 +410,7 @@ async function handleRequestMethodParameters(ast, props) {
 
     const nodes = ast.arguments;
     const numArgs = ast.arguments.length;
-    const start = props.inheritedProperties?.path && props.isLinkedMethod ? 0 : 1;
+    const start = props.linkedInheritedProperties?.path && props.isLinkedMethod ? 0 : 1;
     for (let idxArgs = start; idxArgs < numArgs; ++idxArgs) {
         const node = nodes[idxArgs];
         const callbackFunction = await findCallbackFunction(node, props);    // TODO: change these names?
@@ -415,7 +434,7 @@ async function handleRequestMethodParameters(ast, props) {
         ))
     )
 
-    if (ast.end === 798) {
+    if (ast.end === 7890) {
         var debug = null;
     }
 
@@ -1074,6 +1093,16 @@ async function handleMiddleware(ast, props) {
         if (node.type === 'Identifier') {
             // TODO: put in a function. See numArgs > 1
             // TODO: find first in the same file. If not found, try to find in the imports
+            // TODO: if in other file, check if it's a callback (to get parameters as a middleware) or .use to call sub-routes
+            for (let idxScope = 0; idxScope < props.scopeStack.length; ++idxScope) {
+                const scope = props.scopeStack[idxScope];
+                const callback = await findCallbackFunction(scope, { ...props, scopeStack: [], functionName: node.name, externalAst: false });
+                if (!isObjectEmpty(callback)) {
+                    return { ...props, inheritedProperties: callback };
+                }
+                var debug = null;
+            }
+
             let route = imports.find(imp => imp.variableName === node.name);
             let functionName = null;
             if (route?.variableName?.includes('.')) {
@@ -1082,7 +1111,7 @@ async function handleMiddleware(ast, props) {
             if (route) {
                 const processedFile = await processFile(route.path, { functionName, isSearchingFunction: props.isSearchingFunction });
                 props.paths = deepMerge(props.paths, processedFile.paths);
-                props.inheritedProperties = processedFile.inheritedProperties ? processedFile.inheritedProperties : null;
+                props.inheritedProperties = processedFile.inheritedProperties;
                 var debug = null;
             }
             var debug = null;
@@ -1118,7 +1147,7 @@ async function handleMiddleware(ast, props) {
                 if (route) {
                     const processedFile = await processFile(route.path, { functionName, routeProperties });
                     props.paths = deepMerge(props.paths, processedFile.paths);
-                    props.inheritedProperties = processedFile.inheritedProperties ? processedFile.inheritedProperties : null;
+                    props.inheritedProperties = processedFile.inheritedProperties;
                     var debug = null;
                 }
                 var debug = null;
