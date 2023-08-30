@@ -23,6 +23,7 @@ const overwriteMerge = (destinationArray, sourceArray, options) => {
 // Becaution about local function. Try to find localy and after in the cache and afer try to find in other file, maybe.
 // TODO: create option (maybe  'contentResponseType') for default 'content' to responses. Default: ['json'], but it's possible add more value such as: ['json', 'xml', ...]
 // TODO: create tag #swagger.contentType to generate responses with specific content type. e.g: #swagger.contentType = ['json', 'xml']
+// TODO: check error messages
 
 /* Deprecated:
     #swagger.start and #swagger.end
@@ -206,7 +207,7 @@ async function processAST(ast, props) {
             }
 
             let path = findPath(ast) || props.inheritedProperties?.path;
-            const method = findMethod(ast);
+            let method = findMethod(ast);
             if (!path || !method) {
                 return props;
             }
@@ -217,7 +218,7 @@ async function processAST(ast, props) {
 
             path = formatPath(path);
 
-            if (path == '/notmanual/users/') {
+            if (path == '/notmanual/users/{id}') {
                 var debug = null;
             }
 
@@ -229,7 +230,7 @@ async function processAST(ast, props) {
 
             const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
 
-            if (path == '/notmanual/users/') {
+            if (path == '/notmanual/users/{id}') {
                 var debug = null;
             }
 
@@ -237,7 +238,18 @@ async function processAST(ast, props) {
                 return props;
             }
 
-            endpoint[path][method] = { ...endpoint[path][method], ...handledParameters };
+            if (handledParameters.auto === false) {
+                delete endpoint[path][method];
+                if (Object.keys(endpoint[path]).length == 0) {
+                    delete endpoint[path];
+                }
+                path = handledParameters.path || path;
+                method = handledParameters.method || method;
+                endpoint = createEndpoint(path, method, { ...endpoint });
+                endpoint[path][method] = changeToManualAttributes({ ...handledParameters });
+            } else {
+                endpoint[path][method] = { ...endpoint[path][method], ...handledParameters };
+            }
 
             if (props.isLinkedMethod) {
                 endpoint[path][method].responses = { ...props?.inheritedProperties?.responses, ...endpoint[path][method].responses }
@@ -265,6 +277,15 @@ async function processAST(ast, props) {
 
     props.paths = deepMerge(props.paths, endpoint);
     return props;
+}
+
+function changeToManualAttributes(handledParameters) {
+    delete handledParameters.auto;
+    delete handledParameters.method;
+    delete handledParameters.path;
+
+    // parei aqui. definir ordem para caso de #swagger.auto === false
+    return handledParameters;
 }
 
 function findPathParameters(path) {
@@ -397,6 +418,10 @@ async function handleRequestMethodParameters(ast, props) {
         const handledComments = handleComments(comments, props);
         if (handledComments.responses && endpoint.responses.default) {
             delete endpoint.responses.default;
+        }
+
+        if (handledComments.auto === false) {
+            return handledComments;
         }
         endpoint = deepMerge({ ...endpoint }, { ...handledComments })
         var debug = null;
@@ -703,7 +728,7 @@ function handleComments(comments, props) {
     try {
 
         if (comments.hasSwaggerProperty('auto')) {
-            var debug = null;
+            handleComments.auto = getValueBoolean('auto', comments);
         }
 
         if (comments.hasSwaggerProperty('autoBody')) {
@@ -719,11 +744,11 @@ function handleComments(comments, props) {
         }
 
         if (comments.hasSwaggerProperty('consumes')) {
-            var debug = null;
+            handleComments.consumes = getValueArray('consumes', comments);
         }
 
         if (comments.hasSwaggerProperty('deprecated')) {
-            var debug = null;
+            handleComments.deprecated = getValueBoolean('deprecated', comments);
         }
 
         if (comments.hasSwaggerProperty('description')) {
@@ -734,6 +759,10 @@ function handleComments(comments, props) {
             handleComments.ignore = getValueBoolean('ignore', comments);
         }
 
+        if (comments.hasSwaggerProperty('method')) {
+            handleComments.method = getValueString('method', comments);
+        }
+
         if (comments.hasSwaggerProperty('operationId')) {
             handleComments.operationId = getValueString('operationId', comments);
         }
@@ -742,8 +771,12 @@ function handleComments(comments, props) {
             handleComments.parameters = getParameters(comments, props);
         }
 
+        if (comments.hasSwaggerProperty('path')) {
+            handleComments.path = getValueString('path', comments);
+        }
+
         if (comments.hasSwaggerProperty('produces')) {
-            var debug = null;
+            handleComments.produces = getValueArray('produces', comments);
         }
 
         if (comments.hasSwaggerProperty('responses')) {
@@ -770,6 +803,20 @@ function handleComments(comments, props) {
     }
 
     return handleComments;
+}
+
+function getValueArray(key, comments) {
+    try {
+        const rawValue = comments.split(getSingleSwaggerPropertyRegex(key))[1];
+        if (!rawValue || rawValue[0] !== '[') {
+            throw new Error;
+        }
+        return eval(`(${getBetweenSymbols(rawValue, '[', ']')})`);;
+    } catch (err) {
+        if (true) { // TODO: put getDisableLogs()
+            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.${key}' out of structure in:`);
+        }
+    }
 }
 
 function getValueString(key, comments) {
