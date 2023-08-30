@@ -221,7 +221,7 @@ async function processAST(ast, props) {
 
             path = formatPath(path);
 
-            if (path == '/issue_128b') {
+            if (path == '/user/issue_128b') {
                 var debug = null;
             }
 
@@ -233,7 +233,7 @@ async function processAST(ast, props) {
 
             const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
 
-            if (path == '/issue_128b') {
+            if (path == '/user/issue_128b') {
                 var debug = null;
             }
 
@@ -656,6 +656,13 @@ async function findCallbackFunction(node, props) {
     } else if (node.type === 'ObjectProperty') {
         const processedAst = await findCallbackFunction(node.value, { ...props });
         return processedAst;
+    } else if (node.type === 'ArrayExpression') {
+        for (let idxElement = 0; idxElement < node.elements.length; ++idxElement) {
+            const element = node.elements[idxElement];
+            callback = await findCallbackFunction(element, { ...props });
+            var debug = null;
+        }
+        var debug = null;
     } else {
         // TODO: handle it
         var debug = null;
