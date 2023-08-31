@@ -572,9 +572,7 @@ async function findCallbackFunction(node, props) {
             return callbackFunction;
         }
 
-    } else if (isValidArrowFunctionExpression(node) ||
-        isValidObjectMethod(node, props) ||
-        isValidFunctionDeclaration(node, props)) {
+    } else if (isValidFunction(node, props)) {
 
         if (node.end === 4038) {
             var debug = null;
@@ -690,6 +688,16 @@ function isModuleExports(node) {
     return false;
 }
 
+function isValidFunction(node, props) {
+    if (isValidArrowFunctionExpression(node) ||
+        isValidObjectMethod(node, props) ||
+        isValidFunctionDeclaration(node, props) ||
+        isValidFunctionExpression(node, props)
+    ) {
+        return true;
+    }
+    return false;
+}
 function isValidArrowFunctionExpression(node) {
     return node.type === 'ArrowFunctionExpression' && node.params?.length > 1;
 }
@@ -709,6 +717,12 @@ function isValidFunctionDeclaration(node, props) {
 
     return node.type === 'FunctionDeclaration' && node.params?.length > 1;
 }
+
+function isValidFunctionExpression(node, props) {
+    return node.type === 'FunctionExpression' && node.params?.length > 1;
+}
+
+
 
 function isObjectEmpty(object) {
     if (!object) {
@@ -1100,7 +1114,7 @@ async function handleMiddleware(ast, props) {
         if (node.type === 'Identifier') {
             // TODO: put in a function. See numArgs > 1
             // TODO: find first in the same file. If not found, try to find in the imports
-            // TODO: if in other file, check if it's a callback (to get parameters as a middleware) or .use to call sub-routes
+            // TODO: if in other file, check if it's a callback (to get parameters as a middleware) or .use to call sub-routes (export the express.Router())
             for (let idxScope = 0; idxScope < props.scopeStack.length; ++idxScope) {
                 const scope = props.scopeStack[idxScope];
                 const callback = await findCallbackFunction(scope, { ...props, scopeStack: [], functionName: node.name, externalAst: false });
@@ -1112,18 +1126,18 @@ async function handleMiddleware(ast, props) {
 
             let route = imports.find(imp => imp.variableName === node.name);
             let functionName = null;
-            if (route?.variableName?.includes('.')) {
-                functionName = route?.variableName.split('.')[1];
-            }
             if (route) {
-                const processedFile = await processFile(route.path, { functionName, isSearchingFunction: props.isSearchingFunction });
+                const processedFile = await processFile(route.path, { functionName, isSearchingFunction: props.isSearchingFunction, inheritedProperties: props.inheritedProperties });
                 props.paths = deepMerge(props.paths, processedFile.paths);
                 props.inheritedProperties = processedFile.inheritedProperties;
                 var debug = null;
             }
             var debug = null;
-        } else {
-            // TODO: handle it
+        } else if (node.type === 'FunctionExpression') {
+            const callback = await findCallbackFunction(node, { ...props });
+            if (!isObjectEmpty(callback)) {
+                return { ...props, inheritedProperties: callback };
+            }
             var debug = null;
         }
         // const response = routeCall()
@@ -1451,28 +1465,25 @@ function findQueryAttributes(node, functionParametersName) {
 function findStatusCodeAttributes(node, functionParametersName) {
     let responses = {};
 
-    if (node.end === 3789) {
+    if (node.end === 762) {
         var debug = null;
     }
 
     if (node.object?.callee?.object?.name == functionParametersName.response &&
         node.object.callee.property?.name === 'status') { // TODO: handle other cases such as: 
-
-        if (node.object.arguments[0]?.type === 'NumericLiteral') {
-            const statusCode = node.object.arguments[0].extra.raw;
+        const statusCodeList = findStatusCode(node.object.arguments[0]);
+        for (let idxStatusCode = 0; idxStatusCode < statusCodeList.length; ++idxStatusCode) {
+            const statusCode = statusCodeList[idxStatusCode];
             if (swaggerTags.getOpenAPI()) { // TODO: improve this. put in a better place
                 // TODO: handle it
                 var debug = null;
             } else {
                 // Swagger 2.0
-                responses = buildResponsesParameter(statusCode, responses);
+                responses = { ...responses, ...buildResponsesParameter(statusCode, responses) };
                 var debug = null;
             }
-            var debug = null;
-        } else {
-            // TODO: handle it
-            var debug = null;
         }
+        var debug = null;
     } else if (node.object?.name === functionParametersName.response &&
         ['send', 'json'].includes(node.property?.name)) { // TODO: handle other cases such as: 
 
@@ -1487,25 +1498,37 @@ function findStatusCodeAttributes(node, functionParametersName) {
         var debug = null;
     } else if (node.callee?.object?.name === functionParametersName.response &&
         node.callee.property?.name === 'status') { // TODO: handle other cases such as: 
-        if (node.arguments[0]?.type === 'NumericLiteral') {
+        const statusCodeList = findStatusCode(node.arguments[0]);
+        for (let idxStatusCode = 0; idxStatusCode < statusCodeList.length; ++idxStatusCode) {
+            const statusCode = statusCodeList[idxStatusCode];
             if (swaggerTags.getOpenAPI()) { // TODO: improve this. put in a better place
                 // TODO: handle it
                 var debug = null;
             } else {
                 // Swagger 2.0
-                const statusCode = node.arguments[0].extra.raw;
-                responses = buildResponsesParameter(statusCode, responses);
+                responses = { ...responses, ...buildResponsesParameter(statusCode, responses) };
                 var debug = null;
             }
-        } else {
-            // TODO: handle it
-            var debug = null;
         }
-
         var debug = null;
     }
 
     return responses;
+}
+
+function findStatusCode(node) {
+    if (node?.type === 'NumericLiteral') {
+        return [node.extra.raw];
+    } else if (node?.type === 'LogicalExpression' && node?.operator === '||') {
+        const left = findStatusCode(node.left);
+        const right = findStatusCode(node.right);
+        return [...left, ...right];
+    } else if (node?.type === 'ConditionalExpression') {
+        const consequent = findStatusCode(node.consequent);
+        const alternate = findStatusCode(node.alternate);
+        return [...consequent, ...alternate];
+    }
+    return [];
 }
 
 function findProducesAttributes(node, functionParametersName) {
