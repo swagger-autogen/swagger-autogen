@@ -273,7 +273,7 @@ async function processAST(ast, props) {
 
                 path = formatPath(path);
 
-                if (path == '/user/issue_128b') {
+                if (path == '/signin') {
                     var debug = null;
                 }
 
@@ -285,7 +285,7 @@ async function processAST(ast, props) {
 
                 const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
 
-                if (path == '/user/issue_128b') {
+                if (path == '/signin') {
                     var debug = null;
                 }
 
@@ -323,7 +323,9 @@ async function processAST(ast, props) {
                 for (let idxInherit = 0; idxInherit < props.inheritedProperties.length; ++idxInherit) {
                     const inheritedProperty = props.inheritedProperties[idxInherit]
                     if (!inheritedProperty.isLinkedMethod && inheritedProperty.content) {
-                        endpoint[path][method] = deepMerge(inheritedProperty.content, endpoint[path][method]);
+                        if (!inheritedProperty.path || (new RegExp(`^${inheritedProperty.path}`).test(path))) {
+                            endpoint[path][method] = deepMerge(inheritedProperty.content, endpoint[path][method]);
+                        }
                     }
                 }
 
@@ -1190,7 +1192,7 @@ async function handleMiddleware(ast, props) {
                     props.inheritedProperties.push({
                         path: null,
                         isLinkedMethod: false,
-                        isMiddleware: false,
+                        isMiddleware: true,
                         content: callback
                     });
                     return { ...props };
@@ -1202,7 +1204,7 @@ async function handleMiddleware(ast, props) {
             let functionName = null;
             if (route) {
                 // const filteredInheritedProperties = props.inheritedProperties.filter(i => i.isMiddleware);
-                const processedFile = await processFile(route.path, { functionName, isSearchingFunction: props.isSearchingFunction, inheritedProperties: props.inheritedProperties});
+                const processedFile = await processFile(route.path, { functionName, isSearchingFunction: props.isSearchingFunction, inheritedProperties: props.inheritedProperties });
                 props.paths = deepMerge(props.paths, processedFile.paths);
                 props.inheritedProperties = processedFile.inheritedProperties || [];
                 var debug = null;
@@ -1264,14 +1266,23 @@ async function handleMiddleware(ast, props) {
                 if (route) {
                     const filteredInheritedProperties = props.inheritedProperties.filter(i => i.isMiddleware);
                     // const processedFile = await processFile(route.path, { functionName, isSearchingFunction: props.isSearchingFunction, inheritedProperties: props.inheritedProperties, routeProperties });
-                    const processedFile = await processFile(route.path, { functionName, routeProperties, inheritedProperties: filteredInheritedProperties});
+                    const processedFile = await processFile(route.path, { functionName, routeProperties, inheritedProperties: filteredInheritedProperties });
                     props.paths = deepMerge(props.paths, processedFile.paths);
                     props.inheritedProperties = processedFile.inheritedProperties || [];
                     var debug = null;
                 }
                 var debug = null;
-            } else {
-                // TODO: handle it
+            } else if (argument.type === 'FunctionExpression') {
+                const callback = await findCallbackFunction(argument, { ...props });
+                if (!isObjectEmpty(callback)) {
+                    props.inheritedProperties.push({
+                        path: routeProperties.path,
+                        isLinkedMethod: false,
+                        isMiddleware: true,
+                        content: callback
+                    });
+                    return { ...props };
+                }
                 var debug = null;
             }
             var debug = null;
