@@ -58,7 +58,8 @@ function getAstFromFile(filePath, props = {}) {
                     imports: new Set(),
                     isTypeScript,
                     filePath,
-                    scopeStack: []
+                    scopeStack: [],
+                    inheritedProperties: []
                 };
 
                 var debug = null;
@@ -94,6 +95,7 @@ function processFile(filePath, props = {}) {
                     isTypeScript,
                     filePath,
                     scopeStack: [],
+                    inheritedProperties: [],
                     ...props
                 });
                 response.imports = new Set();
@@ -112,10 +114,47 @@ async function processAndMergeAST(ast, props) {
     const processedAst = await processAST(ast, { ...props });
     processedAst.imports.forEach(imp => newProps.imports.add(imp));
     newProps.paths = deepMerge(newProps.paths, processedAst.paths);
-    newProps.inheritedProperties = processedAst.inheritedProperties;
-    newProps.linkedInheritedProperties = processedAst.linkedInheritedProperties;
+    newProps.inheritedProperties = processedAst.inheritedProperties || [];
 
     return newProps;
+}
+
+function removeArrayElement(arr, n) {
+    arr.splice(n, 1);
+    return arr;
+}
+
+function applyNewRoutes(props) {
+
+    /**
+     * Case: router.use('/somePath', router);
+     */
+    const idxSelfRouted = props.inheritedProperties?.findIndex(p => p.isSelfRouted && p.path);
+    if (idxSelfRouted > -1) {
+        const selfRouted = props.inheritedProperties[idxSelfRouted];
+        let auxPaths = {};
+
+        Object.keys(props.paths).forEach(path => {
+            let newRoutePath;
+            if (props.routeProperties?.path) {
+                let auxPath = path.replace(new RegExp(`^${props.routeProperties.path}`), props.routeProperties.path + selfRouted.path);
+                newRoutePath = (auxPath).replaceAll('//', '/');
+                auxPaths[newRoutePath] = props.paths[path];
+                var debug = null;
+            } else {
+                newRoutePath = (selfRouted.path + path).replaceAll('//', '/');
+                auxPaths[newRoutePath] = props.paths[path];
+            }
+
+        })
+
+        props.paths = auxPaths;
+        props.inheritedProperties = removeArrayElement(props.inheritedProperties, idxSelfRouted);
+        var debug = null;
+    }
+
+    return props;
+
 }
 
 async function processAST(ast, props) {
@@ -124,73 +163,97 @@ async function processAST(ast, props) {
 
     let endpoint = {};
 
-    if (ast.type === 'Program') {
-        for (let bodyIdx = 0; bodyIdx < ast.body.length; ++bodyIdx) {
-            if (bodyIdx === 11) {
+    try {
+
+        if (ast.type === 'Program') {
+            for (let bodyIdx = 0; bodyIdx < ast.body.length; ++bodyIdx) {
+                if (bodyIdx === 11) {
+                    var debug = null;
+                }
+                props.scopeStack.unshift(ast);
+                const processedAst = await processAST(ast.body[bodyIdx], { ...props });
+                props.scopeStack.shift();
+                processedAst.imports.forEach(imp => props.imports.add(imp));
+                props.paths = deepMerge(props.paths, processedAst.paths);
+                props.inheritedProperties = processedAst.inheritedProperties || [];
                 var debug = null;
             }
-            props.scopeStack.unshift(ast);
-            const processedAst = await processAST(ast.body[bodyIdx], { ...props });
-            props.scopeStack.shift();
-            processedAst.imports.forEach(imp => props.imports.add(imp));
-            props.paths = deepMerge(props.paths, processedAst.paths);
-            props.inheritedProperties = processedAst.inheritedProperties;
-            var debug = null;
-        }
-        return props;
-    } else if (ast.type === 'ExpressionStatement') {
-        return await processAndMergeAST(ast.expression, props);
-    } else if (ast.type === 'MemberExpression') {
-        return await processAndMergeAST(ast.object, props);
-    } else if (ast.type === 'AssignmentExpression') {
-        if (isModuleExports(ast)) {
-            return await processAndMergeAST(ast.right, props);
-        }
-        return props;
-    } else if (ast.type === 'FunctionExpression') {
-        return await processAndMergeAST(ast.body, props);
-    } else if (ast.type === 'BlockStatement') {
-        props.scopeStack.unshift(ast);
-        for (let bodyIdx = 0; bodyIdx < ast.body.length; ++bodyIdx) {
-            props = await processAndMergeAST(ast.body[bodyIdx], props);
-        }
-        props.scopeStack.shift();
-        return props;
-    }
 
-    props.imports = await findImports(ast, props);
+            props = applyNewRoutes({ ...props });
 
-    /**
-     * Nodes
-     */
-    if (ast.type === 'CallExpression') {
-        if (isMiddleware(ast)) {
-            const handledMiddleware = await handleMiddleware(ast, { ...props });
-            props.paths = deepMerge(props.paths, handledMiddleware.paths);
-            props.inheritedProperties = handledMiddleware.inheritedProperties;
             return props;
-        } else if (isHttpRequestMethod(ast)) {
-            if (!isValidNode(ast)) {
-                return props;
+        } else if (ast.type === 'ExpressionStatement') {
+            return await processAndMergeAST(ast.expression, props);
+        } else if (ast.type === 'MemberExpression') {
+            return await processAndMergeAST(ast.object, props);
+        } else if (ast.type === 'AssignmentExpression') {
+            if (isModuleExports(ast)) {
+                return await processAndMergeAST(ast.right, props);
             }
+            return props;
+        } else if (ast.type === 'FunctionExpression') {
+            return await processAndMergeAST(ast.body, props);
+        } else if (ast.type === 'BlockStatement') {
+            props.scopeStack.unshift(ast);
+            for (let bodyIdx = 0; bodyIdx < ast.body.length; ++bodyIdx) {
+                props = await processAndMergeAST(ast.body[bodyIdx], props);
+            }
+            props.scopeStack.shift();
+            return props;
+        }
 
-            if (ast.end === 2043) {
+        props.imports = await findImports(ast, props);
+
+        /**
+         * Nodes
+         */
+        if (ast.type === 'CallExpression') {
+            if (ast.end === 2309) {
                 var debug = null;
             }
+            if (isMiddleware(ast)) {
+                const handledMiddleware = await handleMiddleware(ast, { ...props });
+                props.paths = deepMerge(props.paths, handledMiddleware.paths);
+                props.inheritedProperties = handledMiddleware.inheritedProperties || [];
+                return props;
+            } else if (isHttpRequestMethod(ast)) {
+                if (!isValidNode(ast)) {
+                    return props;
+                }
 
-            /**
-             * Linked resquest methods
-             * e.g. router.use(someMiddleware).get('/somePath', ...).post('/somePath', ...)
-             */
-            if (ast.callee?.object?.type === 'CallExpression') {
-                if (ast.end === 146) {
+                if (ast.end === 2043) {
                     var debug = null;
                 }
 
-                if (ast.callee?.object?.callee?.property?.type === 'Identifier' &&
-                    ast.callee?.object?.callee?.property?.name === 'use') {
-                    const callbackFunction = await findCallbackFunction(ast.callee?.object?.arguments[0], props);
-                    props.linkedInheritedProperties = callbackFunction;
+                /**
+                 * Linked resquest methods
+                 * e.g. router.use(someMiddleware).get('/somePath', ...).post('/somePath', ...)
+                 */
+                if (ast.callee?.object?.type === 'CallExpression') {
+                    if (ast.end === 146) {
+                        var debug = null;
+                    }
+
+                    if (ast.callee?.object?.callee?.property?.type === 'Identifier' &&
+                        ast.callee?.object?.callee?.property?.name === 'use') {
+                        const callbackFunction = await findCallbackFunction(ast.callee?.object?.arguments[0], props);
+                        props.inheritedProperties.push({
+                            path: null,
+                            isLinkedMethod: true,
+                            isMiddleware: false,
+                            content: callbackFunction
+                        });
+                        var debug = null;
+                    }
+
+                    if (ast.end === 607) {
+                        var debug = null;
+                    }
+
+                    props.isLinkedMethod = true;
+                    const processedAst = await processAST(ast.callee, { ...props });
+                    props.paths = deepMerge(props.paths, processedAst.paths);
+                    props.inheritedProperties = processedAst.inheritedProperties || [];
                     var debug = null;
                 }
 
@@ -198,97 +261,102 @@ async function processAST(ast, props) {
                     var debug = null;
                 }
 
-                props.isLinkedMethod = true;
-                const processedAst = await processAST(ast.callee, { ...props });
-                props.paths = deepMerge(props.paths, processedAst.paths);
-                props.linkedInheritedProperties = deepMerge(props.linkedInheritedProperties || {}, processedAst.linkedInheritedProperties || {});
-                var debug = null;
-            }
-
-            if (ast.end === 607) {
-                var debug = null;
-            }
-
-            let path = findPath(ast) || props.linkedInheritedProperties?.path;
-            let method = findMethod(ast);
-            if (!path || !method) {
-                return props;
-            }
-
-            if (props.routeProperties?.path) {
-                path = props.routeProperties.path + path;
-            }
-
-            path = formatPath(path);
-
-            if (path == '/user/issue_128b') {
-                var debug = null;
-            }
-
-            endpoint = createEndpoint(path, method, { ...endpoint });
-            const pathParameters = findPathParameters(path);
-            if (pathParameters.length > 0) {
-                endpoint[path][method].parameters = [...pathParameters];
-            }
-
-            const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
-
-            if (path == '/user/issue_128b') {
-                var debug = null;
-            }
-
-            if (handledParameters.ignore === true) {
-                return props;
-            }
-
-            if (handledParameters.auto === false) {
-                delete endpoint[path][method];
-                if (Object.keys(endpoint[path]).length == 0) {
-                    delete endpoint[path];
+                let path = findPath(ast, props);
+                let method = findMethod(ast);
+                if (!path || !method) {
+                    return props;
                 }
-                path = handledParameters.path || path;
-                method = handledParameters.method || method;
-                endpoint = createEndpoint(path, method, { ...endpoint });
-                endpoint[path][method] = changeToManualAttributes({ ...handledParameters });
-            } else {
-                endpoint[path][method] = { ...endpoint[path][method], ...handledParameters };
-            }
 
-            if (ast.end === 404) {
+                if (props.routeProperties?.path) {
+                    path = props.routeProperties.path + path;
+                }
+
+                path = formatPath(path);
+
+                if (path == '/user/issue_128b') {
+                    var debug = null;
+                }
+
+                endpoint = createEndpoint(path, method, { ...endpoint });
+                const pathParameters = findPathParameters(path);
+                if (pathParameters.length > 0) {
+                    endpoint[path][method].parameters = [...pathParameters];
+                }
+
+                const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
+
+                if (path == '/user/issue_128b') {
+                    var debug = null;
+                }
+
+                if (handledParameters.ignore === true) {
+                    return props;
+                }
+
+                if (handledParameters.auto === false) {
+                    delete endpoint[path][method];
+                    if (Object.keys(endpoint[path]).length == 0) {
+                        delete endpoint[path];
+                    }
+                    path = handledParameters.path || path;
+                    method = handledParameters.method || method;
+                    endpoint = createEndpoint(path, method, { ...endpoint });
+                    endpoint[path][method] = changeToManualAttributes({ ...handledParameters });
+                } else {
+                    endpoint[path][method] = { ...endpoint[path][method], ...handledParameters };
+                }
+
+                if (ast.end === 404) {
+                    var debug = null;
+                }
+
+                if (props.isLinkedMethod) {
+                    // TODO: inherit another properties such as: parameters, tags, descriptions, etc...
+                    for (let idxInherit = 0; idxInherit < props.inheritedProperties.length; ++idxInherit) {
+                        const inheritedProperty = props.inheritedProperties[idxInherit]
+                        if (inheritedProperty.isLinkedMethod && inheritedProperty.content) {
+                            endpoint[path][method].responses = { ...inheritedProperty.content.responses, ...endpoint[path][method].responses };
+                        }
+                    }
+                }
+
+                for (let idxInherit = 0; idxInherit < props.inheritedProperties.length; ++idxInherit) {
+                    const inheritedProperty = props.inheritedProperties[idxInherit]
+                    if (!inheritedProperty.isLinkedMethod && inheritedProperty.content) {
+                        endpoint[path][method] = deepMerge(inheritedProperty.content, endpoint[path][method]);
+                    }
+                }
+
+
+                endpoint[path][method] = deleteUnusedProperties({ ...buildEmptyEndpoint(), ...endpoint[path][method] });
+
+
+                var debug = null;
+            } else if (isRoute(ast) && props.isLinkedMethod) {
+                /**
+                 * Request method linked with route function
+                 * e.g. router.route('/path').get(someMiddleware, someCallback)
+                 */
+                props.inheritedProperties.push({
+                    path: findPath(ast),
+                    isLinkedMethod: true,
+                    isMiddleware: false,
+                    content: null
+                });
+
+                var debug = null;
+            } else {
+                // TODO: handle it 
                 var debug = null;
             }
-
-            if (props.isLinkedMethod) {
-                // TODO: inherit another properties such as: parameters, tags, descriptions, etc...
-                endpoint[path][method].responses = { ...props.linkedInheritedProperties?.responses, ...endpoint[path][method].responses }
-            }
-
-            if (props.inheritedProperties) {
-                endpoint[path][method] = deepMerge(props.inheritedProperties, endpoint[path][method]);
-            }
-
-            endpoint[path][method] = deleteUnusedProperties({ ...buildEmptyEndpoint(), ...endpoint[path][method] });
-
-
-            var debug = null;
-        } else if (isRoute(ast) && props.isLinkedMethod) {
-            /**
-             * Request method linked with route function
-             * e.g. router.route('/path').get(someMiddleware, someCallback)
-             */
-            props.linkedInheritedProperties = {
-                path: findPath(ast)
-            };
-
-            var debug = null;
-        } else {
-            // TODO: handle it 
-            var debug = null;
         }
-    }
 
-    props.paths = deepMerge(props.paths, endpoint);
-    return props;
+        props.paths = deepMerge(props.paths, endpoint);
+        return props;
+    } catch (err) {
+        console.log()
+        return props;
+    }
 }
 
 function changeToManualAttributes(handledParameters) {
@@ -410,7 +478,7 @@ async function handleRequestMethodParameters(ast, props) {
 
     const nodes = ast.arguments;
     const numArgs = ast.arguments.length;
-    const start = props.linkedInheritedProperties?.path && props.isLinkedMethod ? 0 : 1;
+    const start = props.inheritedProperties.find(i => i.isLinkedMethod && i.path) ? 0 : 1;
     for (let idxArgs = start; idxArgs < numArgs; ++idxArgs) {
         const node = nodes[idxArgs];
         const callbackFunction = await findCallbackFunction(node, props);    // TODO: change these names?
@@ -1119,7 +1187,13 @@ async function handleMiddleware(ast, props) {
                 const scope = props.scopeStack[idxScope];
                 const callback = await findCallbackFunction(scope, { ...props, scopeStack: [], functionName: node.name, externalAst: false });
                 if (!isObjectEmpty(callback)) {
-                    return { ...props, inheritedProperties: callback };
+                    props.inheritedProperties.push({
+                        path: null,
+                        isLinkedMethod: false,
+                        isMiddleware: false,
+                        content: callback
+                    });
+                    return { ...props };
                 }
                 var debug = null;
             }
@@ -1127,16 +1201,23 @@ async function handleMiddleware(ast, props) {
             let route = imports.find(imp => imp.variableName === node.name);
             let functionName = null;
             if (route) {
-                const processedFile = await processFile(route.path, { functionName, isSearchingFunction: props.isSearchingFunction, inheritedProperties: props.inheritedProperties });
+                // const filteredInheritedProperties = props.inheritedProperties.filter(i => i.isMiddleware);
+                const processedFile = await processFile(route.path, { functionName, isSearchingFunction: props.isSearchingFunction, inheritedProperties: props.inheritedProperties});
                 props.paths = deepMerge(props.paths, processedFile.paths);
-                props.inheritedProperties = processedFile.inheritedProperties;
+                props.inheritedProperties = processedFile.inheritedProperties || [];
                 var debug = null;
             }
             var debug = null;
         } else if (node.type === 'FunctionExpression') {
             const callback = await findCallbackFunction(node, { ...props });
             if (!isObjectEmpty(callback)) {
-                return { ...props, inheritedProperties: callback };
+                props.inheritedProperties.push({
+                    path: null,
+                    isLinkedMethod: false,
+                    isMiddleware: true,
+                    content: callback
+                });
+                return { ...props };
             }
             var debug = null;
         }
@@ -1160,15 +1241,32 @@ async function handleMiddleware(ast, props) {
         for (let idxArg = 1; idxArg < numArgs; ++idxArg) {
             const argument = ast.arguments[idxArg];
             if (argument.type === 'Identifier') {
+
+                /**
+                 * Case: router.use('/somePath', router);
+                 */
+                if (argument.name === ast.callee?.object?.name) {
+                    props.inheritedProperties.push({
+                        path: routeProperties.path,
+                        isLinkedMethod: false,
+                        isMiddleware: false,
+                        isSelfRouted: true,
+                        content: null
+                    });
+                    return props;
+                }
+
                 let route = imports.find(imp => imp.variableName === argument.name);
                 let functionName = null;
                 if (route?.variableName?.includes('.')) {
                     functionName = route?.variableName.split('.')[1];
                 }
                 if (route) {
-                    const processedFile = await processFile(route.path, { functionName, routeProperties });
+                    const filteredInheritedProperties = props.inheritedProperties.filter(i => i.isMiddleware);
+                    // const processedFile = await processFile(route.path, { functionName, isSearchingFunction: props.isSearchingFunction, inheritedProperties: props.inheritedProperties, routeProperties });
+                    const processedFile = await processFile(route.path, { functionName, routeProperties, inheritedProperties: filteredInheritedProperties});
                     props.paths = deepMerge(props.paths, processedFile.paths);
-                    props.inheritedProperties = processedFile.inheritedProperties;
+                    props.inheritedProperties = processedFile.inheritedProperties || [];
                     var debug = null;
                 }
                 var debug = null;
@@ -1240,7 +1338,7 @@ async function findImports(ast, props) {
     return new Set([...props.imports, ...imports]);;
 }
 
-function findPath(ast) {
+function findPath(ast, props) {
     let path;
 
     /**
@@ -1253,6 +1351,13 @@ function findPath(ast) {
     } else {
         // TODO: solve variable value
         var debug = null;
+    }
+
+    if (!path) {
+        const found = props.inheritedProperties.findLast(p => p.isLinkedMethod === true && !p.isMiddleware && p.path);
+        if (found) {
+            path = found.path;
+        }
     }
 
     return path;
