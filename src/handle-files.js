@@ -25,8 +25,9 @@ const overwriteMerge = (destinationArray, sourceArray, options) => {
 // TODO: create tag #swagger.contentType to generate responses with specific content type. e.g: #swagger.contentType = ['json', 'xml']
 // TODO: check error messages
 // TODO: Automaticaly recognise 'tags' based on path. e.g.: /api/users  -> tags = ['Users'] OR /v1/auth/.../ -> tags = ['Auth']
+// TODO: implement dev property. e.g.: devMode: true. It'll log everything such as erros, debus, non handled parts (search for "handle it")
 
-/* Deprecated:
+/* Deprecated stuffs:
     #swagger.start and #swagger.end
     xml as default
 */
@@ -409,6 +410,8 @@ function formatPath(path) {
         return path;
     }
 
+    formattedPath = formattedPath.replaceAll('//', '/');
+    formattedPath = formattedPath.replaceAll('\\\\', '\\');
     return formattedPath;
 }
 
@@ -1335,14 +1338,40 @@ async function findImports(ast, props) {
                 imports.push({
                     variableName,
                     path
-                })
+                });
 
             }
             var debug = null;
         } else {
+            // handle it
+            var debug = null;
+        }
+
+        var debug = null;
+    } else if (ast.type === 'ImportDeclaration') {
+        let variableName;
+        if (ast.specifiers[0]?.local?.name) {
+            variableName = ast.specifiers[0].local.name;
+        } else {
             // TODO: handle it
         }
 
+        let path;
+        if (ast.source?.type === 'StringLiteral') {
+            path = ast.source.value;
+        } else {
+            // TODO: handle it
+        }
+
+        if (path.includes('./')) {
+            var debug = null;
+        }
+        path = await pathSolver(path, props.relativePath);
+
+        imports.push({
+            variableName,
+            path
+        });
         var debug = null;
     }
 
@@ -1850,21 +1879,32 @@ async function pathSolver(path, relativePath) {
 
             // TODO: put in a function
             solvedPath = RelativePathBacked + '/' + path.trim().replaceAll('../', '/');
-            solvedPath = solvedPath.replaceAll('//', '/');
-            solvedPath = solvedPath.replaceAll('\\\\', '\\');
-            const extension = await utils.getExtension(solvedPath);
+            let extension = await utils.getExtension(solvedPath);
             if (extension === '' && (await utils.getExtension('.' + solvedPath)) !== '') {
                 solvedPath = '.' + solvedPath;
+            } else if (fs.existsSync(solvedPath) && fs.lstatSync(solvedPath).isDirectory()) {
+                extension = await utils.getExtension(solvedPath + '/index');
+                if (extension !== '') {
+                    solvedPath = solvedPath + '/index';
+                }
             }
+            solvedPath = solvedPath.replaceAll('//', '/');
+            solvedPath = solvedPath.replaceAll('\\\\', '\\');
             solvedPath = solvedPath + extension;
         } else {
             solvedPath = relativePath + path.trim().replaceAll('./', '/');
-            solvedPath = solvedPath.replaceAll('//', '/');
-            solvedPath = solvedPath.replaceAll('\\\\', '\\');
-            const extension = await utils.getExtension(solvedPath);
+
+            let extension = await utils.getExtension(solvedPath);
             if (extension === '' && (await utils.getExtension('.' + solvedPath)) !== '') {
                 solvedPath = '.' + solvedPath;
+            } else if (fs.existsSync(solvedPath) && fs.lstatSync(solvedPath).isDirectory()) {
+                extension = await utils.getExtension(solvedPath + '/index');
+                if (extension !== '') {
+                    solvedPath = solvedPath + '/index';
+                }
             }
+            solvedPath = solvedPath.replaceAll('//', '/');
+            solvedPath = solvedPath.replaceAll('\\\\', '\\');
             solvedPath = solvedPath + extension;
         }
     }
