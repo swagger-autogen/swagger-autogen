@@ -323,7 +323,9 @@ async function processAST(ast, props) {
                 for (let idxInherit = 0; idxInherit < props.inheritedProperties.length; ++idxInherit) {
                     const inheritedProperty = props.inheritedProperties[idxInherit]
                     if (!inheritedProperty.isLinkedMethod && inheritedProperty.content) {
-                        if (!inheritedProperty.path || (new RegExp(`^${inheritedProperty.path}`).test(path))) {
+                        if ((!inheritedProperty.path || (new RegExp(`^${inheritedProperty.path}`).test(path))) ||
+                            (!inheritedProperty.path || (props.routeProperties?.path && new RegExp(`^${props.routeProperties.path}${inheritedProperty.path}`).test(path)))
+                        ) {
                             endpoint[path][method] = deepMerge(inheritedProperty.content, endpoint[path][method]);
                         }
                     }
@@ -1206,7 +1208,6 @@ async function handleMiddleware(ast, props) {
                 // const filteredInheritedProperties = props.inheritedProperties.filter(i => i.isMiddleware);
                 const processedFile = await processFile(route.path, { functionName, isSearchingFunction: props.isSearchingFunction, inheritedProperties: props.inheritedProperties });
                 props.paths = deepMerge(props.paths, processedFile.paths);
-                props.inheritedProperties = processedFile.inheritedProperties || [];
                 var debug = null;
             }
             var debug = null;
@@ -1268,7 +1269,6 @@ async function handleMiddleware(ast, props) {
                     // const processedFile = await processFile(route.path, { functionName, isSearchingFunction: props.isSearchingFunction, inheritedProperties: props.inheritedProperties, routeProperties });
                     const processedFile = await processFile(route.path, { functionName, routeProperties, inheritedProperties: filteredInheritedProperties });
                     props.paths = deepMerge(props.paths, processedFile.paths);
-                    props.inheritedProperties = processedFile.inheritedProperties || [];
                     var debug = null;
                 }
                 var debug = null;
