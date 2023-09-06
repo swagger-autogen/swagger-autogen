@@ -1887,6 +1887,22 @@ function findAttributes(node, functionParametersName, props) {
             const response = findAttributes(node.body, functionParametersName, props);
             attributes = mergeAttributes(attributes, response);
             var debug = null;
+        } else if (node.type === 'SwitchStatement') {
+            for (let idxCase = 0; idxCase < node.cases.length; ++idxCase) {
+                const swaitchCase = node.cases[idxCase];
+                const response = findAttributes(swaitchCase, functionParametersName, props);
+                attributes = mergeAttributes(attributes, response);
+                var debug = null;
+            }
+            var debug = null;
+        } else if (node.type === 'SwitchCase') {
+            for (let idxConsequent = 0; idxConsequent < node.consequent.length; ++idxConsequent) {
+                const consequent = node.consequent[idxConsequent];
+                const response = findAttributes(consequent, functionParametersName, props);
+                attributes = mergeAttributes(attributes, response);
+                var debug = null;
+            }
+            var debug = null;
         }
 
         return attributes;
