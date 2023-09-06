@@ -26,6 +26,7 @@ const overwriteMerge = (destinationArray, sourceArray, options) => {
 // TODO: check error messages
 // TODO: Automaticaly recognise 'tags' based on path. e.g.: /api/users  -> tags = ['Users'] OR /v1/auth/.../ -> tags = ['Auth']
 // TODO: implement dev property. e.g.: devMode: true. It'll log everything such as erros, debus, non handled parts (search for "handle it")
+// TODO: change simbol '@' for special keywords. Maybe '_'? It'll be more friendly to write
 
 /* Deprecated stuffs:
     #swagger.start and #swagger.end
@@ -209,13 +210,13 @@ async function processAST(ast, props) {
          * Nodes
          */
         if (ast.type === 'CallExpression') {
-            if (ast.end === 2309) {
+            if (ast.end === 217) {
                 var debug = null;
             }
             if (isMiddleware(ast)) {
                 const handledMiddleware = await handleMiddleware(ast, { ...props });
                 props.paths = deepMerge(props.paths, handledMiddleware.paths);
-                props.inheritedProperties = handledMiddleware.inheritedProperties || [];
+                // props.inheritedProperties = handledMiddleware.inheritedProperties || [];
                 return props;
             } else if (isHttpRequestMethod(ast)) {
                 if (!isValidNode(ast)) {
@@ -274,7 +275,7 @@ async function processAST(ast, props) {
 
                 path = formatPath(path);
 
-                if (path == '/signin') {
+                if (path == '/api/healthCheck') {
                     var debug = null;
                 }
 
@@ -286,7 +287,7 @@ async function processAST(ast, props) {
 
                 const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
 
-                if (path == '/signin') {
+                if (path == '/api/healthCheck') {
                     var debug = null;
                 }
 
@@ -585,7 +586,7 @@ async function findCallbackFunction(node, props) {
      * app.get(..., someFunction(...), ...)
      */
 
-    if (node.end === 672) {
+    if (node.end === 340) {
         var debug = null;
     }
 
@@ -608,10 +609,26 @@ async function findCallbackFunction(node, props) {
                     return processedAst;
                 }
                 var debug = null;
+            } else {
+                var debug = null;
             }
 
             var debug = null;
         }
+    } else if (node.type === 'VariableDeclarator') {
+        const processedAst = await findCallbackFunction(node.init, { ...props });
+        return processedAst;
+    } else if (node.type === 'VariableDeclaration') {
+        for (let idxDeclaration = 0; idxDeclaration < node.declarations?.length; ++idxDeclaration) {
+            const declaration = node.declarations[idxDeclaration];
+            const processedAst = await findCallbackFunction(declaration, { ...props });
+            if (!isObjectEmpty(processedAst)) {
+                return processedAst;
+            }
+        }
+    } else if (node.type === 'ExportNamedDeclaration') {
+        const processedAst = await findCallbackFunction(node.declaration, { ...props });
+        return processedAst;
     } else if (node.type === 'ExpressionStatement') {
         const processedAst = await findCallbackFunction(node.expression, { ...props });
         return processedAst;
@@ -649,7 +666,7 @@ async function findCallbackFunction(node, props) {
 
     } else if (isValidFunction(node, props)) {
 
-        if (node.end === 4038) {
+        if (node.end === 340) {
             var debug = null;
         }
 
@@ -674,7 +691,7 @@ async function findCallbackFunction(node, props) {
 
         var debug = null;
     } else if (node.type === 'Identifier') {
-        if (node.end === 672) {
+        if (node.end === 186) {
             var debug = null;
         }
 
@@ -746,6 +763,11 @@ async function findCallbackFunction(node, props) {
 
 function isModuleExports(node) {
     let auxNode = { ...node };
+
+    if (node.type === 'ExportNamedDeclaration') {
+        return true;
+    }
+
     if (node.type === 'ExpressionStatement') {
         auxNode = { ...node.expression };
     }
@@ -1262,6 +1284,8 @@ async function handleMiddleware(ast, props) {
                     return props;
                 }
 
+                routeProperties.path = removeDoubleSlashes((props.routeProperties?.path || '') + routeProperties.path);
+
                 let route = imports.find(imp => imp.variableName === argument.name);
                 let functionName = null;
                 if (route?.variableName?.includes('.')) {
@@ -1279,7 +1303,7 @@ async function handleMiddleware(ast, props) {
                 const callback = await findCallbackFunction(argument, { ...props });
                 if (!isObjectEmpty(callback)) {
                     props.inheritedProperties.push({
-                        path: routeProperties.path,
+                        path: removeDoubleSlashes((props.routeProperties?.path || '') + routeProperties.path),
                         isLinkedMethod: false,
                         isMiddleware: true,
                         content: callback
@@ -1299,6 +1323,12 @@ async function handleMiddleware(ast, props) {
     }
 
     return props;
+}
+
+function removeDoubleSlashes(str) {
+    str = str.replaceAll('//', '/');
+    str = str.replaceAll('\\\\', '\\');
+    return str;
 }
 
 async function findImports(ast, props) {
@@ -1368,6 +1398,8 @@ async function findImports(ast, props) {
         }
         path = await pathSolver(path, props.relativePath);
 
+        path = await indexFileSolver(path, variableName, props);
+
         imports.push({
             variableName,
             path
@@ -1376,6 +1408,31 @@ async function findImports(ast, props) {
     }
 
     return new Set([...props.imports, ...imports]);;
+}
+
+async function indexFileSolver(path, variableName, props) {
+    /**
+     * Case: find referente in the index file, such as: export ... from
+     * e.g.: export { fooMethod } from './fooFile';
+     */
+    if (/\/index\.[a-z|A-Z]{2,3}$/.test(path)) {
+        const externalAst = await getAstFromFile(path, { ...props });
+        if (externalAst.ast.type === 'Program') {
+            for (let bodyIdx = 0; bodyIdx < externalAst.ast.body.length; ++bodyIdx) {
+                let body = externalAst.ast.body[bodyIdx];
+                if (body.type === 'ExportNamedDeclaration' &&
+                    body.specifiers[0]?.local?.name === variableName &&
+                    body.source.type === 'StringLiteral'
+                ) {
+                    let newPath = await pathSolver(body.source.value, externalAst.props.relativePath);
+                    return newPath;
+                }
+            }
+        }
+        var debug = null;
+    }
+
+    return path;
 }
 
 function findPath(ast, props) {
@@ -1889,7 +1946,7 @@ async function pathSolver(path, relativePath) {
                 }
             }
             solvedPath = solvedPath.replaceAll('//', '/');
-            solvedPath = solvedPath.replaceAll('\\\\', '\\');
+            solvedPath = solvedPath.replaceAll('\\\\', '\\');   // TODO: change for removeDoubleSlashes()
             solvedPath = solvedPath + extension;
         } else {
             solvedPath = relativePath + path.trim().replaceAll('./', '/');
