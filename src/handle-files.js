@@ -275,7 +275,7 @@ async function processAST(ast, props) {
 
                 path = formatPath(path);
 
-                if (path == '/api/{session}/{secretkey}/generate-token') {
+                if (path == '/api/{secretkey}/start-all') {
                     var debug = null;
                 }
 
@@ -287,7 +287,7 @@ async function processAST(ast, props) {
 
                 const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
 
-                if (path == '/api/{session}/{secretkey}/generate-token') {
+                if (path == '/api/{secretkey}/start-all') {
                     var debug = null;
                 }
 
@@ -490,7 +490,7 @@ async function handleRequestMethodParameters(ast, props) {
     for (let idxArgs = start; idxArgs < numArgs; ++idxArgs) {
         const node = nodes[idxArgs];
         const callbackFunction = await findCallbackFunction(node, props);    // TODO: change these names?
-        endpoint.parameters = [...endpoint.parameters, ...callbackFunction.queryParameters];
+        endpoint.parameters = [...endpoint.parameters, ...callbackFunction.queryParameters, ...callbackFunction.headerParameters];
         if (callbackFunction.produces?.length > 0) {
             endpoint.produces = [...new Set([...(endpoint.produces || []), ...callbackFunction.produces])];
         }
@@ -523,7 +523,11 @@ async function handleRequestMethodParameters(ast, props) {
         if (handledComments.auto === false) {
             return handledComments;
         }
+        endpoint = filterAutomaticRecognitions(endpoint, handledComments);
+
         endpoint = deepMerge({ ...endpoint }, { ...handledComments })
+        endpoint.parameters = handleParameters(endpoint.parameters, handledComments);
+        endpoint = sanitizeEndpoint(endpoint);
         var debug = null;
     }
 
@@ -569,11 +573,84 @@ async function handleRequestMethodParameters(ast, props) {
     return endpoint;
 }
 
+function sanitizeEndpoint(originalEndpoint) {
+    let endpoint = { ...originalEndpoint };
+
+    if (hasObjectProperty(endpoint, 'autoHeaders')) {
+        delete endpoint.autoHeaders;
+    }
+    if (hasObjectProperty(endpoint, 'autoQuery')) {
+        delete endpoint.autoQuery;
+    }
+    if (hasObjectProperty(endpoint, 'autoBody')) {
+        delete endpoint.autoBody;
+    }
+
+    return endpoint;
+}
+
+function filterAutomaticRecognitions(originalEndpoint, handledComments) {
+    let endpoint = { ...originalEndpoint };
+
+    if (endpoint.parameters.length) {
+        let handledParameters = endpoint.parameters.filter(parameter => {
+            if (handledComments.autoHeaders === false && parameter.in === 'header') {
+                return false;
+            } else if (handledComments.autoQuery === false && parameter.in === 'query') {
+                return false;
+            } else if (handledComments.autoBody === false && parameter.in === 'body') {
+                return false;
+            }
+            return true;
+        });
+
+        // TODO: handle requestBody recognised automatically
+        endpoint.parameters = handledParameters;
+    }
+
+    return endpoint;
+}
+
+function handleParameters(parameters, handledComments) {
+    let handledParameters = [];
+    if (swaggerTags.getOpenAPI()) {
+        for (let idxParameter = 0; idxParameter < parameters.length; ++idxParameter) {
+            let parameter = parameters[idxParameter];
+
+            if (parameter.in === 'path' && hasObjectProperty(parameter, 'schema') && !parameter.schema.type) {
+                let auxSchema = {};
+
+                if (typeof parameter.schema === 'string') {
+                    auxSchema = {
+                        example: parameter.schema
+                    }
+                }
+
+                parameter.schema = {
+                    type: 'string',
+                    ...auxSchema
+                }
+            }
+
+            if (parameter.in === 'path' && parameter.type) {
+                delete parameter.type;
+            }
+
+            handledParameters.push(parameter);
+        }
+    } else {
+
+    }
+
+    return parameters;
+}
+
 async function findCallbackFunction(node, props) {
     let imports = [...props.imports];
     let callback = {
         produces: [],
         queryParameters: [],
+        headerParameters: [],
         requestBody: {},
         responses: {},
         comments: ''
@@ -683,6 +760,7 @@ async function findCallbackFunction(node, props) {
             let attributes = findAttributes(bodyNode, functionParametersName, { ...props, scopeStack: [node.body] })
             callback.requestBody = { ...callback.requestBody, ...attributes.body };
             callback.queryParameters = [...callback.queryParameters, ...attributes.query];
+            callback.headerParameters = [...callback.headerParameters, ...attributes.header];
             callback.responses = { ...callback.responses, ...attributes.responses };
             callback.produces = [...callback.produces, ...attributes.produces];
             callback.comments += attributes.comments;
@@ -882,7 +960,7 @@ function handleComments(comments, props) {
         }
 
         if (comments.hasSwaggerProperty('autoHeaders')) {
-            var debug = null;
+            handleComments.autoHeaders = getValueBoolean('autoHeaders', comments);
         }
 
         if (comments.hasSwaggerProperty('autoQuery')) {
@@ -923,6 +1001,10 @@ function handleComments(comments, props) {
 
         if (comments.hasSwaggerProperty('produces')) {
             handleComments.produces = getValueArray('produces', comments);
+        }
+
+        if (comments.hasSwaggerProperty('requestBody')) {
+            handleComments.requestBody = getRequestBody(comments, props);
         }
 
         if (comments.hasSwaggerProperty('responses')) {
@@ -987,6 +1069,40 @@ function getValueBoolean(key, comments) {
     }
 }
 
+function handleObjectContent(originalObject) {
+    const object = { ...originalObject };
+
+    if (hasObjectProperty(object, '@content')) {
+        object.content = object['@content'];
+        delete object['@content']
+    }
+    return object;
+
+}
+
+function getRequestBody(comments, props) {
+    try {
+        if (swaggerTags.getOpenAPI()) {
+            const rawRequestBody = comments.split(getSingleSwaggerPropertyRegex('requestBody')).slice(1)[0];
+            let object = eval(`(${getBetweenSymbols(rawRequestBody, '{', '}')})`);
+
+            object = handleObjectContent(object);
+
+            // if (hasSchema(object) && !object.schema?.$ref) {
+            //     object.schema = swaggerTags.formatDefinitions(object.schema);  // TODO: change formatDefinitions function name
+            // }
+
+            var debug = null;
+            return object;
+        }
+    } catch (err) {
+        if (true) { // TODO: put getDisableLogs()
+            console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.requestBody' out of structure in:\nFile:'${props.filePath}'\nMethod: [${props.endpoint?.method?.toUpperCase()}] -> '${props.endpoint?.path}'`);
+        }
+    }
+    return {};
+}
+
 function getResponses(comments, props) {
     let responses = {};
     try {
@@ -1040,12 +1156,21 @@ function getResponses(comments, props) {
     return [];
 }
 
+// TODO: change to hasObjectProperty
 function hasSchema(object) {
     if (!object) {
         return false;
     }
     return Object.keys(object).includes('schema')
 }
+
+function hasObjectProperty(object, property) {
+    if (!object) {
+        return false;
+    }
+    return Object.keys(object).includes(property)
+}
+
 
 
 function getBetweenSymbols(data, startSymbol, endSymbol, keepSymbol = true) {
@@ -1517,6 +1642,17 @@ function buildQueryParameter(name, query) {
     return buildQuery;
 }
 
+function buildHeaderParameter(name, header) {
+    let buildHeader = [...header];
+    buildHeader.push({
+        name: name,
+        in: 'header',
+        type: 'string'
+    });
+    return buildHeader;
+}
+
+
 function buildResponsesParameter(statusCode, responses) {
     let builtResponses = { ...responses };
     builtResponses[statusCode] = {
@@ -1568,7 +1704,7 @@ function findBodyAttributes(node, functionParametersName, props) {
          * const foo1 = req.body
          * const foo2 = foo.someAtrribute
          */
-        if (node.end === 592) {
+        if (node.end === 10291) {
             var debug = null;
         }
 
@@ -1590,6 +1726,9 @@ function findBodyAttributes(node, functionParametersName, props) {
 }
 
 function solveVariable(node, identifier) {
+    if (!node) {
+        return null;
+    }
     if (node.end === 536) {
         var debug = null;
     }
@@ -1623,6 +1762,41 @@ function solveVariable(node, identifier) {
     return null;
 }
 
+function findHeaderAttributes(node, functionParametersName) {
+    let header = [];
+
+    if (node.object?.object?.name === functionParametersName.request &&
+        node.object?.property?.name === 'headers' &&
+        node.property?.type === 'Identifier') {
+
+        header = buildHeaderParameter(node.property.name, header);
+        var debug = null;
+    } else if (node.value?.object?.object?.name === functionParametersName.request &&
+        node.value?.object?.property?.name === 'headers' &&
+        node.value?.property.type === 'Identifier') {
+
+        header = buildHeaderParameter(node.value.property.name, header);
+        var debug = null;
+    } else if (node.init?.object?.object?.name === functionParametersName.request &&
+        node.init.object.property?.name === 'headers' &&
+        node.init.property.type === 'Identifier') {
+        header = buildHeaderParameter(node.init.property.name, header);
+        var debug = null;
+    } else if (node.init?.object?.name === functionParametersName.request &&
+        node.init.property?.name === 'headers' &&
+        node.id?.properties?.length > 0) {
+        for (let idxProperty = 0; idxProperty < node.id.properties.length; ++idxProperty) {
+            let property = node.id.properties[idxProperty];
+            if (property.type === 'ObjectProperty' && property.key.type === 'Identifier') {
+                header = buildHeaderParameter(property.key.name, header);
+                var debug = null;
+            }
+            var debug = null;
+        }
+    }
+
+    return header;
+}
 
 function findQueryAttributes(node, functionParametersName) {
     let query = [];
@@ -1759,12 +1933,13 @@ function findAndMergeAttributes(node, functionParametersName, attributes, respon
     let handled = {
         body: {},
         query: [],
+        header: [],
         responses: {},
         produces: [],
         comments: ''
     }
 
-    if (node.end === 560) {
+    if (node.end === 10291) {
         var debug = null;
     }
 
@@ -1774,6 +1949,7 @@ function findAndMergeAttributes(node, functionParametersName, attributes, respon
 
     handled.body = { ...attributes.body, ...response.body, ...findBodyAttributes(node, functionParametersName, props) };
     handled.query = [...attributes.query, ...response.query, ...findQueryAttributes(node, functionParametersName)];
+    handled.header = [...attributes.header, ...response.header, ...findHeaderAttributes(node, functionParametersName)];
     handled.responses = { ...attributes.responses, ...response.responses, ...findStatusCodeAttributes(node, functionParametersName) };
     handled.produces = [...attributes.produces, ...response.produces, ...findProducesAttributes(node, functionParametersName)];
     handled.comments = attributes.comments + response.comments;
@@ -1785,6 +1961,7 @@ function mergeAttributes(attributes, response) {
     let handled = {
         body: {},
         query: [],
+        header: [],
         responses: {},
         produces: [],
         comments: ''
@@ -1792,6 +1969,7 @@ function mergeAttributes(attributes, response) {
 
     handled.body = { ...attributes.body, ...response.body };
     handled.query = [...attributes.query, ...response.query];
+    handled.header = [...attributes.header, ...response.header];
     handled.responses = { ...attributes.responses, ...response.responses };
     handled.produces = [...attributes.produces, ...response.produces];
     handled.comments = attributes.comments + response.comments;
@@ -1803,12 +1981,18 @@ function findAttributes(node, functionParametersName, props) {
     let attributes = {
         body: {},
         query: [],
+        header: [],
         responses: {},
         produces: [],
         comments: ''
     };
+
+    if (!node) {
+        return attributes;
+    }
+
     try {
-        if (node.end === 1485) {
+        if (node.end === 3959) {
             var debug = null;
         }
 
@@ -1871,7 +2055,7 @@ function findAttributes(node, functionParametersName, props) {
                 attributes = mergeAttributes(attributes, response);
                 var debug = null;
             }
-        } else if (node.type === 'ReturnStatement') {
+        } else if (['ReturnStatement', 'AwaitExpression'].includes(node.type)) {
             const response = findAttributes(node.argument, functionParametersName, props);
             attributes = mergeAttributes(attributes, response);
             var debug = null;
