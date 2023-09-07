@@ -43,11 +43,11 @@
     "tape-promise": "^4.0.0"
   },
   "dependencies": {
+    "@babel/parser": "^7.22.16",
     "acorn": "^7.4.1",
-    "babylon": "^7.0.0-beta.47",
     "deepmerge": "^4.2.2",
     "glob": "^7.1.7",
     "json5": "^2.2.3",
-    "recast": "^0.23.3"
+    "recast": "^0.23.4"
   }
 }
