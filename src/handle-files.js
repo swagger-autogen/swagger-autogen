@@ -275,7 +275,7 @@ async function processAST(ast, props) {
 
                 path = formatPath(path);
 
-                if (path == '/api/{secretkey}/start-all') {
+                if (path == '/api/{session}/qrcode-session') {
                     var debug = null;
                 }
 
@@ -287,7 +287,7 @@ async function processAST(ast, props) {
 
                 const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
 
-                if (path == '/api/{secretkey}/start-all') {
+                if (path == '/api/{session}/qrcode-session') {
                     var debug = null;
                 }
 
@@ -592,21 +592,19 @@ function sanitizeEndpoint(originalEndpoint) {
 function filterAutomaticRecognitions(originalEndpoint, handledComments) {
     let endpoint = { ...originalEndpoint };
 
-    if (endpoint.parameters.length) {
-        let handledParameters = endpoint.parameters.filter(parameter => {
-            if (handledComments.autoHeaders === false && parameter.in === 'header') {
-                return false;
-            } else if (handledComments.autoQuery === false && parameter.in === 'query') {
-                return false;
-            } else if (handledComments.autoBody === false && parameter.in === 'body') {
-                return false;
-            }
-            return true;
-        });
+    let handledParameters = endpoint.parameters.filter(parameter => {
+        if (handledComments.autoHeaders === false && parameter.in === 'header') {
+            return false;
+        } else if (handledComments.autoQuery === false && parameter.in === 'query') {
+            return false;
+        } else if (handledComments.autoBody === false && parameter.in === 'body') {
+            return false;
+        }
+        return true;
+    });
 
-        // TODO: handle requestBody recognised automatically
-        endpoint.parameters = handledParameters;
-    }
+    // TODO: handle requestBody recognised automatically
+    endpoint.parameters = handledParameters;
 
     return endpoint;
 }
@@ -617,7 +615,7 @@ function handleParameters(parameters, handledComments) {
         for (let idxParameter = 0; idxParameter < parameters.length; ++idxParameter) {
             let parameter = parameters[idxParameter];
 
-            if (parameter.in === 'path' && hasObjectProperty(parameter, 'schema') && !parameter.schema.type) {
+            if (hasObjectProperty(parameter, 'schema') && !parameter.schema.type) {
                 let auxSchema = {};
 
                 if (typeof parameter.schema === 'string') {
@@ -632,17 +630,31 @@ function handleParameters(parameters, handledComments) {
                 }
             }
 
-            if (parameter.in === 'path' && parameter.type) {
+            if (parameter.type) {
                 delete parameter.type;
+            }
+
+            if (!hasObjectProperty(parameter, 'schema')) {
+                parameter.schema = {
+                    type: 'string'
+                }
+            }
+
+            if (!parameter.in) {
+                parameter = {
+                    name: parameter.name,
+                    in: 'query',
+                    ...parameter
+                }
             }
 
             handledParameters.push(parameter);
         }
     } else {
-
+        handledParameters = parameters;
     }
 
-    return parameters;
+    return handledParameters;
 }
 
 async function findCallbackFunction(node, props) {
@@ -1061,7 +1073,7 @@ function getValueString(key, comments) {
 function getValueBoolean(key, comments) {
     try {
         const rawValue = comments.split(getSingleSwaggerPropertyRegex(key))[1];
-        return rawValue === 'true';
+        return /^true/.test(rawValue);
     } catch (err) {
         if (true) { // TODO: put getDisableLogs()
             console.error(`[swagger-autogen]: '${statics.SWAGGER_TAG}.${key}' out of structure in:`);
@@ -2005,8 +2017,10 @@ function findAttributes(node, functionParametersName, props) {
             attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes }, handlerResponse, props)
             var debug = null;
         } else if (node.type === 'IfStatement') {
-            const response = findAttributes(node.consequent, functionParametersName, props);
-            attributes = mergeAttributes(attributes, response);
+            const responseConsequent = findAttributes(node.consequent, functionParametersName, props);
+            attributes = mergeAttributes(attributes, responseConsequent);
+            const responseAlternate = findAttributes(node.alternate, functionParametersName, props);
+            attributes = mergeAttributes(attributes, responseAlternate);
             var debug = null;
         } else if (node.type === 'MemberExpression') {
             attributes = findAndMergeAttributes(node, functionParametersName, { ...attributes }, null, props)
