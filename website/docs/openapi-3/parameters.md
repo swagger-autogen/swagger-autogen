@@ -47,7 +47,7 @@ app.get('/path', (req, res) => {
     ...
     /*  #swagger.parameters['parameterName'] = {
             in: 'query',
-            description: 'Some description...'
+            description: 'Some description...',
             type: 'number'
     } */
     ...
