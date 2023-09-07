@@ -1987,5 +1987,6 @@ async function pathSolver(path, relativePath) {
 
 module.exports = {
     setOptions,
-    processFile
+    processFile,
+    pathSolver
 };
