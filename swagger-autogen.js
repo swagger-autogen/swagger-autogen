@@ -64,10 +64,10 @@ const init = async (outputFile, endpointsFiles, data) => {
         if (platform === 'win32') {
             let basePath = process.argv[1].split('\\').slice(0, -1).join('\\');
             basePath = basePath.replaceAll('\\', '/');
-            outputFile = await handleFiles.resolvePathFile(outputFile, basePath);
+            outputFile = await handleFiles.pathSolver(outputFile, basePath);
         } else if (outputFile.split(new RegExp("^/")).length == 1 && process && process.argv[1]) {
             let basePath = process.argv[1].split('/').slice(0, -1).join('/');
-            outputFile = await handleFiles.resolvePathFile(outputFile, basePath);
+            outputFile = await handleFiles.pathSolver(outputFile, basePath);
         }
 
         let allFiles = [];
@@ -79,10 +79,10 @@ const init = async (outputFile, endpointsFiles, data) => {
             if (platform === 'win32') {
                 let basePath = process.argv[1].split('\\').slice(0, -1).join('\\');
                 basePath = basePath.replaceAll('\\', '/');
-                file = await handleFiles.resolvePathFile(file, basePath);
+                file = await handleFiles.pathSolver(file, basePath);
             } else if (file.split(new RegExp("^/")).length == 1 && process && process.argv[1]) {
                 let basePath = process.argv[1].split('/').slice(0, -1).join('/');
-                file = await handleFiles.resolvePathFile(file, basePath);
+                file = await handleFiles.pathSolver(file, basePath);
             }
 
             if (file.includes('*')) {
