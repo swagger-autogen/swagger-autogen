@@ -24,7 +24,7 @@ All optional parameters:
 ```
 
 **description:** The parameter description.  
-**schema:** See section [Schemas and Components](docs/openapi-3/schemas-and-components)
+**schema:** See section [Schemas and Components](/docs/openapi-3/schemas-and-components)
 
 ```js title="Example #1"
 app.get('/path', (req, res, next) => {
