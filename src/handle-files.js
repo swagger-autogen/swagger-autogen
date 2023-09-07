@@ -275,7 +275,7 @@ async function processAST(ast, props) {
 
                 path = formatPath(path);
 
-                if (path == '/api/healthCheck') {
+                if (path == '/api/{session}/{secretkey}/generate-token') {
                     var debug = null;
                 }
 
@@ -287,7 +287,7 @@ async function processAST(ast, props) {
 
                 const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
 
-                if (path == '/api/healthCheck') {
+                if (path == '/api/{session}/{secretkey}/generate-token') {
                     var debug = null;
                 }
 
@@ -1676,14 +1676,14 @@ function findStatusCodeAttributes(node, functionParametersName) {
         const statusCodeList = findStatusCode(node.object.arguments[0]);
         for (let idxStatusCode = 0; idxStatusCode < statusCodeList.length; ++idxStatusCode) {
             const statusCode = statusCodeList[idxStatusCode];
-            if (swaggerTags.getOpenAPI()) { // TODO: improve this. put in a better place
-                // TODO: handle it
-                var debug = null;
-            } else {
-                // Swagger 2.0
-                responses = { ...responses, ...buildResponsesParameter(statusCode, responses) };
-                var debug = null;
-            }
+            // if (swaggerTags.getOpenAPI()) { // TODO: improve this. put in a better place
+            //     // TODO: handle it
+            //     var debug = null;
+            // } else {
+            // Swagger 2.0
+            responses = { ...responses, ...buildResponsesParameter(statusCode, responses) };
+            var debug = null;
+            // }
         }
         var debug = null;
     } else if (node.object?.name === functionParametersName.response &&
@@ -1808,7 +1808,7 @@ function findAttributes(node, functionParametersName, props) {
         comments: ''
     };
     try {
-        if (node.end === 3789) {
+        if (node.end === 1485) {
             var debug = null;
         }
 
@@ -1883,7 +1883,7 @@ function findAttributes(node, functionParametersName, props) {
                 var debug = null;
             }
             var debug = null;
-        } else if (['CatchClause', 'ArrowFunctionExpression'].includes(node.type)) {
+        } else if (['CatchClause', 'ArrowFunctionExpression', 'FunctionExpression'].includes(node.type)) {
             const response = findAttributes(node.body, functionParametersName, props);
             attributes = mergeAttributes(attributes, response);
             var debug = null;
