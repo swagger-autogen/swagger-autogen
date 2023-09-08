@@ -27,6 +27,7 @@ const overwriteMerge = (destinationArray, sourceArray, options) => {
 // TODO: Automaticaly recognise 'tags' based on path. e.g.: /api/users  -> tags = ['Users'] OR /v1/auth/.../ -> tags = ['Auth']
 // TODO: implement dev property. e.g.: devMode: true. It'll log everything such as erros, debus, non handled parts (search for "handle it")
 // TODO: change simbol '@' for special keywords. Maybe '_'? It'll be more friendly to write
+// TODO: handle while in findAttributes
 
 /* Deprecated stuffs:
     #swagger.start and #swagger.end
@@ -275,7 +276,7 @@ async function processAST(ast, props) {
 
                 path = formatPath(path);
 
-                if (path == '/api/{session}/qrcode-session') {
+                if (path == '/api/{session}/all-groups') {
                     var debug = null;
                 }
 
@@ -287,7 +288,7 @@ async function processAST(ast, props) {
 
                 const handledParameters = await handleRequestMethodParameters(ast, { ...props, endpoint: endpoint[path][method] });
 
-                if (path == '/api/{session}/qrcode-session') {
+                if (path == '/api/{session}/all-groups') {
                     var debug = null;
                 }
 
@@ -675,7 +676,7 @@ async function findCallbackFunction(node, props) {
      * app.get(..., someFunction(...), ...)
      */
 
-    if (node.end === 340) {
+    if (node.end === 2317) {
         var debug = null;
     }
 
@@ -685,7 +686,7 @@ async function findCallbackFunction(node, props) {
 
             if (!props.externalAst) {
                 const processedAst = await findCallbackFunction(body, { ...props });
-                if (!isObjectEmpty(processedAst)) {
+                if (!isObjectEmpty(processedAst)) { // put it outside
                     return processedAst;
                 }
                 var debug = null;
@@ -694,11 +695,18 @@ async function findCallbackFunction(node, props) {
                  * Searching for module.exports = ...
                  */
                 const processedAst = await findCallbackFunction(body, { ...props, scopeStack: [node] });
-                if (!isObjectEmpty(processedAst)) {
+                if (!isObjectEmpty(processedAst)) { // put it outside
                     return processedAst;
                 }
                 var debug = null;
-            } else {
+            } else if (body.type === 'ExportDefaultDeclaration') {
+                /**
+                 * Searching for pattern: export default foo;
+                 */
+                const processedAst = await findCallbackFunction(body.declaration, { ...props, scopeStack: [node] });
+                if (!isObjectEmpty(processedAst)) { // put it outside
+                    return processedAst;
+                }
                 var debug = null;
             }
 
@@ -755,7 +763,7 @@ async function findCallbackFunction(node, props) {
 
     } else if (isValidFunction(node, props)) {
 
-        if (node.end === 340) {
+        if (node.end === 2317) {
             var debug = null;
         }
 
@@ -781,7 +789,7 @@ async function findCallbackFunction(node, props) {
 
         var debug = null;
     } else if (node.type === 'Identifier') {
-        if (node.end === 186) {
+        if (node.end === 5490) {
             var debug = null;
         }
 
@@ -2081,7 +2089,7 @@ function findAttributes(node, functionParametersName, props) {
                 var debug = null;
             }
             var debug = null;
-        } else if (['CatchClause', 'ArrowFunctionExpression', 'FunctionExpression'].includes(node.type)) {
+        } else if (['CatchClause', 'ArrowFunctionExpression', 'FunctionExpression', 'ForOfStatement'].includes(node.type)) {
             const response = findAttributes(node.body, functionParametersName, props);
             attributes = mergeAttributes(attributes, response);
             var debug = null;
@@ -2101,7 +2109,7 @@ function findAttributes(node, functionParametersName, props) {
                 var debug = null;
             }
             var debug = null;
-        }
+        } 
 
         return attributes;
     } catch (err) {
