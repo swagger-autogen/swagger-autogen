@@ -28,6 +28,7 @@ const overwriteMerge = (destinationArray, sourceArray, options) => {
 // TODO: implement dev property. e.g.: devMode: true. It'll log everything such as erros, debus, non handled parts (search for "handle it")
 // TODO: change simbol '@' for special keywords. Maybe '_'? It'll be more friendly to write
 // TODO: handle while in findAttributes
+// TODO: change classic FOR to -> for (let foo of foos)
 
 /* Deprecated stuffs:
     #swagger.start and #swagger.end
@@ -36,7 +37,21 @@ const overwriteMerge = (destinationArray, sourceArray, options) => {
 
 const recast = require('recast');
 const tsParser = require("recast/parsers/typescript");
+let cache = new Set(); // TODO: test with new Set()
 
+function cacheFind(key) {
+
+    const found = Array.from(cache).find(e => e.key === key);
+    if (found) {
+        return found.value;
+    }
+
+    return null;
+}
+
+function cacheSave(key, value) {
+    cache.add({ key, value })
+}
 
 function getAstFromFile(filePath, props = {}) {
     return new Promise(resolve => {
@@ -361,7 +376,6 @@ async function processAST(ast, props) {
         props.paths = deepMerge(props.paths, endpoint);
         return props;
     } catch (err) {
-        console.log()
         return props;
     }
 }
@@ -806,8 +820,15 @@ async function findCallbackFunction(node, props) {
 
         let route = imports.find(imp => imp.variableName === node.name);
         if (route) {
+
+            const cacheFound = cacheFind(route)
+            if (cacheFound) {
+                return cacheFound;
+            }
             const externalAst = await getAstFromFile(route.path, { ...props })
             const callback = await findCallbackFunction(externalAst.ast, { ...externalAst.props, externalAst: true });
+
+            cacheSave(route, callback)
             var debug = null;
             return callback;
         } else {
@@ -828,9 +849,15 @@ async function findCallbackFunction(node, props) {
             functionName = node.property?.name;
         }
         if (route) {
+            const cacheFound = cacheFind({ ...route, ...functionName })
+            if (cacheFound) {
+                return cacheFound;
+            }
+
             const externalAst = await getAstFromFile(route.path, { ...props })
             const callback = await findCallbackFunction(externalAst.ast, { ...externalAst.props, functionName, externalAst: true });
             var debug = null;
+            cacheSave({ ...route, ...functionName }, callback)
             return callback;
         }
         var debug = null;
@@ -1375,9 +1402,14 @@ async function handleMiddleware(ast, props) {
             let route = imports.find(imp => imp.variableName === node.name);
             let functionName = null;
             if (route) {
-                // const filteredInheritedProperties = props.inheritedProperties.filter(i => i.isMiddleware);
-                const processedFile = await processFile(route.path, { functionName, isSearchingFunction: props.isSearchingFunction, inheritedProperties: props.inheritedProperties });
+                const cacheFound = cacheFind({...route, ...functionName})
+                if (cacheFound) {
+                    return cacheFound;
+                }
+                const processedFile = await processFile(route.path, { functionName, inheritedProperties: props.inheritedProperties });
+                cacheSave({...route, ...functionName}, processedFile)
                 props.paths = deepMerge(props.paths, processedFile.paths);
+                
                 var debug = null;
             }
             var debug = null;
@@ -1438,7 +1470,6 @@ async function handleMiddleware(ast, props) {
                 }
                 if (route) {
                     const filteredInheritedProperties = props.inheritedProperties.filter(i => i.isMiddleware);
-                    // const processedFile = await processFile(route.path, { functionName, isSearchingFunction: props.isSearchingFunction, inheritedProperties: props.inheritedProperties, routeProperties });
                     const processedFile = await processFile(route.path, { functionName, routeProperties, inheritedProperties: filteredInheritedProperties });
                     props.paths = deepMerge(props.paths, processedFile.paths);
                     var debug = null;
@@ -2109,7 +2140,7 @@ function findAttributes(node, functionParametersName, props) {
                 var debug = null;
             }
             var debug = null;
-        } 
+        }
 
         return attributes;
     } catch (err) {
