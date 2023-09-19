@@ -5,6 +5,7 @@ const handleFiles = require('./src/handle-files');
 const statics = require('./src/statics');
 const utils = require('./src/utils');
 const handleData = require('./src/handle-data');
+const merge = require('deepmerge');
 
 const { platform } = process;
 const symbols = platform === 'win32' ? { success: '', failed: '' } : { success: '✔', failed: '✖' };
@@ -163,7 +164,9 @@ const init = async (outputFile, endpointsFiles, data) => {
                 }
                 return false;
             }
-            objDoc.paths = { ...objDoc.paths, ...obj };
+            objDoc.paths = merge(objDoc.paths, obj, {
+                arrayMerge: overwriteMerge
+            });
         }
         let constainXML = false;
         if (JSON.stringify(objDoc).includes('application/xml')) {
@@ -365,4 +368,8 @@ const init = async (outputFile, endpointsFiles, data) => {
         }
         return { success: false, data: null };
     }
+};
+
+const overwriteMerge = (destinationArray, sourceArray, options) => {
+    if (destinationArray || sourceArray || options) return sourceArray;
 };
