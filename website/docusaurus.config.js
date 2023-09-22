@@ -172,52 +172,51 @@ const config = {
       // metadata: [
       //   {name: 'anyName', content: 'anyContent'},
       // ],
-      /*
+      
       footer: {
         style: 'dark',
         links: [
+          // {
+          //   title: 'About',
+          //   items: [
+          //     {
+          //       label: 'About',
+          //       to: '/about',
+          //     },
+          //   ],
+          // },
+          // {
+          //   title: 'More',
+          //   items: [
+          //     {
+          //       label: 'GitHub',
+          //       href: 'https://github.com/swagger-autogen/swagger-autogen',
+          //     },
+          //   ],
+          // },
+          {},
           {
-            title: 'Docs',
+            title: 'Legal',
             items: [
               {
-                label: 'Tutorial',
-                to: '/docs/intro',
+                label: 'Privacy Policy',
+                to: '/terms',
               },
             ],
           },
+          {},
           {
-            title: 'Community',
+            title: 'Page version',
             items: [
               {
-                label: 'Stack Overflow',
-                href: 'https://stackoverflow.com/questions/tagged/swagger-autogen',
-              },
-              {
-                label: 'Discord',
-                href: 'https://discordapp.com/invite/swagger-autogen',
-              },
-              {
-                label: 'Twitter',
-                href: 'https://twitter.com/swagger-autogen',
-              },
-            ],
-          },
-          {
-            title: 'More',
-            items: [
-              {
-                label: 'Blog',
-                to: '/blog',
-              },
-              {
-                label: 'GitHub',
-                href: 'https://github.com/swagger-autogen/swagger-autogen',
+                label: '1.0.3',
+                to: '/',
               },
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} Swagger Autogen, Inc. Built with Docusaurus.`,
-      },*/
+        copyright: `Copyright © ${new Date().getFullYear()} swagger-autogen`,
+      },
       prism: {
         theme: lightCodeTheme,
         darkTheme: darkCodeTheme,
