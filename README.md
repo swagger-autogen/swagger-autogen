@@ -43,9 +43,9 @@ Please refer to the documentation website on https://swagger-autogen.github.io.
 
 Check the [GitHub Releases page](https://github.com/swagger-autogen/swagger-autogen/releases).
 
-## Issues and Pull Requests
+## Issues
 
-Due to the number of open issues and the lack of time to respond with quality, I've disabled the opening of issues for now. I'm still keeping my eyes on the project and I intend to prioritize the issues already open. Once I have closed a satisfactory number of issues, I will open it again. Pull Requests are closed as well. Thank you for understanding.
+Due to the number of open issues and the lack of time to respond with quality, I've disabled the opening of issues for now. I'm still keeping my eyes on the project and I intend to prioritize the issues already open. Once I have closed a satisfactory number of issues, I will open it again. Thank you for understanding.
 
 ## License
 
